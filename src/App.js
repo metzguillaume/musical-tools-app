@@ -3,7 +3,7 @@ import * as Tone from 'tone'; // Import Tone.js directly
 
 // Component to render the "Intervals Quiz" HTML game within an iframe
 const IntervalsQuizFrame = () => (
-  <div className="w-full h-[600px] md:h-[700px] lg:h-[800px] flex justify-center items-center">
+  <div className="w-full h-[80vh] flex justify-center items-center">
     <iframe
       srcDoc={`<!DOCTYPE html>
 <html lang="en">
@@ -469,7 +469,7 @@ const IntervalsQuizFrame = () => (
 
 // Component to render the "Name The Interval" HTML game within an iframe
 const NameTheIntervalQuizFrame = () => (
-    <div className="w-full h-[600px] md:h-[700px] lg:h-[800px] flex justify-center items-center">
+    <div className="w-full h-[80vh] flex justify-center items-center">
       <iframe
         srcDoc={`<!DOCTYPE html>
 <html lang="en">
@@ -637,6 +637,20 @@ function App() {
   const [noteOctave, setNoteOctave] = useState(4);
   const [sharpsFlats, setSharpsFlats] = useState('sharps');
 
+  // Dynamically load Tailwind CSS and set body styles for the main page
+  useEffect(() => {
+    // Check if the script already exists to avoid adding it multiple times
+    if (!document.getElementById('tailwind-cdn')) {
+        const script = document.createElement('script');
+        script.id = 'tailwind-cdn';
+        script.src = "https://cdn.tailwindcss.com";
+        document.head.appendChild(script);
+    }
+    // Set the background color on the body
+    document.body.style.backgroundColor = '#0f172a'; // This is slate-900
+    document.body.style.fontFamily = "'Inter', sans-serif";
+  }, []);
+
   // Initialize Tone.js synth for metronome click
   useEffect(() => {
     // Only initialize if Tone is available, now that it's imported.
@@ -707,9 +721,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-900 font-inter text-gray-200 p-6 flex flex-col items-center">
-      {/* Tone.js is now imported via npm, so no global CDN script tag here for the main app.
-          The iframes will load their own if necessary via srcDoc. */}
-
       <header className="w-full max-w-5xl bg-slate-800 shadow-lg rounded-xl p-6 mb-8 text-center">
         <h1 className="text-4xl md:text-5xl font-extrabold text-teal-400 leading-tight">
           Musical Practice Tools
@@ -720,7 +731,7 @@ function App() {
       </header>
 
       {/* Main Category Navigation Tabs */}
-      <nav className="w-full max-w-5xl bg-slate-800 shadow-md rounded-xl p-2 mb-8 flex justify-center space-x-4">
+      <nav className="w-full max-w-5xl bg-slate-800 shadow-md rounded-xl p-2 mb-8 flex flex-wrap justify-center gap-2 md:gap-4">
         <button
           onClick={() => { setActiveCategory('practical'); setActivePracticalTab('metronome'); }}
           className={`px-6 py-3 rounded-full text-lg font-medium transition-all duration-300 ease-in-out
@@ -738,7 +749,7 @@ function App() {
       </nav>
 
       {/* Sub-Navigation Tabs based on Category */}
-      <nav className="w-full max-w-5xl bg-slate-800 shadow-md rounded-xl p-2 mb-8 flex justify-center space-x-4">
+      <nav className="w-full max-w-5xl bg-slate-800 shadow-md rounded-xl p-2 mb-8 flex flex-wrap justify-center gap-2 md:gap-4">
         {activeCategory === 'practical' && (
           <>
             <button

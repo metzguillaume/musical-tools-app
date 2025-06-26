@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SectionHeader from './SectionHeader';
+import SectionHeader from './SectionHeader'; // This was the problematic import path
 
 const NoteGenerator = () => {
   const [lastNote, setLastNote] = useState('');

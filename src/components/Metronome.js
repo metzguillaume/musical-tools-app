@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as Tone from 'tone';
-import SectionHeader from './SectionHeader'; // Assuming SectionHeader is also in components
+import SectionHeader from './SectionHeader'; // Corrected import path
 
 const Metronome = () => {
   const [bpm, setBpm] = useState(120);

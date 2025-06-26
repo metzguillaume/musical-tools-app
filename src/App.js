@@ -12,18 +12,10 @@ function App() {
   const [activePracticalTab, setActivePracticalTab] = useState('metronome'); // 'metronome', 'note-generator', 'drone-player'
   const [activeTheoryTab, setActiveTheoryTab] = useState('intervals-quiz'); // 'intervals-quiz', 'name-the-interval-quiz', 'music-theory-general'
 
-  // Dynamically load Tailwind CSS and set body styles for the main page
+  // The styling is now handled in public/index.html, so the useEffect hook that was here has been removed.
+  // We can add back a simple one just to set the body background color as a fallback.
   useEffect(() => {
-    // Check if the script already exists to avoid adding it multiple times
-    if (!document.getElementById('tailwind-cdn')) {
-        const script = document.createElement('script');
-        script.id = 'tailwind-cdn';
-        script.src = "https://cdn.tailwindcss.com";
-        document.head.appendChild(script);
-    }
-    // Set the background color and font on the body
     document.body.style.backgroundColor = '#0f172a'; // This is slate-900
-    document.body.style.fontFamily = "'Inter', sans-serif";
   }, []);
 
 

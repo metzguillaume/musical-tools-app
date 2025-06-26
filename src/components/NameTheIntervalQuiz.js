@@ -58,7 +58,7 @@ const NameTheIntervalQuiz = () => {
 
     useEffect(() => {
         startNewRound();
-    }, []); 
+    }, [startNewRound]); 
 
     const checkAnswer = useCallback(() => {
         if(isAnswered) return;
@@ -126,23 +126,23 @@ const NameTheIntervalQuiz = () => {
 
             <div className="grid grid-cols-2 gap-6">
                 <div>
-                    <h3 className="text-lg font-semibold text-gray-400 mb-3">Quality</h3>
-                    <div className="flex flex-col gap-2">
-                        {quizData.qualities.map(q => (
-                            <button key={q} onClick={() => handleSelection('quality', q)} disabled={isAnswered}
-                                className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.quality === q ? 'bg-blue-600 text-white' : 'bg-teal-600 hover:bg-teal-500'}`}>
-                                {q}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                <div>
                     <h3 className="text-lg font-semibold text-gray-400 mb-3">Number</h3>
                     <div className="grid grid-cols-2 gap-2">
                         {quizData.numericButtons.map(n => (
                             <button key={n} onClick={() => handleSelection('number', n)} disabled={isAnswered}
                                 className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.number === n ? 'bg-blue-600 text-white' : 'bg-teal-600 hover:bg-teal-500'}`}>
                                 {n}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-400 mb-3">Quality</h3>
+                    <div className="flex flex-col gap-2">
+                        {quizData.qualities.map(q => (
+                            <button key={q} onClick={() => handleSelection('quality', q)} disabled={isAnswered}
+                                className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.quality === q ? 'bg-blue-600 text-white' : 'bg-teal-600 hover:bg-teal-500'}`}>
+                                {q}
                             </button>
                         ))}
                     </div>

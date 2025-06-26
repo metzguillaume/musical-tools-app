@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 // Import all the components from their new files
-import IntervalsQuizFrame from './components/IntervalsQuizFrame';
-import NameTheIntervalQuizFrame from './components/NameTheIntervalQuizFrame';
+import IntervalsQuiz from './components/IntervalsQuiz';
+import NameTheIntervalQuiz from './components/NameTheIntervalQuiz';
 import SectionHeader from './components/SectionHeader';
 import Metronome from './components/Metronome';
 import NoteGenerator from './components/NoteGenerator';
@@ -12,8 +12,6 @@ function App() {
   const [activePracticalTab, setActivePracticalTab] = useState('metronome'); // 'metronome', 'note-generator', 'drone-player'
   const [activeTheoryTab, setActiveTheoryTab] = useState('intervals-quiz'); // 'intervals-quiz', 'name-the-interval-quiz', 'music-theory-general'
 
-  // The styling is now handled in public/index.html, so the useEffect hook that was here has been removed.
-  // We can add back a simple one just to set the body background color as a fallback.
   useEffect(() => {
     document.body.style.backgroundColor = '#0f172a'; // This is slate-900
   }, []);
@@ -124,18 +122,8 @@ function App() {
         {/* Theory Exercises Content */}
         {activeCategory === 'theory' && (
           <>
-            {activeTheoryTab === 'intervals-quiz' && (
-              <div className="flex flex-col items-center w-full">
-                <SectionHeader title="Intervals Quiz" />
-                <IntervalsQuizFrame />
-              </div>
-            )}
-            {activeTheoryTab === 'name-the-interval-quiz' && (
-              <div className="flex flex-col items-center w-full">
-                <SectionHeader title="Name The Interval Quiz" />
-                <NameTheIntervalQuizFrame />
-              </div>
-            )}
+            {activeTheoryTab === 'intervals-quiz' && <IntervalsQuiz />}
+            {activeTheoryTab === 'name-the-interval-quiz' && <NameTheIntervalQuiz />}
             {activeTheoryTab === 'music-theory-general' && (
               <div className="text-center p-10">
                 <p className="text-xl text-gray-400">

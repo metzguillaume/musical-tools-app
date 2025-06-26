@@ -136,7 +136,7 @@ function App() {
       </main>
 
       <footer className="w-full max-w-5xl text-center mt-8 text-gray-400 text-sm">
-        <p>&copy; 2024 Musical Practice Tools. All rights reserved.</p>
+        <p>&copy; 2025 Toon's Musical Practice Tools. All rights reserved.</p>
       </footer>
     </div>
   );

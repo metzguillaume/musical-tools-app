@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // This is the React version of the "Name The Interval Quiz"
 const NameTheIntervalQuiz = () => {
@@ -9,7 +9,7 @@ const NameTheIntervalQuiz = () => {
     const [correctInterval, setCorrectInterval] = useState(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [selected, setSelected] = useState({ quality: null, number: null });
-    const [lastQuestion, setLastQuestion] = useState(null);
+    const lastQuestionRef = useRef(null); // Use ref to avoid re-rendering loops
 
     // Memoize musical data to prevent re-declaration on every render
     const quizData = React.useMemo(() => ({
@@ -31,29 +31,85 @@ const NameTheIntervalQuiz = () => {
             { name: 'Major 7th', semitones: 11, genericType: 'seventh', quality: 'Major', number: '7th' },
             { name: 'Perfect Octave', semitones: 12, genericType: 'octave', quality: 'Perfect', number: 'Octave' }
         ],
+        // Helpers for musical calculations
+        naturalNoteAlphabeticalIndex: { 'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6 },
+        alphabeticalIndexToNaturalNote: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+        naturalNoteSemitoneOffsetFromC: { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 }
     }), []);
 
     const startNewRound = useCallback(() => {
         let newNote1, newNote2, chosenInterval;
-        
-        do {
-            chosenInterval = quizData.intervals[Math.floor(Math.random() * quizData.intervals.length)];
-            const notes = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-            const firstNoteIndex = Math.floor(Math.random() * notes.length);
-            const secondNoteIndex = (firstNoteIndex + chosenInterval.semitones) % 12;
-            newNote1 = notes[firstNoteIndex];
-            newNote2 = notes[secondNoteIndex];
-        } while (lastQuestion && newNote1 === lastQuestion.note1 && newNote2 === lastQuestion.note2);
+        let attempts = 0;
 
-        setNote1(newNote1);
-        setNote2(newNote2);
-        setCorrectInterval(chosenInterval);
-        setLastQuestion({ note1: newNote1, note2: newNote2 });
+        // Loop to find a valid, new question
+        while (attempts < 50) {
+            attempts++;
+            chosenInterval = quizData.intervals[Math.floor(Math.random() * quizData.intervals.length)];
+            
+            const { naturalNoteAlphabeticalIndex, alphabeticalIndexToNaturalNote, naturalNoteSemitoneOffsetFromC } = quizData;
+
+            // 1. Pick a random root note with a potential accidental
+            const rootNoteName = alphabeticalIndexToNaturalNote[Math.floor(Math.random() * 7)];
+            const accidentalVal = Math.floor(Math.random() * 3) - 1; // -1 for flat, 0 for natural, 1 for sharp
+            let rootAccidental = '';
+            if (accidentalVal === 1) rootAccidental = '#';
+            if (accidentalVal === -1) rootAccidental = 'b';
+            const note1Base = rootNoteName + rootAccidental;
+
+            // 2. Calculate the target note's letter name (e.g., a 3rd above G is always some kind of B)
+            const intervalNumber = parseInt(chosenInterval.number, 10) || (chosenInterval.number === 'Unison' || chosenInterval.number === 'Octave' ? 1 : 0);
+            const rootNoteIndex = naturalNoteAlphabeticalIndex[rootNoteName];
+            const targetNoteIndex = (rootNoteIndex + intervalNumber - 1) % 7;
+            const targetNoteName = alphabeticalIndexToNaturalNote[targetNoteIndex];
+
+            // 3. Calculate the required accidental for the target note
+            const rootNoteNaturalMidi = naturalNoteSemitoneOffsetFromC[rootNoteName];
+            const rootNoteActualMidi = rootNoteNaturalMidi + accidentalVal;
+            
+            let targetNoteNaturalMidi = naturalNoteSemitoneOffsetFromC[targetNoteName];
+            // Adjust for octave crossing
+            if (targetNoteIndex < rootNoteIndex || chosenInterval.number === 'Octave') {
+                targetNoteNaturalMidi += 12;
+            }
+
+            const targetNoteActualMidi = rootNoteActualMidi + chosenInterval.semitones;
+            const accidentalDifference = targetNoteActualMidi - targetNoteNaturalMidi;
+
+            let targetAccidental = '';
+            if (accidentalDifference === 1) targetAccidental = '#';
+            else if (accidentalDifference === 2) targetAccidental = '##';
+            else if (accidentalDifference === -1) targetAccidental = 'b';
+            else if (accidentalDifference === -2) targetAccidental = 'bb';
+            else if (accidentalDifference !== 0) continue; // Skip complex/invalid cases
+
+            const note2Base = targetNoteName + targetAccidental;
+
+            // Ensure we don't repeat the last question
+            if (lastQuestionRef.current && note1Base === lastQuestionRef.current.note1 && note2Base === lastQuestionRef.current.note2) {
+                continue;
+            }
+            
+            newNote1 = note1Base;
+            newNote2 = note2Base;
+            break; // Found a valid question
+        }
+
+        if (!newNote1 || !newNote2) {
+            // Fallback in case of an issue
+            setNote1('C');
+            setNote2('G');
+            setCorrectInterval(quizData.intervals.find(i => i.name === 'Perfect 5th'));
+        } else {
+            setNote1(newNote1);
+            setNote2(newNote2);
+            setCorrectInterval(chosenInterval);
+        }
         
+        lastQuestionRef.current = { note1: newNote1, note2: newNote2 };
         setFeedback({ message: '', type: '' });
         setSelected({ quality: null, number: null });
         setIsAnswered(false);
-    }, [quizData, lastQuestion]);
+    }, [quizData]);
 
 
     useEffect(() => {
@@ -126,23 +182,23 @@ const NameTheIntervalQuiz = () => {
 
             <div className="grid grid-cols-2 gap-6">
                 <div>
-                    <h3 className="text-lg font-semibold text-gray-400 mb-3">Number</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                        {quizData.numericButtons.map(n => (
-                            <button key={n} onClick={() => handleSelection('number', n)} disabled={isAnswered}
-                                className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.number === n ? 'bg-blue-600 text-white' : 'bg-teal-600 hover:bg-teal-500'}`}>
-                                {n}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                <div>
                     <h3 className="text-lg font-semibold text-gray-400 mb-3">Quality</h3>
                     <div className="flex flex-col gap-2">
                         {quizData.qualities.map(q => (
                             <button key={q} onClick={() => handleSelection('quality', q)} disabled={isAnswered}
                                 className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.quality === q ? 'bg-blue-600 text-white' : 'bg-teal-600 hover:bg-teal-500'}`}>
                                 {q}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-400 mb-3">Number</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                        {quizData.numericButtons.map(n => (
+                            <button key={n} onClick={() => handleSelection('number', n)} disabled={isAnswered}
+                                className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.number === n ? 'bg-blue-600 text-white' : 'bg-teal-600 hover:bg-teal-500'}`}>
+                                {n}
                             </button>
                         ))}
                     </div>

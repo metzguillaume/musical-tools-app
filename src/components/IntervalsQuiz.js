@@ -12,7 +12,7 @@ const IntervalsQuiz = () => {
     const [score, setScore] = useState(0);
     const [totalQuestions, setTotalQuestions] = useState(0);
     const [answerChecked, setAnswerChecked] = useState(false);
-    const [lastQuestion, setLastQuestion] = useState(null); // State to store the last question
+    const lastQuestionRef = useRef(null); // Use ref to avoid re-rendering loops
 
     const answerInputRef = useRef(null);
 
@@ -41,17 +41,17 @@ const IntervalsQuiz = () => {
             selectedMapData = intervalMaps[randomTypeKey];
             const notes = Object.keys(selectedMapData.map);
             randomRootNote = notes[Math.floor(Math.random() * notes.length)];
-        } while (lastQuestion && randomRootNote === lastQuestion.rootNote && selectedMapData.name === lastQuestion.intervalName);
+        } while (lastQuestionRef.current && randomRootNote === lastQuestionRef.current.rootNote && selectedMapData.name === lastQuestionRef.current.intervalName);
 
         setRootNote(randomRootNote);
         setIntervalName(selectedMapData.name);
         setCorrectTargetNote(selectedMapData.map[randomRootNote]);
-        setLastQuestion({ rootNote: randomRootNote, intervalName: selectedMapData.name });
+        lastQuestionRef.current = { rootNote: randomRootNote, intervalName: selectedMapData.name };
         
         if(screen === 'quiz') {
             setTotalQuestions(prev => prev + 1);
         }
-    }, [selectedIntervals, intervalMaps, lastQuestion, screen]);
+    }, [selectedIntervals, intervalMaps, screen]);
 
     const startQuiz = () => {
         setScore(0);
@@ -64,9 +64,9 @@ const IntervalsQuiz = () => {
         if (screen === 'quiz') {
             generateNewQuestion();
         }
-    }, [screen, generateNewQuestion]); // Dependency on screen change
+    }, [screen, generateNewQuestion]);
 
-    const checkAnswer = () => {
+    const checkAnswer = useCallback(() => {
         if(answerChecked) return;
 
         const normalize = (note) => note.replace(/#/g, 's').replace(/b/g, 'f').toLowerCase();
@@ -79,19 +79,17 @@ const IntervalsQuiz = () => {
             setFeedback({ message: `Incorrect. The answer was ${correctTargetNote}.`, type: 'incorrect' });
         }
         setAnswerChecked(true);
-    };
-
-    const handleEnterPress = (e) => {
-        if (e.key === 'Enter' && !answerChecked) {
-            checkAnswer();
-        }
-    };
+    }, [answerChecked, userAnswer, correctTargetNote]);
     
-    // Keyboard listener for the 'n' key to go to the next question
+    // Keyboard listener for the 'Enter' key
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (event.key.toLowerCase() === 'n' && answerChecked) {
-                generateNewQuestion();
+            if (event.key === 'Enter') {
+                if (answerChecked) {
+                    generateNewQuestion();
+                } else {
+                    checkAnswer();
+                }
             }
         };
 
@@ -99,7 +97,7 @@ const IntervalsQuiz = () => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [answerChecked, generateNewQuestion]);
+    }, [answerChecked, generateNewQuestion, checkAnswer]);
 
     const handleCheckboxChange = (e) => {
         const { name, checked } = e.target;
@@ -145,7 +143,6 @@ const IntervalsQuiz = () => {
                 type="text"
                 value={userAnswer}
                 onChange={(e) => setUserAnswer(e.target.value)}
-                onKeyPress={handleEnterPress}
                 className="w-full text-center text-2xl p-3 rounded-lg bg-slate-700 text-white border-2 border-slate-600 focus:border-blue-500 focus:outline-none mb-4"
                 placeholder="e.g., E, Bb"
                 disabled={answerChecked}
@@ -154,9 +151,10 @@ const IntervalsQuiz = () => {
                 {feedback.message || <>&nbsp;</>}
             </div>
             
-            {answerChecked && (
-                 <div className="text-center text-gray-400 mb-4 animate-pulse">Press 'n' for the next question</div>
-            )}
+            <div className="text-center text-gray-400 mb-4 min-h-[24px] animate-pulse">
+                {!answerChecked && "Press Enter to Submit"}
+                {answerChecked && "Press Enter for Next Question"}
+            </div>
 
             <div className="w-full flex gap-4">
                 <button onClick={checkAnswer} disabled={answerChecked} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg disabled:bg-gray-500 disabled:cursor-not-allowed">

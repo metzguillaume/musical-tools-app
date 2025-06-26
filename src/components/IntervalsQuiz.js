@@ -64,7 +64,7 @@ const IntervalsQuiz = () => {
         if (screen === 'quiz') {
             generateNewQuestion();
         }
-    }, [screen]); // Dependency on screen change
+    }, [screen, generateNewQuestion]); // Dependency on screen change
 
     const checkAnswer = () => {
         if(answerChecked) return;

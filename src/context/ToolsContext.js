@@ -7,7 +7,7 @@ export const useTools = () => useContext(ToolsContext);
 
 export const ToolsProvider = ({ children }) => {
     // ---- Global Tool State ----
-    const [activeTool, setActiveTool] = useState(null); // 'metronome', 'drone', 'timer', or null
+    const [activeTool, setActiveTool] = useState(null);
 
     const toggleActiveTool = (tool) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
@@ -16,8 +16,7 @@ export const ToolsProvider = ({ children }) => {
     // ---- Metronome State ----
     const [bpm, setBpm] = useState(120);
     const [isMetronomePlaying, setIsMetronomePlaying] = useState(false);
-    const metronomeIntervalRef = useRef(null);
-    const metronomeSynth = useRef(null);
+    const metronomePlayer = useRef(null); // Changed from synth to player
 
     // ---- Drone State ----
     const [droneNote, setDroneNote] = useState('C4');
@@ -29,30 +28,42 @@ export const ToolsProvider = ({ children }) => {
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const timerIntervalRef = useRef(null);
 
-    // Initialize Synths
+    // Initialize Synths and Players
     useEffect(() => {
-        metronomeSynth.current = new Tone.MembraneSynth().toDestination();
+        // Use Tone.Player for the metronome, pointing to the file in the public folder
+        metronomePlayer.current = new Tone.Player({
+            url: `${process.env.PUBLIC_URL}/sounds/click.wav`,
+            fadeOut: 0.1,
+        }).toDestination();
+
         droneSynth.current = new Tone.Oscillator('C4', 'sine').toDestination();
+        
         return () => {
-            metronomeSynth.current?.dispose();
+            metronomePlayer.current?.dispose();
             droneSynth.current?.dispose();
         };
     }, []);
 
     // ---- Metronome Logic ----
     const startMetronome = useCallback(() => {
+        if (!metronomePlayer.current || metronomePlayer.current.loaded === false) {
+             console.log("Metronome sound not loaded yet.");
+             return;
+        }
         Tone.start();
         setIsMetronomePlaying(true);
-        const intervalTime = (60 / bpm) * 1000;
-        metronomeSynth.current.triggerAttackRelease("C4", "8n", Tone.now());
-        metronomeIntervalRef.current = setInterval(() => {
-            metronomeSynth.current.triggerAttackRelease("C4", "8n", Tone.now());
-        }, intervalTime);
+        // Use Tone.Transport to schedule the clicks precisely
+        Tone.Transport.bpm.value = bpm;
+        Tone.Transport.scheduleRepeat(time => {
+            metronomePlayer.current.start(time);
+        }, "4n"); // "4n" means every quarter note
+        Tone.Transport.start();
     }, [bpm]);
 
     const stopMetronome = useCallback(() => {
         setIsMetronomePlaying(false);
-        clearInterval(metronomeIntervalRef.current);
+        Tone.Transport.stop();
+        Tone.Transport.cancel(); // Clear the scheduled events
     }, []);
 
     const toggleMetronome = useCallback(() => {
@@ -62,10 +73,9 @@ export const ToolsProvider = ({ children }) => {
 
     useEffect(() => {
         if (isMetronomePlaying) {
-            stopMetronome();
-            startMetronome();
+            Tone.Transport.bpm.value = bpm;
         }
-    }, [bpm, isMetronomePlaying, startMetronome, stopMetronome]);
+    }, [bpm, isMetronomePlaying]);
 
     // ---- Drone Logic ----
     const toggleDrone = useCallback(() => {

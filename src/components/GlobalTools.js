@@ -6,7 +6,7 @@ import Timer from './Timer';
 import Stopwatch from './Stopwatch';
 import PracticeLog from './PracticeLog';
 
-// This component is the persistent toolbar on the left of the screen.
+// This component is the persistent toolbar. It's a vertical bar on desktop and a horizontal one on mobile.
 const GlobalTools = () => {
     const { 
         activeTool, toggleActiveTool,
@@ -28,31 +28,44 @@ const GlobalTools = () => {
     ];
 
     return (
-        <div className={`fixed top-1/4 left-5 flex flex-col gap-2 z-40 transition-all duration-300 ${activeTool === 'log' ? 'w-96' : 'w-64'}`}>
+        // On mobile (default), it's a bar at the bottom. On medium screens and up, it's a sidebar on the left.
+        <div className={`fixed z-40 bg-slate-900/80 backdrop-blur-sm
+                     bottom-0 left-0 right-0 p-2 flex flex-row items-center justify-around gap-1 border-t border-slate-700
+                     md:top-1/4 md:left-5 md:right-auto md:bottom-auto md:flex-col md:items-stretch md:p-3 md:gap-2 md:border-t-0 md:rounded-lg md:border
+                     transition-all duration-300 ${activeTool === 'log' ? 'md:w-96' : 'md:w-64'}`}>
             {tools.map(tool => (
-                <div key={tool.name} className="bg-slate-800 rounded-lg shadow-lg border border-slate-700">
+                <div key={tool.name} className="bg-slate-800 rounded-lg shadow-lg border border-slate-700 flex-shrink-0">
                     <div className="flex items-center">
                         <button 
                             onClick={() => toggleActiveTool(tool.name)} 
-                            className="flex-grow text-left font-bold py-3 px-4 text-white transition-colors duration-300 hover:bg-indigo-700 rounded-l-lg"
+                            className="flex-grow text-left font-bold py-2 px-3 md:py-3 md:px-4 text-white transition-colors duration-300 hover:bg-indigo-700 rounded-l-lg text-sm md:text-base"
                         >
                             {tool.label}
                         </button>
                         {!tool.hidePlayPause && (
                             <button 
                                 onClick={(e) => { e.stopPropagation(); tool.toggle(); }}
-                                className="p-3 text-white hover:bg-indigo-700 rounded-r-lg"
+                                className="p-2 md:p-3 text-white hover:bg-indigo-700 rounded-r-lg"
                                 aria-label={`${tool.isPlaying ? 'Pause' : 'Play'} ${tool.label}`}
                             >
                                 {tool.isPlaying ? <PauseIcon /> : <PlayIcon />}
                             </button>
                         )}
                     </div>
-                    {activeTool === tool.name && (
-                        <div className="p-2 border-t border-slate-700">
-                           {tool.component}
+                    {/* On mobile, the active tool panel will appear as a modal-like fixed element */}
+                    <div className={`md:hidden fixed bottom-20 left-4 right-4 z-50 transition-opacity duration-300 ${activeTool === tool.name ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                        <div className="bg-slate-800 rounded-lg shadow-lg border border-slate-700 p-2">
+                            {tool.component}
                         </div>
-                    )}
+                    </div>
+                    {/* On desktop, it expands below */}
+                    <div className="hidden md:block">
+                        {activeTool === tool.name && (
+                            <div className="p-2 border-t border-slate-700">
+                               {tool.component}
+                            </div>
+                        )}
+                    </div>
                 </div>
             ))}
         </div>

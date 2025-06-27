@@ -14,20 +14,22 @@ const AppContent = () => {
   const { activeTool } = useTools(); // Get activeTool to adjust layout
 
   return (
-    <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-6 flex flex-col items-center transition-all duration-300 ${activeTool === 'log' ? 'pl-96' : 'pl-72'}`}>
+    // Responsive padding: More padding on the bottom for mobile to avoid the tool bar,
+    // and more padding on the left for desktop.
+    <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-4 pb-32 md:p-6 transition-all duration-300 ${activeTool === 'log' ? 'md:pl-96' : 'md:pl-72'}`}>
       
-      {/* Signature Logo */}
-      <div className="fixed top-5 left-0 z-50">
+      {/* Signature Logo: Hidden on mobile (default), visible on medium screens and up */}
+      <div className="hidden md:block fixed top-5 left-0 z-50">
         <img src={`${process.env.PUBLIC_URL}/logo.png`} alt="Signature Logo" className="h-32 w-auto" />
       </div>
 
       <GlobalTools />
       
       <header className="w-full max-w-5xl bg-slate-800 shadow-lg rounded-xl p-6 mb-8 text-center">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-teal-400 leading-tight">
+        <h1 className="text-3xl md:text-5xl font-extrabold text-teal-400 leading-tight">
           Musical Practice Tools
         </h1>
-        <p className="mt-2 text-lg text-gray-300">
+        <p className="text-md md:text-lg text-gray-300">
           Your comprehensive companion for musical growth!
         </p>
       </header>
@@ -59,7 +61,7 @@ const AppContent = () => {
           </button>
       </nav>
 
-      <main className="w-full max-w-5xl bg-slate-800 shadow-2xl rounded-xl p-8 transform transition-transform duration-500 ease-out flex-grow">
+      <main className="w-full max-w-5xl bg-slate-800 shadow-2xl rounded-xl p-4 md:p-8 transform transition-transform duration-500 ease-out flex-grow">
           {activeTheoryTab === 'welcome' && <Welcome />}
           {activeTheoryTab === 'intervals-quiz' && <IntervalsQuiz />}
           {activeTheoryTab === 'name-the-interval-quiz' && <NameTheIntervalQuiz />}

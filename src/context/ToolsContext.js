@@ -10,7 +10,7 @@ export const ToolsProvider = ({ children }) => {
     const [activeTool, setActiveTool] = useState(null);
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
 
-    // ---- Practice Log State (FIX) ----
+    // ---- Practice Log State ----
     const [practiceLog, setPracticeLog] = useState(() => {
         try {
             const savedLog = localStorage.getItem('practiceLog');
@@ -117,11 +117,20 @@ export const ToolsProvider = ({ children }) => {
         Tone.Transport.cancel();
     }, []);
 
-    const toggleMetronome = useCallback(() => { if (isMetronomePlaying) stopMetronome(); else startMetronome(); }, [isMetronomePlaying, startMetronome, stopMetronome]);
+    const toggleMetronome = useCallback(() => {
+        unlockAudio(); // FIX: Ensure audio is unlocked
+        if (isMetronomePlaying) stopMetronome(); else startMetronome();
+    }, [isMetronomePlaying, startMetronome, stopMetronome, unlockAudio]);
+
     useEffect(() => { if (isMetronomePlaying) Tone.Transport.bpm.value = bpm; }, [bpm, isMetronomePlaying]);
 
     // ---- Drone Logic ----
-    const toggleDrone = useCallback(() => { if (!areDronesReady) return; setIsDronePlaying(prev => !prev); }, [areDronesReady]);
+    const toggleDrone = useCallback(() => {
+        unlockAudio(); // FIX: Ensure audio is unlocked
+        if (!areDronesReady) return;
+        setIsDronePlaying(prev => !prev);
+    }, [areDronesReady, unlockAudio]);
+
     useEffect(() => {
         const currentPlayer = dronePlayers.current[droneNote];
         Object.entries(dronePlayers.current).forEach(([note, player]) => { if (note !== droneNote && player.state === 'started') player.stop(); });
@@ -150,7 +159,11 @@ export const ToolsProvider = ({ children }) => {
         return () => clearInterval(timerIntervalRef.current);
     }, [isTimerRunning]);
 
-    const toggleTimer = () => { if (timeLeft > 0) setIsTimerRunning(p => !p); };
+    const toggleTimer = () => {
+        unlockAudio(); // FIX: Good practice to add this here too
+        if (timeLeft > 0) setIsTimerRunning(p => !p);
+    };
+    
     const resetTimer = (newDuration) => { const s = (newDuration || timerDuration / 60) * 60; setIsTimerRunning(false); setTimerDuration(s); setTimeLeft(s); };
 
     // ---- Stopwatch Logic ----
@@ -171,7 +184,7 @@ export const ToolsProvider = ({ children }) => {
         droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady,
         timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration,
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,
-        practiceLog, addLogEntry, clearLog // (FIX)
+        practiceLog, addLogEntry, clearLog
     };
 
     return (

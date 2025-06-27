@@ -14,7 +14,13 @@ const AppContent = () => {
   const { activeTool } = useTools(); // Get activeTool to adjust layout
 
   return (
-    <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-6 flex flex-col items-center transition-all duration-300 ${activeTool === 'log' ? 'pl-[26rem]' : 'pl-72'}`}>
+    <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-6 flex flex-col items-center transition-all duration-300 ${activeTool === 'log' ? 'pl-96' : 'pl-72'}`}>
+      
+      {/* Signature Logo */}
+      <div className="fixed top-5 left-0 z-50">
+        <img src={`${process.env.PUBLIC_URL}/logo.png`} alt="Signature Logo" className="h-32 w-auto" />
+      </div>
+
       <GlobalTools />
       
       <header className="w-full max-w-5xl bg-slate-800 shadow-lg rounded-xl p-6 mb-8 text-center">

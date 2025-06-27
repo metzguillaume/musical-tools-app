@@ -10,7 +10,9 @@ const NameTheIntervalQuiz = () => {
     const [correctInterval, setCorrectInterval] = useState(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [selected, setSelected] = useState({ quality: null, number: null });
+    const [autoAdvance, setAutoAdvance] = useState(false); // New state for the toggle
     const lastQuestionRef = useRef(null);
+    const timeoutRef = useRef(null);
 
     const quizData = React.useMemo(() => ({
         qualities: ['Diminished', 'Minor', 'Perfect', 'Major', 'Augmented'],
@@ -22,6 +24,7 @@ const NameTheIntervalQuiz = () => {
     }), []);
 
     const startNewRound = useCallback(() => {
+        clearTimeout(timeoutRef.current); // Clear any pending auto-advance
         let newNote1, newNote2, chosenInterval;
         do {
             chosenInterval = quizData.intervals[Math.floor(Math.random() * quizData.intervals.length)];
@@ -62,37 +65,81 @@ const NameTheIntervalQuiz = () => {
         if (isCorrect) { setScore(s => s + 1); setFeedback({ message: 'Correct!', type: 'correct' }); }
         else { setFeedback({ message: `Incorrect! It was ${correctInterval.name}.`, type: 'incorrect' }); }
         setIsAnswered(true);
-    }, [isAnswered, selected, correctInterval]);
 
+        if (autoAdvance) {
+            timeoutRef.current = setTimeout(startNewRound, 1500);
+        }
+    }, [isAnswered, selected, correctInterval, autoAdvance, startNewRound]);
+
+    // Effect for auto-submit when auto-advance is on
     useEffect(() => {
-        const handleKeyDown = (event) => { if (event.key === 'Enter') { if (isAnswered) startNewRound(); else if (selected.quality && selected.number) checkAnswer(); } };
+        if (autoAdvance && selected.quality && selected.number) {
+            checkAnswer();
+        }
+    }, [selected, autoAdvance, checkAnswer]);
+
+    // Effect for keyboard controls
+    useEffect(() => {
+        const handleKeyDown = (event) => { 
+            if (event.key === 'Enter') { 
+                if (isAnswered && !autoAdvance) {
+                    startNewRound();
+                } else if (!isAnswered && selected.quality && selected.number) {
+                    checkAnswer();
+                }
+            } 
+        };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isAnswered, selected, startNewRound, checkAnswer]);
+    }, [isAnswered, selected, startNewRound, checkAnswer, autoAdvance]);
 
     const handleLogProgress = () => {
         const remarks = prompt("Enter any remarks for this session:", `Score: ${score}`);
-        if (remarks !== null) {
-            addLogEntry({ game: 'Name The Interval', bpm, date: new Date().toLocaleDateString(), remarks: remarks || "No remarks." });
-            alert("Session logged!");
-        }
+        if (remarks !== null) { addLogEntry({ game: 'Name The Interval', bpm, date: new Date().toLocaleDateString(), remarks: remarks || "No remarks." }); alert("Session logged!"); }
     };
 
     const handleSelection = (type, value) => { if (isAnswered) return; setSelected(prev => ({ ...prev, [type]: value })); };
 
     return (
-        <div className="bg-slate-800 p-8 rounded-lg w-full max-w-lg mx-auto text-center">
+        <div className="bg-slate-800 p-4 md:p-8 rounded-lg w-full max-w-lg mx-auto text-center">
             <div className="flex justify-between items-center mb-4">
                 <h1 className="text-3xl font-extrabold text-indigo-300">Name The Interval</h1>
                 <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button>
             </div>
             <div className="text-xl mb-6 text-gray-300">Score: {score}</div>
-            <div className="flex justify-center items-center gap-5 mb-6"><div className="text-6xl font-bold text-teal-300 p-4 bg-slate-700 rounded-lg w-32">{note1}</div><div className="text-6xl font-bold text-teal-300 p-4 bg-slate-700 rounded-lg w-32">{note2}</div></div>
+            <div className="flex justify-center items-center gap-2 md:gap-5 mb-6">
+                <div className="text-5xl md:text-6xl font-bold text-teal-300 p-2 md:p-4 bg-slate-700 rounded-lg w-28 md:w-32">{note1}</div>
+                <div className="text-5xl md:text-6xl font-bold text-teal-300 p-2 md:p-4 bg-slate-700 rounded-lg w-28 md:w-32">{note2}</div>
+            </div>
             <div className={`text-lg font-bold my-4 min-h-[28px] ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>{feedback.message || <>&nbsp;</>}</div>
-            <div className="text-center text-gray-400 mb-4 min-h-[24px] animate-pulse">{!isAnswered && selected.quality && selected.number && "Press Enter to Submit"}{isAnswered && "Press Enter for Next Question"}</div>
-            <div className="grid grid-cols-2 gap-6">
+            
+            <div className="text-center text-gray-400 mb-4 min-h-[24px] animate-pulse">
+                {!autoAdvance && !isAnswered && selected.quality && selected.number && "Press Enter to Submit"}
+                {!autoAdvance && isAnswered && "Press Enter for Next Question"}
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 mb-4">
                 <div><h3 className="text-lg font-semibold text-gray-400 mb-3">Quality</h3><div className="flex flex-col gap-2">{quizData.qualities.map(q => (<button key={q} onClick={() => handleSelection('quality', q)} disabled={isAnswered} className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.quality === q ? 'bg-blue-600 text-white' : 'bg-teal-600 hover:bg-teal-500'}`}>{q}</button>))}</div></div>
                 <div><h3 className="text-lg font-semibold text-gray-400 mb-3">Number</h3><div className="grid grid-cols-2 gap-2">{quizData.numericButtons.map(n => (<button key={n} onClick={() => handleSelection('number', n)} disabled={isAnswered} className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.number === n ? 'bg-blue-600 text-white' : 'bg-teal-600 hover:bg-teal-500'}`}>{n}</button>))}</div></div>
+            </div>
+
+            {!autoAdvance && (
+                <div className="w-full flex gap-4">
+                    {!isAnswered ? (
+                        <button onClick={checkAnswer} disabled={!selected.quality || !selected.number} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg disabled:bg-gray-500">Submit</button>
+                    ) : (
+                        <button onClick={startNewRound} className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg">Next Question</button>
+                    )}
+                </div>
+            )}
+             <div className="w-full border-t border-slate-600 pt-4 mt-6">
+                <div className="flex justify-center items-center gap-4">
+                    <label htmlFor="auto-advance" className="font-semibold text-lg text-gray-300">Auto-Advance:</label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-advance" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
             </div>
         </div>
     );

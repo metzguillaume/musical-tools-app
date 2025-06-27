@@ -60,9 +60,10 @@ export const ToolsProvider = ({ children }) => {
         const players = {};
         notes.forEach(note => {
             players[note.toUpperCase().replace('S', '#')] = new Tone.Player({
-                url: `${process.env.PUBLIC_URL}/sounds/${note}_drone.mp3`, // Using .mp3 extension
-                loop: true, // Drones must loop
-                fadeOut: 0.5,
+                url: `${process.env.PUBLIC_URL}/sounds/${note}_drone.mp3`,
+                loop: true,
+                fadeOut: 3, // Increased crossfade duration
+                fadeIn: 3 // Increased initial fade-in duration
             }).toDestination();
         });
         dronePlayers.current = players;

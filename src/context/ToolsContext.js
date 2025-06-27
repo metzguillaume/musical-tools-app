@@ -10,6 +10,36 @@ export const ToolsProvider = ({ children }) => {
     const [activeTool, setActiveTool] = useState(null);
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
 
+    // ---- Practice Log State (FIX) ----
+    const [practiceLog, setPracticeLog] = useState(() => {
+        try {
+            const savedLog = localStorage.getItem('practiceLog');
+            return savedLog ? JSON.parse(savedLog) : [];
+        } catch (error) {
+            console.error("Could not parse practice log from localStorage", error);
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('practiceLog', JSON.stringify(practiceLog));
+        } catch (error) {
+            console.error("Could not save practice log to localStorage", error);
+        }
+    }, [practiceLog]);
+
+    const addLogEntry = useCallback((entry) => {
+        setPracticeLog(prevLog => [...prevLog, entry]);
+    }, []);
+
+    const clearLog = useCallback(() => {
+        if (window.confirm("Are you sure you want to clear the entire practice log? This cannot be undone.")) {
+            setPracticeLog([]);
+        }
+    }, []);
+
+
     const toggleActiveTool = (tool) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
     };
@@ -141,6 +171,7 @@ export const ToolsProvider = ({ children }) => {
         droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady,
         timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration,
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,
+        practiceLog, addLogEntry, clearLog // (FIX)
     };
 
     return (

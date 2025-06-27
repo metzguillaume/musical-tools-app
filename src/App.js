@@ -11,7 +11,12 @@ import GlobalTools from './components/GlobalTools';
 // This component contains the main application view
 const AppContent = () => {
   const [activeTheoryTab, setActiveTheoryTab] = useState('welcome');
-  const { activeTool } = useTools(); // Get activeTool to adjust layout
+  const { activeTool, unlockAudio } = useTools(); // Get activeTool and unlockAudio
+
+  const handleTabClick = (tabName) => {
+    unlockAudio(); // Ensure audio is unlocked on any main navigation click
+    setActiveTheoryTab(tabName);
+  }
 
   return (
     // Responsive padding: More padding on the bottom for mobile to avoid the tool bar,
@@ -36,25 +41,25 @@ const AppContent = () => {
 
       <nav className="w-full max-w-5xl bg-slate-800 shadow-md rounded-xl p-2 mb-8 flex flex-wrap justify-center gap-2 md:gap-4">
          <button
-              onClick={() => setActiveTheoryTab('welcome')}
+              onClick={() => handleTabClick('welcome')}
               className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTheoryTab === 'welcome' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
           >
               Welcome
           </button>
            <button
-              onClick={() => setActiveTheoryTab('note-generator')}
+              onClick={() => handleTabClick('note-generator')}
               className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTheoryTab === 'note-generator' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
             >
               Note Generator
             </button>
           <button
-              onClick={() => setActiveTheoryTab('name-the-interval-quiz')}
+              onClick={() => handleTabClick('name-the-interval-quiz')}
               className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTheoryTab === 'name-the-interval-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
           >
               Name The Interval
           </button>
          <button
-              onClick={() => setActiveTheoryTab('intervals-quiz')}
+              onClick={() => handleTabClick('intervals-quiz')}
               className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTheoryTab === 'intervals-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
           >
               Interval Practice

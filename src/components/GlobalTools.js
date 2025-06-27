@@ -41,17 +41,22 @@ const GlobalTools = () => {
 
     return (
         <>
-            <div className={`md:hidden fixed inset-0 z-40 transition-all duration-300 ${activeTool ? 'bg-black/50' : 'bg-transparent pointer-events-none'}`} onClick={() => toggleActiveTool(null)}>
-                <div className={`fixed bottom-0 left-0 right-0 p-4 bg-slate-800 border-t border-slate-700 rounded-t-2xl shadow-2xl transition-transform duration-300 ${activeTool ? 'translate-y-0' : 'translate-y-full'}`} onClick={e => e.stopPropagation()}>
+            {/* Mobile Tool Panel Overlay */}
+            <div className={`md:hidden fixed inset-0 z-50 flex justify-center items-center transition-opacity duration-300 ${activeTool ? 'bg-black/60 opacity-100' : 'bg-transparent opacity-0 pointer-events-none'}`} onClick={() => toggleActiveTool(null)}>
+                <div className="w-11/12 max-w-sm bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl p-4" onClick={e => e.stopPropagation()}>
                     {activeToolData && (
                         <div>
-                            <h3 className="text-xl font-bold text-teal-300 mb-4">{activeToolData.label}</h3>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-xl font-bold text-teal-300">{activeToolData.label}</h3>
+                                <button onClick={() => toggleActiveTool(null)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+                            </div>
                             {activeToolData.component}
                         </div>
                     )}
                 </div>
             </div>
 
+            {/* Main Toolbar */}
             <div className={`fixed z-30 bg-slate-900/80 backdrop-blur-sm
                          bottom-0 left-0 right-0 p-2 flex flex-row items-center justify-start gap-2 border-t border-slate-700 overflow-x-auto
                          md:top-1/4 md:left-5 md:right-auto md:bottom-auto md:flex-col md:items-stretch md:p-3 md:gap-2 md:border-t-0 md:rounded-lg md:border

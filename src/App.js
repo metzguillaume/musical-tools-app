@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ToolsProvider } from './context/ToolsContext';
+import { ToolsProvider, useTools } from './context/ToolsContext';
 
 // Import all the components
 import Welcome from './components/Welcome';
@@ -10,10 +10,11 @@ import GlobalTools from './components/GlobalTools';
 
 // This component contains the main application view
 const AppContent = () => {
-  const [activeTheoryTab, setActiveTheoryTab] = useState('welcome'); // Default to the new welcome tab
+  const [activeTheoryTab, setActiveTheoryTab] = useState('welcome');
+  const { activeTool } = useTools(); // Get activeTool to adjust layout
 
   return (
-    <div className="min-h-screen bg-slate-900 font-inter text-gray-200 p-6 pl-64 flex flex-col items-center">
+    <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-6 flex flex-col items-center transition-all duration-300 ${activeTool === 'log' ? 'pl-[26rem]' : 'pl-72'}`}>
       <GlobalTools />
       
       <header className="w-full max-w-5xl bg-slate-800 shadow-lg rounded-xl p-6 mb-8 text-center">

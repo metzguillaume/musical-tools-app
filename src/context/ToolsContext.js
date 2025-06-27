@@ -6,27 +6,17 @@ const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
 
 export const ToolsProvider = ({ children }) => {
-    // ---- Global Tool State ----
     const [activeTool, setActiveTool] = useState(null);
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
-
-    // ---- Practice Log State ----
     const [practiceLog, setPracticeLog] = useState(() => {
         try {
             const savedLog = localStorage.getItem('practiceLog');
             return savedLog ? JSON.parse(savedLog) : [];
-        } catch (error) {
-            console.error("Could not parse practice log from localStorage", error);
-            return [];
-        }
+        } catch (error) { return []; }
     });
 
     useEffect(() => {
-        try {
-            localStorage.setItem('practiceLog', JSON.stringify(practiceLog));
-        } catch (error) {
-            console.error("Could not save practice log to localStorage", error);
-        }
+        localStorage.setItem('practiceLog', JSON.stringify(practiceLog));
     }, [practiceLog]);
 
     const addLogEntry = useCallback((entry) => {
@@ -34,49 +24,46 @@ export const ToolsProvider = ({ children }) => {
     }, []);
 
     const clearLog = useCallback(() => {
-        if (window.confirm("Are you sure you want to clear the entire practice log? This cannot be undone.")) {
+        if (window.confirm("Are you sure you want to clear the entire practice log?")) {
             setPracticeLog([]);
         }
     }, []);
-
 
     const toggleActiveTool = (tool) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
     };
 
-    const unlockAudio = useCallback(() => {
-        if (!isAudioUnlocked) {
-            Tone.start().then(() => {
-                setIsAudioUnlocked(true);
-                console.log("Audio Context unlocked by user interaction.");
-            }).catch(e => {
-                console.error("Could not start audio context", e);
-            });
+    // MODIFIED: Made the unlock function async to be awaitable
+    const unlockAudio = useCallback(async () => {
+        if (isAudioUnlocked) return;
+        try {
+            await Tone.start();
+            setIsAudioUnlocked(true);
+            console.log("Audio Context unlocked and running.");
+        } catch (e) {
+            console.error("Could not start Audio Context", e);
         }
     }, [isAudioUnlocked]);
     
-    // ---- Metronome State ----
+    // ---- State for all tools ----
     const [bpm, setBpm] = useState(120);
     const [isMetronomePlaying, setIsMetronomePlaying] = useState(false);
     const [metronomeVolume, setMetronomeVolume] = useState(0);
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
     const metronomePlayer = useRef(null);
 
-    // ---- Drone State ----
     const [droneNote, setDroneNote] = useState('C');
     const [isDronePlaying, setIsDronePlaying] = useState(false);
     const [droneVolume, setDroneVolume] = useState(-10);
     const [areDronesReady, setAreDronesReady] = useState(false);
     const dronePlayers = useRef({});
 
-    // ---- Timer State ----
     const [timerDuration, setTimerDuration] = useState(10 * 60);
     const [timeLeft, setTimeLeft] = useState(timerDuration);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const timerIntervalRef = useRef(null);
     const timerAlarm = useRef(null);
 
-    // ---- Stopwatch State ----
     const [stopwatchTime, setStopwatchTime] = useState(0);
     const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
     const [laps, setLaps] = useState([]);
@@ -84,7 +71,6 @@ export const ToolsProvider = ({ children }) => {
 
     // Initialize ALL audio components
     useEffect(() => {
-        // --- NEW: Counter for manual load tracking ---
         let loadedDronesCount = 0;
         const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
         const totalDrones = notes.length;
@@ -99,21 +85,15 @@ export const ToolsProvider = ({ children }) => {
                 loop: true, 
                 fadeOut: 3, 
                 fadeIn: 3,
-                // --- MODIFIED: Add onload callback for each drone ---
                 onload: () => {
                     loadedDronesCount++;
-                    console.log(`Loaded drone: ${note} (${loadedDronesCount}/${totalDrones})`);
                     if (loadedDronesCount === totalDrones) {
-                        console.log("All drones loaded successfully.");
                         setAreDronesReady(true);
                     }
                 }
             }).toDestination();
         });
         dronePlayers.current = players;
-
-        // --- REMOVED: Unreliable Tone.loaded() call ---
-        // Tone.loaded().then(() => setAreDronesReady(true));
 
         return () => {
             metronomePlayer.current?.dispose();
@@ -122,11 +102,9 @@ export const ToolsProvider = ({ children }) => {
         };
     }, []);
 
-    // ---- Volume Effects ----
     useEffect(() => { if (isMetronomeReady) metronomePlayer.current.volume.value = metronomeVolume; }, [metronomeVolume, isMetronomeReady]);
     useEffect(() => { if (areDronesReady) Object.values(dronePlayers.current).forEach(p => p.volume.value = droneVolume); }, [droneVolume, areDronesReady]);
 
-    // ---- Metronome Logic ----
     const startMetronome = useCallback(() => {
         if (!isMetronomeReady) return;
         setIsMetronomePlaying(true);
@@ -141,31 +119,36 @@ export const ToolsProvider = ({ children }) => {
         Tone.Transport.cancel();
     }, []);
 
-    const toggleMetronome = useCallback(() => {
-        unlockAudio();
+    // MODIFIED: Make the function async and await the unlock
+    const toggleMetronome = useCallback(async () => {
+        await unlockAudio();
         if (isMetronomePlaying) stopMetronome(); else startMetronome();
     }, [isMetronomePlaying, startMetronome, stopMetronome, unlockAudio]);
 
     useEffect(() => { if (isMetronomePlaying) Tone.Transport.bpm.value = bpm; }, [bpm, isMetronomePlaying]);
 
-    // ---- Drone Logic ----
-    const toggleDrone = useCallback(() => {
-        unlockAudio();
+    // MODIFIED: Make the function async and await the unlock
+    const toggleDrone = useCallback(async () => {
+        await unlockAudio();
         if (!areDronesReady) return;
         setIsDronePlaying(prev => !prev);
     }, [areDronesReady, unlockAudio]);
 
     useEffect(() => {
         const currentPlayer = dronePlayers.current[droneNote];
-        Object.entries(dronePlayers.current).forEach(([note, player]) => { if (note !== droneNote && player.state === 'started') player.stop(); });
-        if (isDronePlaying && currentPlayer?.loaded && currentPlayer.state !== 'started') {
+        if (!isDronePlaying || !currentPlayer) return;
+        
+        Object.values(dronePlayers.current).forEach(player => {
+            if (player !== currentPlayer && player.state === 'started') {
+                player.stop();
+            }
+        });
+
+        if (currentPlayer.loaded && currentPlayer.state !== 'started') {
             currentPlayer.start();
-        } else if (!isDronePlaying && currentPlayer?.state === 'started') {
-            currentPlayer.stop();
         }
     }, [droneNote, isDronePlaying, areDronesReady]);
 
-    // ---- Countdown Timer Logic ----
     useEffect(() => {
         if (isTimerRunning) {
             timerIntervalRef.current = setInterval(() => {
@@ -183,20 +166,18 @@ export const ToolsProvider = ({ children }) => {
         return () => clearInterval(timerIntervalRef.current);
     }, [isTimerRunning]);
 
-    const toggleTimer = () => {
-        unlockAudio();
+    // MODIFIED: Make the function async and await the unlock
+    const toggleTimer = useCallback(async () => {
+        await unlockAudio();
         if (timeLeft > 0) setIsTimerRunning(p => !p);
-    };
+    }, [timeLeft, unlockAudio]);
     
-    const resetTimer = (newDuration) => { const s = (newDuration || timerDuration / 60) * 60; setIsTimerRunning(false); setTimerDuration(s); setTimeLeft(s); };
-
-    // ---- Stopwatch Logic ----
-    useEffect(() => {
-        if (isStopwatchRunning) {
-            stopwatchIntervalRef.current = setInterval(() => setStopwatchTime(t => t + 10), 10);
-        } else { clearInterval(stopwatchIntervalRef.current); }
-        return () => clearInterval(stopwatchIntervalRef.current);
-    }, [isStopwatchRunning]);
+    const resetTimer = (newDuration) => { 
+        const s = (newDuration || timerDuration / 60) * 60; 
+        setIsTimerRunning(false); 
+        setTimerDuration(s); 
+        setTimeLeft(s); 
+    };
 
     const toggleStopwatch = () => setIsStopwatchRunning(p => !p);
     const resetStopwatch = () => { setIsStopwatchRunning(false); setStopwatchTime(0); setLaps([]); };

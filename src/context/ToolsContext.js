@@ -49,6 +49,8 @@ export const ToolsProvider = ({ children }) => {
             Tone.start().then(() => {
                 setIsAudioUnlocked(true);
                 console.log("Audio Context unlocked by user interaction.");
+            }).catch(e => {
+                console.error("Could not start audio context", e);
             });
         }
     }, [isAudioUnlocked]);
@@ -82,15 +84,37 @@ export const ToolsProvider = ({ children }) => {
 
     // Initialize ALL audio components
     useEffect(() => {
+        // --- NEW: Counter for manual load tracking ---
+        let loadedDronesCount = 0;
+        const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
+        const totalDrones = notes.length;
+
         metronomePlayer.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/click.wav`, fadeOut: 0.1, onload: () => setIsMetronomeReady(true) }).toDestination();
         timerAlarm.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/ding.wav`, fadeOut: 0.1 }).toDestination();
-        const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
+        
         const players = {};
         notes.forEach(note => {
-            players[note.toUpperCase().replace('S', '#')] = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/${note}_drone.mp3`, loop: true, fadeOut: 3, fadeIn: 3 }).toDestination();
+            players[note.toUpperCase().replace('S', '#')] = new Tone.Player({ 
+                url: `${process.env.PUBLIC_URL}/sounds/${note}_drone.mp3`, 
+                loop: true, 
+                fadeOut: 3, 
+                fadeIn: 3,
+                // --- MODIFIED: Add onload callback for each drone ---
+                onload: () => {
+                    loadedDronesCount++;
+                    console.log(`Loaded drone: ${note} (${loadedDronesCount}/${totalDrones})`);
+                    if (loadedDronesCount === totalDrones) {
+                        console.log("All drones loaded successfully.");
+                        setAreDronesReady(true);
+                    }
+                }
+            }).toDestination();
         });
         dronePlayers.current = players;
-        Tone.loaded().then(() => setAreDronesReady(true));
+
+        // --- REMOVED: Unreliable Tone.loaded() call ---
+        // Tone.loaded().then(() => setAreDronesReady(true));
+
         return () => {
             metronomePlayer.current?.dispose();
             timerAlarm.current?.dispose();
@@ -118,7 +142,7 @@ export const ToolsProvider = ({ children }) => {
     }, []);
 
     const toggleMetronome = useCallback(() => {
-        unlockAudio(); // FIX: Ensure audio is unlocked
+        unlockAudio();
         if (isMetronomePlaying) stopMetronome(); else startMetronome();
     }, [isMetronomePlaying, startMetronome, stopMetronome, unlockAudio]);
 
@@ -126,7 +150,7 @@ export const ToolsProvider = ({ children }) => {
 
     // ---- Drone Logic ----
     const toggleDrone = useCallback(() => {
-        unlockAudio(); // FIX: Ensure audio is unlocked
+        unlockAudio();
         if (!areDronesReady) return;
         setIsDronePlaying(prev => !prev);
     }, [areDronesReady, unlockAudio]);
@@ -160,7 +184,7 @@ export const ToolsProvider = ({ children }) => {
     }, [isTimerRunning]);
 
     const toggleTimer = () => {
-        unlockAudio(); // FIX: Good practice to add this here too
+        unlockAudio();
         if (timeLeft > 0) setIsTimerRunning(p => !p);
     };
     

@@ -17,13 +17,15 @@ const NoteGenerator = () => {
         let lastNote = null;
         for (let i = 0; i < numNotes; i++) {
             let note;
+            let attempts = 0;
             do {
                 let potentialNote = sourceArray[Math.floor(Math.random() * sourceArray.length)];
                 if (typeof potentialNote === 'object') {
                     potentialNote = Math.random() < 0.5 ? potentialNote.sharp : potentialNote.flat;
                 }
                 note = potentialNote;
-            } while (note === lastNote && sourceArray.length > 1);
+                attempts++;
+            } while (note === lastNote && sourceArray.length > 1 && attempts < 20);
             newNotes.push(note);
             lastNote = note;
         }
@@ -62,8 +64,44 @@ const NoteGenerator = () => {
     return (
         <div className="flex flex-col items-center w-full">
             <h2 className="text-3xl font-extrabold mb-6 text-indigo-300">Random Note Generator</h2>
-            <div className="w-full max-w-lg bg-slate-700 p-4 rounded-lg mb-6 flex flex-col gap-4">
-                {/* Controls... */}
+
+            {/* Note Display */}
+            <div className="w-full bg-slate-800 p-6 rounded-lg text-center min-h-[100px] flex justify-center items-center flex-wrap gap-x-4 gap-y-2 mb-6">
+                {generatedNotes.map((note, index) => {
+                    const noteName = note.charAt(0);
+                    const accidental = note.substring(1).replace(/#/g, '♯').replace(/b/g, '♭');
+                    
+                    return (
+                        <React.Fragment key={index}>
+                            <span
+                                className="font-bold text-teal-300"
+                                style={{ fontSize: `${fontSize}rem`, lineHeight: '1' }}
+                            >
+                                {noteName}
+                                <sup style={{ fontSize: `${fontSize * 0.6}rem`, verticalAlign: 'super', marginLeft: '0.1em' }}>
+                                    {accidental}
+                                </sup>
+                            </span>
+                            {showBarlines && (index + 1) % 4 === 0 && index < generatedNotes.length - 1 && (
+                                <div className="h-16 w-1 bg-slate-600 rounded-full mx-2" style={{height: `${fontSize*1.2}rem`}}></div>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="w-full max-w-lg flex gap-4 mb-6">
+                <button onClick={generateNotes} className="flex-grow bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg text-xl">
+                    Generate (Enter/Space)
+                </button>
+                <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg text-xl">
+                    Log Progress
+                </button>
+            </div>
+            
+            {/* Controls */}
+            <div className="w-full max-w-lg bg-slate-700 p-4 rounded-lg flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                     <label htmlFor="num-notes" className="font-semibold text-lg">Number of Notes:</label>
                     <input type="number" id="num-notes" value={numNotes} onChange={(e) => setNumNotes(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
@@ -86,30 +124,6 @@ const NoteGenerator = () => {
                         <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                 </div>
-            </div>
-            <div className="w-full max-w-lg flex gap-4 mb-6">
-                <button onClick={generateNotes} className="flex-grow bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg text-xl">
-                    Generate (Enter/Space)
-                </button>
-                <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg text-xl">
-                    Log Progress
-                </button>
-            </div>
-            <div className="w-full bg-slate-800 p-6 rounded-lg text-center min-h-[100px] flex justify-center items-center flex-wrap gap-x-4 gap-y-2">
-                {generatedNotes.map((note, index) => {
-                    const noteName = note.charAt(0);
-                    const accidental = note.substring(1).replace(/#/g, '♯').replace(/b/g, '♭');
-                    return (
-                        <React.Fragment key={index}>
-                            <span className="font-bold text-teal-300" style={{ fontSize: `${fontSize}rem`, lineHeight: '1' }}>
-                                {noteName}<sup style={{ fontSize: `${fontSize * 0.6}rem`, verticalAlign: 'super', marginLeft: '0.1em' }}>{accidental}</sup>
-                            </span>
-                            {showBarlines && (index + 1) % 4 === 0 && index < generatedNotes.length - 1 && (
-                                <div className="h-16 w-1 bg-slate-600 rounded-full mx-2" style={{height: `${fontSize*1.2}rem`}}></div>
-                            )}
-                        </React.Fragment>
-                    );
-                })}
             </div>
         </div>
     );

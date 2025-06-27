@@ -10,6 +10,7 @@ const IntervalsQuiz = () => {
     const [answerChecked, setAnswerChecked] = useState(false);
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [userAnswer, setUserAnswer] = useState('');
+    const [rootNoteType, setRootNoteType] = useState('natural'); // 'natural' or 'chromatic'
     const answerInputRef = useRef(null);
     const lastQuestionRef = useRef(null);
 
@@ -33,36 +34,57 @@ const IntervalsQuiz = () => {
 
     const generateNewQuestion = useCallback(() => {
         const naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+        const chromaticKeys = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'];
         const naturalNoteData = { 'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11 };
         const notesByNumber = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+
         const allIntervalsFlat = Object.values(intervalData).flat();
         const activeIntervals = allIntervalsFlat.filter(i => selectedIntervals[i.name]);
         if (activeIntervals.length === 0) return;
+
         let question;
         do {
-            const rootNote = naturalNotes[Math.floor(Math.random() * naturalNotes.length)];
+            const rootNotePool = rootNoteType === 'natural' ? naturalNotes : chromaticKeys;
+            const rootNote = rootNotePool[Math.floor(Math.random() * rootNotePool.length)];
             const chosenInterval = activeIntervals[Math.floor(Math.random() * activeIntervals.length)];
+            
+            const rootNoteLetter = rootNote.charAt(0);
+            const rootAccidentalStr = rootNote.substring(1);
+            let rootAccidentalVal = 0;
+            if (rootAccidentalStr.includes('#')) rootAccidentalVal = rootAccidentalStr.length;
+            if (rootAccidentalStr.includes('b')) rootAccidentalVal = -rootAccidentalStr.length;
+
             const intervalNumber = parseInt(chosenInterval.name.match(/\d+/)?.[0] || (chosenInterval.name.includes('Unison') ? 1 : 8), 10);
-            const rootIndex = notesByNumber.indexOf(rootNote);
+            
+            const rootIndex = notesByNumber.indexOf(rootNoteLetter);
             const targetIndex = (rootIndex + intervalNumber - 1) % 7;
             const targetLetter = notesByNumber[targetIndex];
-            const rootMidi = naturalNoteData[rootNote];
+
+            const rootMidi = naturalNoteData[rootNoteLetter] + rootAccidentalVal;
             let targetNaturalMidi = naturalNoteData[targetLetter];
             if (targetIndex < rootIndex || intervalNumber === 8) targetNaturalMidi += 12;
+
             const requiredMidi = rootMidi + chosenInterval.semitones;
             const accidentalValue = requiredMidi - targetNaturalMidi;
+
             let accidental = '';
-            if (accidentalValue === 1) accidental = '#'; else if (accidentalValue === 2) accidental = '##'; else if (accidentalValue === -1) accidental = 'b'; else if (accidentalValue === -2) accidental = 'bb';
+            if (accidentalValue === 1) accidental = '#';
+            else if (accidentalValue === 2) accidental = '##';
+            else if (accidentalValue === -1) accidental = 'b';
+            else if (accidentalValue === -2) accidental = 'bb';
+            
             const targetNote = targetLetter + accidental;
+
             question = { rootNote, intervalName: chosenInterval.name, correctAnswer: targetNote };
         } while (lastQuestionRef.current && JSON.stringify(question) === JSON.stringify(lastQuestionRef.current));
+        
         lastQuestionRef.current = question;
         setCurrentQuestion(question);
         setFeedback({ message: '', type: '' });
         setUserAnswer('');
         setAnswerChecked(false);
         setTotalQuestions(prev => prev + 1);
-    }, [selectedIntervals, intervalData]);
+    }, [selectedIntervals, intervalData, rootNoteType]);
 
     const startQuiz = () => { setScore(0); setTotalQuestions(-1); setScreen('quiz'); };
     useEffect(() => { if (screen === 'quiz' && totalQuestions === -1) generateNewQuestion(); }, [screen, totalQuestions, generateNewQuestion]);
@@ -82,9 +104,7 @@ const IntervalsQuiz = () => {
     }, [answerChecked, userAnswer, currentQuestion]);
 
     useEffect(() => {
-        const handleKeyDown = (event) => {
-            if (event.key === 'Enter') { if (answerChecked) generateNewQuestion(); else checkAnswer(); }
-        };
+        const handleKeyDown = (event) => { if (event.key === 'Enter') { if (answerChecked) generateNewQuestion(); else checkAnswer(); } };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [answerChecked, checkAnswer, generateNewQuestion]);
@@ -103,10 +123,10 @@ const IntervalsQuiz = () => {
 
     if (screen === 'menu') {
         return (
-            <div className="flex flex-col items-center bg-slate-800 p-8 rounded-lg w-full max-w-2xl mx-auto">
+            <div className="flex flex-col items-center bg-slate-800 p-8 rounded-lg w-full max-w-3xl mx-auto">
                 <h1 className="text-3xl font-extrabold mb-6 text-indigo-300">Interval Practice</h1>
-                <h2 className="text-2xl font-bold mb-6 text-blue-200">Select Intervals to Practice</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full mb-6">
+                <h2 className="text-2xl font-bold mb-4 text-blue-200">Select Intervals to Practice</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full mb-6">
                     {Object.entries(intervalData).map(([groupName, intervals]) => (
                         <div key={groupName}><h3 className="font-bold text-lg text-teal-300 mb-2 border-b border-slate-600 pb-1">{groupName}s</h3><div className="flex flex-col gap-2">{intervals.map(interval => (<label key={interval.name} className="flex items-center text-gray-200 cursor-pointer"><input type="checkbox" checked={!!selectedIntervals[interval.name]} onChange={() => handleSelectionChange(interval.name)} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-3" />{interval.name.replace(' (Tritone)', '')}</label>))}</div></div>
                     ))}
@@ -118,7 +138,17 @@ const IntervalsQuiz = () => {
                     <button onClick={() => handleSelectAll(true)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Select All</button>
                     <button onClick={() => handleSelectAll(false)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">Deselect All</button>
                 </div>
-                <button onClick={startQuiz} disabled={!Object.values(selectedIntervals).some(v => v)} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-xl disabled:bg-gray-500 disabled:cursor-not-allowed">Start Quiz</button>
+                <div className="w-full border-t border-slate-600 pt-6 mt-2">
+                    <h2 className="text-2xl font-bold mb-4 text-blue-200">Options</h2>
+                    <div className="flex justify-center items-center gap-8">
+                        <span className="font-semibold text-lg">Root Notes:</span>
+                        <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer text-lg"><input type="radio" name="rootType" value="natural" checked={rootNoteType === 'natural'} onChange={() => setRootNoteType('natural')} />Natural</label>
+                            <label className="flex items-center gap-2 cursor-pointer text-lg"><input type="radio" name="rootType" value="chromatic" checked={rootNoteType === 'chromatic'} onChange={() => setRootNoteType('chromatic')} />Chromatic</label>
+                        </div>
+                    </div>
+                </div>
+                <button onClick={startQuiz} disabled={!Object.values(selectedIntervals).some(v => v)} className="w-full mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-xl disabled:bg-gray-500 disabled:cursor-not-allowed">Start Quiz</button>
             </div>
         );
     }
@@ -131,7 +161,7 @@ const IntervalsQuiz = () => {
                 <div className="text-xl text-gray-300">Score: {score} / {totalQuestions}</div>
             </div>
             {currentQuestion && (<><div className="text-5xl font-bold text-teal-300 mb-4">{currentQuestion.rootNote}</div><div className="text-2xl font-semibold text-gray-400 mb-6">What is the {currentQuestion.intervalName} above?</div></>)}
-            <input ref={answerInputRef} type="text" value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)} className="w-full text-center text-2xl p-3 rounded-lg bg-slate-700 text-white border-2 border-slate-600 focus:border-blue-500 focus:outline-none mb-4" placeholder="e.g., E, Bb" disabled={answerChecked} />
+            <input ref={answerInputRef} type="text" value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)} className="w-full text-center text-2xl p-3 rounded-lg bg-slate-700 text-white border-2 border-slate-600 focus:border-blue-500 focus:outline-none mb-4" placeholder="e.g., E, Bb" disabled={answerChecked} autoFocus />
             <div className={`text-lg font-bold my-4 min-h-[28px] ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>{feedback.message || <>&nbsp;</>}</div>
             <div className="text-center text-gray-400 mb-4 min-h-[24px] animate-pulse">{!answerChecked ? "Press Enter to Submit" : "Press Enter for Next Question"}</div>
             <div className="w-full flex gap-4"><button onClick={checkAnswer} disabled={answerChecked} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg disabled:bg-gray-500">Submit</button></div>

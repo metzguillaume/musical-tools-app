@@ -18,6 +18,14 @@ const Welcome = () => {
                 <p className="text-lg">
                     <strong className="text-teal-400">Essential Tools:</strong> On desktop, you'll find a persistent toolbar on the left. On mobile, this toolbar is located at the bottom of the screen. You can open these tools at any time without interrupting your practice session.
                 </p>
+                <div className="bg-slate-800/70 p-4 rounded-lg border border-slate-600">
+                    <p className="text-lg font-bold text-amber-300">
+                        A Note for iPhone & iPad Users:
+                    </p>
+                    <p className="text-md text-gray-300 mt-1">
+                        To hear audio from the Metronome or Drone tools, please ensure your device's physical Ring/Silent switch is not in silent mode (the switch should not be showing orange).
+                    </p>
+                </div>
                 <p className="text-md italic text-gray-400 pl-4 border-l-2 border-slate-500">
                     Tip: You can quickly start and stop any tool using the play/pause button without needing to open its full panel.
                 </p>

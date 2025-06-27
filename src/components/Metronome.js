@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTools } from '../context/ToolsContext';
+import SilentSwitchNotification from './SilentSwitchNotification';
 
 // This is the Metronome tool panel.
 const Metronome = () => {
@@ -24,6 +25,7 @@ const Metronome = () => {
 
     return (
         <div className="bg-slate-700 p-4 rounded-b-lg w-full">
+            <SilentSwitchNotification />
             {/* BPM Controls */}
             <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">

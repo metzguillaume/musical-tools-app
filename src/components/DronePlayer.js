@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTools } from '../context/ToolsContext';
+import SilentSwitchNotification from './SilentSwitchNotification';
 
 // This is the Drone Player tool panel.
 const DronePlayer = () => {
@@ -25,6 +26,7 @@ const DronePlayer = () => {
 
     return (
         <div className="bg-slate-700 p-4 rounded-b-lg w-full">
+            <SilentSwitchNotification />
             <div className="mb-4">
                  <label htmlFor="drone-note" className="block text-gray-200 text-lg font-semibold mb-2">
                     Note: {currentNoteDisplay}

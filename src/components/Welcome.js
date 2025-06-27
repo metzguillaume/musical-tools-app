@@ -16,13 +16,13 @@ const Welcome = () => {
                     <strong className="text-teal-400">Practice Exercises:</strong> Use the navigation bar above to switch between different practice modules, including interval recognition and note generation.
                 </p>
                 <p className="text-lg">
-                    <strong className="text-teal-400">Essential Tools:</strong> On the left-hand toolbar, you'll find persistent tools like a Metronome, Drone, Timer, and Stopwatch. You can open these at any time without interrupting your practice session.
+                    <strong className="text-teal-400">Essential Tools:</strong> On desktop, you'll find a persistent toolbar on the left. On mobile, this toolbar is located at the bottom of the screen. You can open these tools at any time without interrupting your practice session.
                 </p>
                 <p className="text-md italic text-gray-400 pl-4 border-l-2 border-slate-500">
                     Tip: You can quickly start and stop any tool using the play/pause button without needing to open its full panel.
                 </p>
                 <p className="text-lg">
-                    <strong className="text-teal-400">Practice Log:</strong> Each exercise features a "Log Session" button. This automatically captures the current metronome BPM, and you'll be prompted to add personal notes before saving to your Practice Log.
+                    <strong className="text-teal-400">Track Your Progress:</strong> Each exercise features a "Log Session" button. This automatically captures the current metronome BPM, and you'll be prompted to add personal notes before saving to your Practice Log.
                 </p>
             </div>
         </div>

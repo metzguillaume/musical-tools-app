@@ -28,9 +28,10 @@ const GlobalTools = () => {
     ];
 
     return (
-        // On mobile (default), it's a bar at the bottom. On medium screens and up, it's a sidebar on the left.
+        // On mobile (default), it's a bar at the bottom that can scroll horizontally.
+        // On medium screens and up, it's a sidebar on the left.
         <div className={`fixed z-40 bg-slate-900/80 backdrop-blur-sm
-                     bottom-0 left-0 right-0 p-2 flex flex-row items-center justify-around gap-1 border-t border-slate-700
+                     bottom-0 left-0 right-0 p-2 flex flex-row items-center justify-start gap-2 border-t border-slate-700 overflow-x-auto
                      md:top-1/4 md:left-5 md:right-auto md:bottom-auto md:flex-col md:items-stretch md:p-3 md:gap-2 md:border-t-0 md:rounded-lg md:border
                      transition-all duration-300 ${activeTool === 'log' ? 'md:w-96' : 'md:w-64'}`}>
             {tools.map(tool => (

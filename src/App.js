@@ -39,24 +39,24 @@ const AppContent = () => {
           >
               Welcome
           </button>
-         <button
-              onClick={() => setActiveTheoryTab('intervals-quiz')}
-              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTheoryTab === 'intervals-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
-          >
-              Interval Practice
-          </button>
-          <button
-              onClick={() => setActiveTheoryTab('name-the-interval-quiz')}
-              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTheoryTab === 'name-the-interval-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
-          >
-              Name The Interval
-          </button>
            <button
               onClick={() => setActiveTheoryTab('note-generator')}
               className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTheoryTab === 'note-generator' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
             >
               Note Generator
             </button>
+          <button
+              onClick={() => setActiveTheoryTab('name-the-interval-quiz')}
+              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTheoryTab === 'name-the-interval-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
+          >
+              Name The Interval
+          </button>
+         <button
+              onClick={() => setActiveTheoryTab('intervals-quiz')}
+              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTheoryTab === 'intervals-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
+          >
+              Interval Practice
+          </button>
       </nav>
 
       <main className="w-full max-w-5xl bg-slate-800 shadow-2xl rounded-xl p-8 transform transition-transform duration-500 ease-out flex-grow">

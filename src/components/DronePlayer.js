@@ -4,18 +4,39 @@ import { useTools } from '../context/ToolsContext';
 // This is the Drone Player tool panel.
 const DronePlayer = () => {
     const { droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady } = useTools();
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    
+    // New data structure for display purposes
+    const droneNoteOptions = [
+        { value: 'C', display: 'C' },
+        { value: 'C#', display: 'C# / Db' },
+        { value: 'D', display: 'D' },
+        { value: 'D#', display: 'D# / Eb' },
+        { value: 'E', display: 'E' },
+        { value: 'F', display: 'F' },
+        { value: 'F#', display: 'F# / Gb' },
+        { value: 'G', display: 'G' },
+        { value: 'G#', display: 'G# / Ab' },
+        { value: 'A', display: 'A' },
+        { value: 'A#', display: 'A# / Bb' },
+        { value: 'B', display: 'B' },
+    ];
+
+    const currentNoteDisplay = droneNoteOptions.find(opt => opt.value === droneNote)?.display || droneNote;
 
     return (
         <div className="bg-slate-700 p-4 rounded-b-lg w-full">
             <div className="mb-4">
                  <label htmlFor="drone-note" className="block text-gray-200 text-lg font-semibold mb-2">
-                    Note: {droneNote}
+                    Note: {currentNoteDisplay}
                 </label>
                 <select id="drone-note" value={droneNote} onChange={(e) => setDroneNote(e.target.value)}
                     className="w-full p-2 rounded-lg bg-slate-600 text-white"
                 >
-                    {notes.map(note => <option key={note} value={note}>{note}</option>)}
+                    {droneNoteOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                            {option.display}
+                        </option>
+                    ))}
                 </select>
             </div>
 

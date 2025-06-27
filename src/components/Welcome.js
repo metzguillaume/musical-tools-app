@@ -18,6 +18,9 @@ const Welcome = () => {
                 <p className="text-lg">
                     <strong className="text-teal-400">Essential Tools:</strong> On the left-hand toolbar, you'll find persistent tools like a Metronome, Drone, Timer, and Stopwatch. You can open these at any time without interrupting your practice session.
                 </p>
+                <p className="text-lg">
+                    <strong className="text-teal-400">Practice Log:</strong> Each exercise features a "Log Session" button. This automatically captures the current metronome BPM, and you'll be prompted to add personal notes before saving to your Practice Log.
+                </p>
             </div>
         </div>
     );

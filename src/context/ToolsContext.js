@@ -33,7 +33,6 @@ export const ToolsProvider = ({ children }) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
     };
 
-    // MODIFIED: Made the unlock function async to be awaitable
     const unlockAudio = useCallback(async () => {
         if (isAudioUnlocked) return;
         try {
@@ -119,7 +118,6 @@ export const ToolsProvider = ({ children }) => {
         Tone.Transport.cancel();
     }, []);
 
-    // MODIFIED: Make the function async and await the unlock
     const toggleMetronome = useCallback(async () => {
         await unlockAudio();
         if (isMetronomePlaying) stopMetronome(); else startMetronome();
@@ -127,27 +125,42 @@ export const ToolsProvider = ({ children }) => {
 
     useEffect(() => { if (isMetronomePlaying) Tone.Transport.bpm.value = bpm; }, [bpm, isMetronomePlaying]);
 
-    // MODIFIED: Make the function async and await the unlock
     const toggleDrone = useCallback(async () => {
         await unlockAudio();
         if (!areDronesReady) return;
         setIsDronePlaying(prev => !prev);
     }, [areDronesReady, unlockAudio]);
 
+    // --- MODIFIED: This entire block is restructured to correctly handle stopping the drone ---
     useEffect(() => {
         const currentPlayer = dronePlayers.current[droneNote];
-        if (!isDronePlaying || !currentPlayer) return;
-        
-        Object.values(dronePlayers.current).forEach(player => {
-            if (player !== currentPlayer && player.state === 'started') {
-                player.stop();
-            }
-        });
 
-        if (currentPlayer.loaded && currentPlayer.state !== 'started') {
-            currentPlayer.start();
+        if (isDronePlaying) {
+            // This is the PLAY logic
+            if (!currentPlayer || !currentPlayer.loaded) return;
+
+            // Stop other drones before starting the new one
+            Object.values(dronePlayers.current).forEach(p => {
+                if (p !== currentPlayer && p.state === 'started') {
+                    p.stop();
+                }
+            });
+            
+            // Start the current player if it's not already started
+            if (currentPlayer.state !== 'started') {
+                currentPlayer.start();
+            }
+        } else {
+            // This is the STOP logic
+            // Stop any drone that is currently playing
+            Object.values(dronePlayers.current).forEach(p => {
+                if (p.state === 'started') {
+                    p.stop();
+                }
+            });
         }
     }, [droneNote, isDronePlaying, areDronesReady]);
+
 
     useEffect(() => {
         if (isTimerRunning) {
@@ -166,7 +179,6 @@ export const ToolsProvider = ({ children }) => {
         return () => clearInterval(timerIntervalRef.current);
     }, [isTimerRunning]);
 
-    // MODIFIED: Make the function async and await the unlock
     const toggleTimer = useCallback(async () => {
         await unlockAudio();
         if (timeLeft > 0) setIsTimerRunning(p => !p);

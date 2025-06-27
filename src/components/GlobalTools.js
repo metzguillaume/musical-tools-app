@@ -6,10 +6,9 @@ import Timer from './Timer';
 import Stopwatch from './Stopwatch';
 import PracticeLog from './PracticeLog';
 
-// This component is the persistent toolbar. It's a vertical bar on desktop and a horizontal one on mobile.
 const GlobalTools = () => {
     const { 
-        activeTool, toggleActiveTool,
+        unlockAudio, activeTool, toggleActiveTool,
         isMetronomePlaying, toggleMetronome,
         isDronePlaying, toggleDrone,
         isTimerRunning, toggleTimer,
@@ -29,9 +28,19 @@ const GlobalTools = () => {
     
     const activeToolData = tools.find(t => t.name === activeTool);
 
+    const handleToggleTool = (toolName) => {
+        unlockAudio();
+        toggleActiveTool(toolName);
+    }
+
+    const handlePlayPause = (e, toggleFn) => {
+        e.stopPropagation();
+        unlockAudio();
+        toggleFn();
+    }
+
     return (
         <>
-            {/* Mobile Tool Panel Overlay */}
             <div className={`md:hidden fixed inset-0 z-40 transition-all duration-300 ${activeTool ? 'bg-black/50' : 'bg-transparent pointer-events-none'}`} onClick={() => toggleActiveTool(null)}>
                 <div className={`fixed bottom-0 left-0 right-0 p-4 bg-slate-800 border-t border-slate-700 rounded-t-2xl shadow-2xl transition-transform duration-300 ${activeTool ? 'translate-y-0' : 'translate-y-full'}`} onClick={e => e.stopPropagation()}>
                     {activeToolData && (
@@ -43,7 +52,6 @@ const GlobalTools = () => {
                 </div>
             </div>
 
-            {/* Main Toolbar */}
             <div className={`fixed z-30 bg-slate-900/80 backdrop-blur-sm
                          bottom-0 left-0 right-0 p-2 flex flex-row items-center justify-start gap-2 border-t border-slate-700 overflow-x-auto
                          md:top-1/4 md:left-5 md:right-auto md:bottom-auto md:flex-col md:items-stretch md:p-3 md:gap-2 md:border-t-0 md:rounded-lg md:border
@@ -52,14 +60,14 @@ const GlobalTools = () => {
                     <div key={tool.name} className="bg-slate-800 rounded-lg shadow-lg border border-slate-700 flex-shrink-0">
                         <div className="flex items-center">
                             <button 
-                                onClick={() => toggleActiveTool(tool.name)} 
+                                onClick={() => handleToggleTool(tool.name)} 
                                 className="flex-grow text-left font-bold py-2 px-3 md:py-3 md:px-4 text-white transition-colors duration-300 hover:bg-indigo-700 rounded-l-lg text-sm md:text-base"
                             >
                                 {tool.label}
                             </button>
                             {!tool.hidePlayPause && (
                                 <button 
-                                    onClick={(e) => { e.stopPropagation(); tool.toggle(); }}
+                                    onClick={(e) => handlePlayPause(e, tool.toggle)}
                                     className="p-2 md:p-3 text-white hover:bg-indigo-700 rounded-r-lg"
                                     aria-label={`${tool.isPlaying ? 'Pause' : 'Play'} ${tool.label}`}
                                 >
@@ -67,7 +75,6 @@ const GlobalTools = () => {
                                 </button>
                             )}
                         </div>
-                        {/* Desktop expanded view */}
                         <div className="hidden md:block">
                             {activeTool === tool.name && (
                                 <div className="p-2 border-t border-slate-700">

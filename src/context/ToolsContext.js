@@ -8,10 +8,20 @@ export const useTools = () => useContext(ToolsContext);
 export const ToolsProvider = ({ children }) => {
     // ---- Global Tool State ----
     const [activeTool, setActiveTool] = useState(null);
+    const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
 
     const toggleActiveTool = (tool) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
     };
+
+    const unlockAudio = useCallback(() => {
+        if (!isAudioUnlocked) {
+            Tone.start().then(() => {
+                setIsAudioUnlocked(true);
+                console.log("Audio Context unlocked by user interaction.");
+            });
+        }
+    }, [isAudioUnlocked]);
     
     // ---- Metronome State ----
     const [bpm, setBpm] = useState(120);
@@ -40,42 +50,10 @@ export const ToolsProvider = ({ children }) => {
     const [laps, setLaps] = useState([]);
     const stopwatchIntervalRef = useRef(null);
 
-    // ---- Practice Log State ----
-    const [practiceLog, setPracticeLog] = useState(() => {
-        try {
-            const savedLog = localStorage.getItem('musical-tools-log');
-            return savedLog ? JSON.parse(savedLog) : [];
-        } catch (error) {
-            console.error("Could not load practice log from localStorage", error);
-            return [];
-        }
-    });
-
-    const addLogEntry = (entry) => {
-        const newLog = [...practiceLog, entry];
-        setPracticeLog(newLog);
-        try {
-            localStorage.setItem('musical-tools-log', JSON.stringify(newLog));
-        } catch (error) {
-            console.error("Could not save practice log to localStorage", error);
-        }
-    };
-
-    const clearLog = () => {
-        setPracticeLog([]);
-        try {
-            localStorage.removeItem('musical-tools-log');
-        } catch (error) {
-            console.error("Could not clear practice log from localStorage", error);
-        }
-    };
-
-
     // Initialize ALL audio components
     useEffect(() => {
-        // Metronome, Timer, and Drone setup...
         metronomePlayer.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/click.wav`, fadeOut: 0.1, onload: () => setIsMetronomeReady(true) }).toDestination();
-        timerAlarm.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/ding.wav`, fadeOut: 0.1, }).toDestination();
+        timerAlarm.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/ding.wav`, fadeOut: 0.1 }).toDestination();
         const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
         const players = {};
         notes.forEach(note => {
@@ -83,7 +61,6 @@ export const ToolsProvider = ({ children }) => {
         });
         dronePlayers.current = players;
         Tone.loaded().then(() => setAreDronesReady(true));
-
         return () => {
             metronomePlayer.current?.dispose();
             timerAlarm.current?.dispose();
@@ -91,30 +68,79 @@ export const ToolsProvider = ({ children }) => {
         };
     }, []);
 
-    // ---- All other useEffect hooks and logic for tools...
+    // ---- Volume Effects ----
     useEffect(() => { if (isMetronomeReady) metronomePlayer.current.volume.value = metronomeVolume; }, [metronomeVolume, isMetronomeReady]);
     useEffect(() => { if (areDronesReady) Object.values(dronePlayers.current).forEach(p => p.volume.value = droneVolume); }, [droneVolume, areDronesReady]);
-    const startMetronome = useCallback(() => { if (!isMetronomeReady) return; Tone.start(); setIsMetronomePlaying(true); Tone.Transport.bpm.value = bpm; Tone.Transport.scheduleRepeat(t => metronomePlayer.current.start(t), "4n"); Tone.Transport.start(); }, [bpm, isMetronomeReady]);
-    const stopMetronome = useCallback(() => { setIsMetronomePlaying(false); Tone.Transport.stop(); Tone.Transport.cancel(); }, []);
+
+    // ---- Metronome Logic ----
+    const startMetronome = useCallback(() => {
+        if (!isMetronomeReady) return;
+        setIsMetronomePlaying(true);
+        Tone.Transport.bpm.value = bpm;
+        Tone.Transport.scheduleRepeat(time => metronomePlayer.current.start(time), "4n");
+        Tone.Transport.start();
+    }, [bpm, isMetronomeReady]);
+
+    const stopMetronome = useCallback(() => {
+        setIsMetronomePlaying(false);
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+    }, []);
+
     const toggleMetronome = useCallback(() => { if (isMetronomePlaying) stopMetronome(); else startMetronome(); }, [isMetronomePlaying, startMetronome, stopMetronome]);
     useEffect(() => { if (isMetronomePlaying) Tone.Transport.bpm.value = bpm; }, [bpm, isMetronomePlaying]);
-    const toggleDrone = useCallback(() => { if (!areDronesReady) return; setIsDronePlaying(p => !p); }, [areDronesReady]);
-    useEffect(() => { const p = dronePlayers.current[droneNote]; Object.entries(dronePlayers.current).forEach(([n, pl]) => { if (n !== droneNote && pl.state === 'started') pl.stop(); }); if (isDronePlaying && p?.loaded && p.state !== 'started') { Tone.start().then(() => p.start()); } else if (!isDronePlaying && p?.state === 'started') { p.stop(); } }, [droneNote, isDronePlaying, areDronesReady]);
-    useEffect(() => { if (isTimerRunning) { timerIntervalRef.current = setInterval(() => setTimeLeft(t => { if (t <= 1) { clearInterval(timerIntervalRef.current); setIsTimerRunning(false); if (timerAlarm.current.loaded) timerAlarm.current.start(); return 0; } return t - 1; }), 1000); } else { clearInterval(timerIntervalRef.current); } return () => clearInterval(timerIntervalRef.current); }, [isTimerRunning]);
+
+    // ---- Drone Logic ----
+    const toggleDrone = useCallback(() => { if (!areDronesReady) return; setIsDronePlaying(prev => !prev); }, [areDronesReady]);
+    useEffect(() => {
+        const currentPlayer = dronePlayers.current[droneNote];
+        Object.entries(dronePlayers.current).forEach(([note, player]) => { if (note !== droneNote && player.state === 'started') player.stop(); });
+        if (isDronePlaying && currentPlayer?.loaded && currentPlayer.state !== 'started') {
+            currentPlayer.start();
+        } else if (!isDronePlaying && currentPlayer?.state === 'started') {
+            currentPlayer.stop();
+        }
+    }, [droneNote, isDronePlaying, areDronesReady]);
+
+    // ---- Countdown Timer Logic ----
+    useEffect(() => {
+        if (isTimerRunning) {
+            timerIntervalRef.current = setInterval(() => {
+                setTimeLeft(t => {
+                    if (t <= 1) {
+                        clearInterval(timerIntervalRef.current);
+                        setIsTimerRunning(false);
+                        if (timerAlarm.current.loaded) timerAlarm.current.start();
+                        return 0;
+                    }
+                    return t - 1;
+                });
+            }, 1000);
+        } else { clearInterval(timerIntervalRef.current); }
+        return () => clearInterval(timerIntervalRef.current);
+    }, [isTimerRunning]);
+
     const toggleTimer = () => { if (timeLeft > 0) setIsTimerRunning(p => !p); };
-    const resetTimer = (d) => { const s = (d || timerDuration / 60) * 60; setIsTimerRunning(false); setTimerDuration(s); setTimeLeft(s); };
-    useEffect(() => { if (isStopwatchRunning) { stopwatchIntervalRef.current = setInterval(() => setStopwatchTime(t => t + 10), 10); } else { clearInterval(stopwatchIntervalRef.current); } return () => clearInterval(stopwatchIntervalRef.current); }, [isStopwatchRunning]);
+    const resetTimer = (newDuration) => { const s = (newDuration || timerDuration / 60) * 60; setIsTimerRunning(false); setTimerDuration(s); setTimeLeft(s); };
+
+    // ---- Stopwatch Logic ----
+    useEffect(() => {
+        if (isStopwatchRunning) {
+            stopwatchIntervalRef.current = setInterval(() => setStopwatchTime(t => t + 10), 10);
+        } else { clearInterval(stopwatchIntervalRef.current); }
+        return () => clearInterval(stopwatchIntervalRef.current);
+    }, [isStopwatchRunning]);
+
     const toggleStopwatch = () => setIsStopwatchRunning(p => !p);
     const resetStopwatch = () => { setIsStopwatchRunning(false); setStopwatchTime(0); setLaps([]); };
-    const addLap = () => setLaps(p => [...p, stopwatchTime]);
+    const addLap = () => setLaps(prevLaps => [...prevLaps, stopwatchTime]);
 
     const value = {
-        activeTool, toggleActiveTool,
+        unlockAudio, activeTool, toggleActiveTool,
         bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady,
         droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady,
         timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration,
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,
-        practiceLog, addLogEntry, clearLog,
     };
 
     return (

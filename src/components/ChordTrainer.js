@@ -289,11 +289,16 @@ const ChordTrainer = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-slate-700 p-4 rounded-lg flex flex-col items-center">
                      <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">Select Keys</h3>
-                     <div className="relative w-[300px] h-[300px] sm:w-[320px] sm:h-[320px] mx-auto mb-4">
+                     
+                     {/* MODIFIED: Reduced the size of the container for better mobile fit */}
+                     <div className="relative w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] mx-auto mb-4">
                         {keysInFifthsOrder.map(([majorKey, minorKey], index) => {
                             const angle = index * (360 / 12) - 90;
-                            const radiusMajor = window.innerWidth < 400 ? 125 : 135;
-                            const radiusMinor = window.innerWidth < 400 ? 85 : 95;
+
+                            // MODIFIED: Adjusted radii to match the smaller container size on mobile
+                            const radiusMajor = window.innerWidth < 640 ? 120 : 150;
+                            const radiusMinor = window.innerWidth < 640 ? 80 : 105;
+                            
                             return (
                                 <React.Fragment key={majorKey}>
                                     <KeyCheckbox angle={angle} radius={radiusMajor} keyName={majorKey} selected={!!selectedKeys[majorKey]} onChange={handleKeySelection} />

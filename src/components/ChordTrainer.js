@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTools } from '../context/ToolsContext';
 
-// --- Core Data and Logic (No changes here) ---
+// --- Core Data and Logic ---
 const chordData = {
     'C': { chords: ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
     'G': { chords: ['G', 'Am', 'Bm', 'C', 'D', 'Em', 'F#dim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
@@ -50,6 +50,7 @@ function generateQuestions(selectedKeys, modes, numQuestions) {
         const keyData = chordData[key];
         if (!keyData) continue;
         
+        // --- THIS IS THE FIX for the question prompt formatting ---
         if (modesToGen.includes(1) || modesToGen.includes(4)) {
             for (let i = 0; i < keyData.chords.length; i++) {
                 if (modesToGen.includes(1)) allQuestions.push({ mode: 1, key: key, prompt: `In **${key}**, what is the **${keyData.numerals[i]}** chord?`, answer: keyData.chords[i] });
@@ -88,8 +89,8 @@ function generateQuestions(selectedKeys, modes, numQuestions) {
 
 const reminders = {
     1: { 
-        major: "e.g., G (major), Am (minor), Bdim (diminished)",
-        minor: "e.g., C (major), Dm (minor), Bdim (diminished)"
+        major: "e.g., G, Am, Bdim",
+        minor: "e.g., C, Dm, Bdim"
     },
     2: {
         major: "e.g., C G Am Edim",
@@ -239,30 +240,26 @@ const ChordTrainer = () => {
                     <span>Score: {score}</span>
                 </div>
 
-                {/* Question Display Box */}
-                {/* MODIFIED: Reduced bottom margin from mb-6 to mb-3 */}
-                <div className="w-full bg-slate-800 p-6 rounded-lg text-center min-h-[100px] flex justify-center items-center flex-wrap gap-x-2 mb-3">
+                <div className="w-full bg-slate-800 p-4 rounded-lg text-center min-h-[80px] flex justify-center items-center flex-wrap gap-x-2 mb-2">
                     {promptParts.map((part, index) => (
-                        <span key={index} className={index % 2 === 1 ? 'text-3xl font-bold text-teal-300' : 'text-2xl text-gray-200'}>
+                        <span key={index} className={index % 2 === 1 ? 'text-2xl md:text-3xl font-bold text-teal-300' : 'text-xl md:text-2xl text-gray-200'}>
                             {part}
                         </span>
                     ))}
                 </div>
 
-                {/* Feedback/Reminder Box */}
-                {/* MODIFIED: Reduced vertical margin from my-4 to my-2 and removed fixed height */}
-                {feedback ? (
-                     <div className={`text-xl my-2 min-h-[40px] flex items-center justify-center ${feedback.startsWith('Correct') ? 'text-green-400' : 'text-red-400'}`}>{feedback}</div>
-                ) : ( 
-                    <div className="text-md text-gray-400 my-2 min-h-[40px] flex items-center text-center italic">{reminderText}</div> 
+                <div className={`text-md my-1 min-h-[40px] flex items-center text-center italic ${feedback ? 'text-transparent' : 'text-gray-400'}`}>{reminderText}</div>
+
+                {feedback && (
+                     <div className={`text-xl mb-2 min-h-[28px] flex items-center justify-center ${feedback.startsWith('Correct') ? 'text-green-400' : 'text-red-400'}`}>{feedback}</div>
                 )}
 
                 <form onSubmit={handleAnswerSubmit} className="w-full max-w-sm flex flex-col items-center">
                     <input type="text" value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)}
-                        className="w-full text-center text-2xl p-3 rounded-lg bg-slate-700 text-white border-2 border-slate-600 focus:border-blue-500 focus:outline-none"
+                        className="w-full text-center text-xl p-2 md:text-2xl md:p-3 rounded-lg bg-slate-700 text-white border-2 border-slate-600 focus:border-blue-500 focus:outline-none"
                         disabled={!!feedback} autoFocus />
                     
-                    <div className="h-16 mt-2 flex items-center">
+                    <div className="h-16 mt-3 flex items-center">
                         {!feedback ? (
                              <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">
                                 Submit
@@ -275,7 +272,7 @@ const ChordTrainer = () => {
                     </div>
                 </form>
 
-                <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-slate-900/50 p-2 rounded-lg">
+                <div className="mt-4 flex items-center gap-2 p-2 rounded-lg">
                     <label htmlFor="auto-advance" className="font-semibold text-sm text-gray-300">Auto-Advance:</label>
                     <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="auto-advance" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" />
@@ -290,13 +287,13 @@ const ChordTrainer = () => {
         <div className="w-full">
             <h2 className="text-3xl font-extrabold mb-6 text-indigo-300 text-center">Chord Trainer Setup</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-slate-700 p-4 rounded-lg">
+                <div className="bg-slate-700 p-4 rounded-lg flex flex-col items-center">
                      <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">Select Keys</h3>
-                     <div className="relative w-[320px] h-[320px] sm:w-[350px] sm:h-[350px] mx-auto mb-4">
+                     <div className="relative w-[300px] h-[300px] sm:w-[320px] sm:h-[320px] mx-auto mb-4">
                         {keysInFifthsOrder.map(([majorKey, minorKey], index) => {
                             const angle = index * (360 / 12) - 90;
-                            const radiusMajor = window.innerWidth < 640 ? 135 : 150;
-                            const radiusMinor = window.innerWidth < 640 ? 95 : 105;
+                            const radiusMajor = window.innerWidth < 400 ? 125 : 135;
+                            const radiusMinor = window.innerWidth < 400 ? 85 : 95;
                             return (
                                 <React.Fragment key={majorKey}>
                                     <KeyCheckbox angle={angle} radius={radiusMajor} keyName={majorKey} selected={!!selectedKeys[majorKey]} onChange={handleKeySelection} />
@@ -305,7 +302,7 @@ const ChordTrainer = () => {
                             )
                         })}
                      </div>
-                     <div className="border-t border-slate-600 pt-3 text-center">
+                     <div className="border-t border-slate-600 pt-3 text-center mt-2">
                          <h4 className="font-semibold text-lg text-gray-400 mb-2">Enharmonic Keys</h4>
                          <div className="flex justify-center gap-4">
                             {extraEnharmonicKeys.map(keyName => (

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTools } from '../context/ToolsContext';
 
-// --- Core Data and Logic ---
+// --- Core Data and Logic (No changes here) ---
 const chordData = {
     'C': { chords: ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
     'G': { chords: ['G', 'Am', 'Bm', 'C', 'D', 'Em', 'F#dim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
@@ -86,21 +86,20 @@ function generateQuestions(selectedKeys, modes, numQuestions) {
     return shuffle(allQuestions).slice(0, numQuestions);
 }
 
-// Updated reminders for better examples
 const reminders = {
-    1: { // Name the chord
+    1: { 
         major: "e.g., G (major), Am (minor), Bdim (diminished)",
         minor: "e.g., C (major), Dm (minor), Bdim (diminished)"
     },
-    2: { // Name chord progression
+    2: {
         major: "e.g., C G Am Edim",
         minor: "e.g., Am F G Bdim"
     },
-    3: { // Transpose progression
+    3: {
         major: "e.g., G D Em Bdim",
         minor: "e.g., Em C D F#dim"
     },
-    4: { // Name the numeral
+    4: {
         major: "e.g., I V vi vii°",
         minor: "e.g., i v VI ii°"
     }
@@ -216,18 +215,20 @@ const ChordTrainer = () => {
         const question = questions[currentQuestionIndex];
         const promptParts = question.prompt.split('**');
         
-        // --- THIS IS THE FIX for dynamic reminders ---
         let reminderText = "";
-        const keyType = chordData[question.key]?.type || 'major'; // Determine if the key is major or minor
+        const keyType = chordData[question.key]?.type || 'major';
         const modeReminders = reminders[question.mode];
 
-        if (typeof modeReminders === 'object') {
-            // For modes 1 and 4, which have different examples for major/minor
-            reminderText = modeReminders[keyType];
+        if (modeReminders) {
+            if (typeof modeReminders === 'object') {
+                reminderText = modeReminders[keyType];
+            } else {
+                reminderText = modeReminders;
+            }
         } else {
-            // For modes 2 and 3
-            reminderText = modeReminders;
+            reminderText = "Enter your answer below."
         }
+        
 
         return (
             <div className="flex flex-col items-center w-full">
@@ -237,24 +238,31 @@ const ChordTrainer = () => {
                     </button>
                     <span>Score: {score}</span>
                 </div>
-                <div className="w-full bg-slate-800 p-6 rounded-lg text-center min-h-[100px] flex justify-center items-center flex-wrap gap-x-2 mb-6">
+
+                {/* Question Display Box */}
+                {/* MODIFIED: Reduced bottom margin from mb-6 to mb-3 */}
+                <div className="w-full bg-slate-800 p-6 rounded-lg text-center min-h-[100px] flex justify-center items-center flex-wrap gap-x-2 mb-3">
                     {promptParts.map((part, index) => (
                         <span key={index} className={index % 2 === 1 ? 'text-3xl font-bold text-teal-300' : 'text-2xl text-gray-200'}>
                             {part}
                         </span>
                     ))}
                 </div>
+
+                {/* Feedback/Reminder Box */}
+                {/* MODIFIED: Reduced vertical margin from my-4 to my-2 and removed fixed height */}
                 {feedback ? (
-                     <div className={`text-xl my-4 h-14 flex items-center justify-center ${feedback.startsWith('Correct') ? 'text-green-400' : 'text-red-400'}`}>{feedback}</div>
+                     <div className={`text-xl my-2 min-h-[40px] flex items-center justify-center ${feedback.startsWith('Correct') ? 'text-green-400' : 'text-red-400'}`}>{feedback}</div>
                 ) : ( 
-                    <div className="text-md text-gray-400 my-4 h-14 flex items-center text-center italic">{reminderText}</div> 
+                    <div className="text-md text-gray-400 my-2 min-h-[40px] flex items-center text-center italic">{reminderText}</div> 
                 )}
+
                 <form onSubmit={handleAnswerSubmit} className="w-full max-w-sm flex flex-col items-center">
                     <input type="text" value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)}
                         className="w-full text-center text-2xl p-3 rounded-lg bg-slate-700 text-white border-2 border-slate-600 focus:border-blue-500 focus:outline-none"
                         disabled={!!feedback} autoFocus />
                     
-                    <div className="h-16 mt-4 flex items-center">
+                    <div className="h-16 mt-2 flex items-center">
                         {!feedback ? (
                              <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">
                                 Submit

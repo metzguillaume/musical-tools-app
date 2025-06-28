@@ -4,13 +4,14 @@ import { useTools } from '../context/ToolsContext';
 const NameTheIntervalQuiz = () => {
     const { bpm, addLogEntry } = useTools();
     const [score, setScore] = useState(0);
+    const [totalAsked, setTotalAsked] = useState(0); // MODIFIED: New state to track total questions
     const [note1, setNote1] = useState('C');
     const [note2, setNote2] = useState('E');
     const [feedback, setFeedback] = useState({ message: '', type: '' });
     const [correctInterval, setCorrectInterval] = useState(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [selected, setSelected] = useState({ quality: null, number: null });
-    const [autoAdvance, setAutoAdvance] = useState(false); // New state for the toggle
+    const [autoAdvance, setAutoAdvance] = useState(false);
     const lastQuestionRef = useRef(null);
     const timeoutRef = useRef(null);
 
@@ -24,7 +25,7 @@ const NameTheIntervalQuiz = () => {
     }), []);
 
     const startNewRound = useCallback(() => {
-        clearTimeout(timeoutRef.current); // Clear any pending auto-advance
+        clearTimeout(timeoutRef.current);
         let newNote1, newNote2, chosenInterval;
         do {
             chosenInterval = quizData.intervals[Math.floor(Math.random() * quizData.intervals.length)];
@@ -50,12 +51,19 @@ const NameTheIntervalQuiz = () => {
             if (lastQuestionRef.current && note1Base === lastQuestionRef.current.note1 && note2Base === lastQuestionRef.current.note2) continue;
             newNote1 = note1Base; newNote2 = note2Base; break;
         } while (true);
+
+        setTotalAsked(prevTotal => prevTotal + 1); // MODIFIED: Increment total questions asked
         setNote1(newNote1); setNote2(newNote2); setCorrectInterval(chosenInterval);
         lastQuestionRef.current = { note1: newNote1, note2: newNote2 };
         setFeedback({ message: '', type: '' }); setSelected({ quality: null, number: null }); setIsAnswered(false);
     }, [quizData]);
 
-    useEffect(() => { startNewRound(); }, [startNewRound]);
+    useEffect(() => { 
+        // Reset score for the very first round
+        setScore(0);
+        setTotalAsked(0);
+        startNewRound(); 
+    }, [startNewRound]);
 
     const checkAnswer = useCallback(() => {
         if (isAnswered) return;
@@ -71,14 +79,12 @@ const NameTheIntervalQuiz = () => {
         }
     }, [isAnswered, selected, correctInterval, autoAdvance, startNewRound]);
 
-    // Effect for auto-submit when auto-advance is on
     useEffect(() => {
         if (autoAdvance && selected.quality && selected.number) {
             checkAnswer();
         }
     }, [selected, autoAdvance, checkAnswer]);
 
-    // Effect for keyboard controls
     useEffect(() => {
         const handleKeyDown = (event) => { 
             if (event.key === 'Enter') { 
@@ -94,7 +100,8 @@ const NameTheIntervalQuiz = () => {
     }, [isAnswered, selected, startNewRound, checkAnswer, autoAdvance]);
 
     const handleLogProgress = () => {
-        const remarks = prompt("Enter any remarks for this session:", `Score: ${score}`);
+        // MODIFIED: Updated the default prompt text
+        const remarks = prompt("Enter any remarks for this session:", `Score: ${score} / ${totalAsked}`);
         if (remarks !== null) { addLogEntry({ game: 'Name The Interval', bpm, date: new Date().toLocaleDateString(), remarks: remarks || "No remarks." }); alert("Session logged!"); }
     };
 
@@ -106,7 +113,9 @@ const NameTheIntervalQuiz = () => {
                 <h1 className="text-3xl font-extrabold text-indigo-300">Name The Interval</h1>
                 <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button>
             </div>
-            <div className="text-xl mb-6 text-gray-300">Score: {score}</div>
+            {/* MODIFIED: Updated score display */}
+            <div className="text-xl mb-6 text-gray-300">Score: {score} / {totalAsked}</div>
+
             <div className="flex justify-center items-center gap-2 md:gap-5 mb-6">
                 <div className="text-5xl md:text-6xl font-bold text-teal-300 p-2 md:p-4 bg-slate-700 rounded-lg w-28 md:w-32">{note1}</div>
                 <div className="text-5xl md:text-6xl font-bold text-teal-300 p-2 md:p-4 bg-slate-700 rounded-lg w-28 md:w-32">{note2}</div>

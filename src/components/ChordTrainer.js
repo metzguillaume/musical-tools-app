@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTools } from '../context/ToolsContext';
 
 // --- Core Data and Logic ---
-const getChordData = (minorType = 'natural') => {
+const getChordData = (minorType = 'natural', useMajorV = true) => {
     const majorData = {
         'C': { chords: ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
         'G': { chords: ['G', 'Am', 'Bm', 'C', 'D', 'Em', 'F#dim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
@@ -18,8 +18,8 @@ const getChordData = (minorType = 'natural') => {
         'Bb': { chords: ['Bb', 'Cm', 'Dm', 'Eb', 'F', 'Gm', 'Adim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
         'F': { chords: ['F', 'Gm', 'Am', 'Bb', 'C', 'Dm', 'Edim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
     };
-    
-    const naturalMinorData = {
+
+    let naturalMinorData = {
         'Am': { chords: ['Am', 'Bdim', 'C', 'Dm', 'Em', 'F', 'G'], numerals: ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'], type: 'natural minor' },
         'Em': { chords: ['Em', 'F#dim', 'G', 'Am', 'Bm', 'C', 'D'], numerals: ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'], type: 'natural minor' },
         'Bm': { chords: ['Bm', 'C#dim', 'D', 'Em', 'F#m', 'G', 'A'], numerals: ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'], type: 'natural minor' },
@@ -64,6 +64,15 @@ const getChordData = (minorType = 'natural') => {
         'Dm': { chords: ['Dm', 'Em', 'F+', 'G', 'A', 'Bdim', 'C#dim'], numerals: ['i', 'ii', 'III+', 'IV', 'V', 'vi°', 'vii°'], type: 'melodic minor' },
     };
     
+    if (minorType === 'natural' && useMajorV) {
+        for (const key in naturalMinorData) {
+            const v_index = 4;
+            naturalMinorData[key].numerals[v_index] = 'V';
+            naturalMinorData[key].chords[v_index] = harmonicMinorData[key].chords[v_index];
+            naturalMinorData[key].type = 'natural minor (Major V)';
+        }
+    }
+
     let minorData;
     if (minorType === 'harmonic') {
         minorData = harmonicMinorData;
@@ -81,25 +90,29 @@ const reminders = {
         "major": "e.g., G, Am, Bdim",
         "natural minor": "e.g., C, Dm, Bdim",
         "harmonic minor": "e.g., E, F, C+",
-        "melodic minor": "e.g., D, E, C+"
+        "melodic minor": "e.g., D, E, C+",
+        "natural minor (Major V)": "e.g., E, F, Bdim" // Same as natural minor but with Major V
     },
     2: {
         "major": "e.g., C G Am Edim",
         "natural minor": "e.g., Am F G Bdim",
         "harmonic minor": "e.g., Am Dm E G#dim",
-        "melodic minor": "e.g., Am D E F#dim"
+        "melodic minor": "e.g., Am D E F#dim",
+        "natural minor (Major V)": "e.g., Am Dm E Bdim"
     },
     3: {
         "major": "e.g., G D Em Bdim",
         "natural minor": "e.g., Em C D F#dim",
         "harmonic minor": "e.g., Bm Em F# A#dim",
-        "melodic minor": "e.g., Bm E F# G#dim"
+        "melodic minor": "e.g., Bm E F# G#dim",
+        "natural minor (Major V)": "e.g., Bm Em F# G"
     },
     4: {
         "major": "e.g., I V vi vii°",
         "natural minor": "e.g., i v VI ii°",
         "harmonic minor": "e.g., i V VI III+",
-        "melodic minor": "e.g., i IV V vi°"
+        "melodic minor": "e.g., i IV V vi°",
+        "natural minor (Major V)": "e.g., i V VI ii°"
     }
 };
 
@@ -109,7 +122,8 @@ const keysInFifthsOrder = [
 ];
 const extraEnharmonicKeys = ['Gb', 'Ebm'];
 const scaleDegreeNames = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii'];
-const defaultWeights = [10, 6, 4, 8, 10, 8, 2];
+const majorDefaultWeights = [10, 6, 4, 8, 10, 8, 2];
+const minorDefaultWeights = [10, 3, 7, 8, 10, 8, 2];
 
 const shuffle = (array) => {
     for (let i = array.length - 1; i > 0; i--) {
@@ -119,20 +133,21 @@ const shuffle = (array) => {
     return array;
 };
 
-function generateQuestions(selectedKeys, modes, numQuestions, weights, chordData) {
+function generateQuestions(selectedKeys, modes, numQuestions, majorWeights, minorWeights, chordData) {
     let allQuestions = [];
     const modesToGen = modes;
-
-    const weightedPool = [];
-    weights.forEach((weight, index) => {
-        for (let i = 0; i < weight; i++) {
-            weightedPool.push(index);
-        }
-    });
 
     for (const key of selectedKeys) {
         const keyData = chordData[key];
         if (!keyData) continue;
+        
+        const currentWeights = keyData.type === 'major' ? majorWeights : minorWeights;
+        const weightedPool = [];
+        currentWeights.forEach((weight, index) => {
+            for (let i = 0; i < weight; i++) {
+                weightedPool.push(index);
+            }
+        });
         
         if (modesToGen.includes(1) || modesToGen.includes(4)) {
             for (let i = 0; i < keyData.chords.length; i++) {
@@ -196,9 +211,12 @@ const ChordTrainer = () => {
     const [selectedKeys, setSelectedKeys] = useState({});
     const [selectedModes, setSelectedModes] = useState({ 1: true });
     const [numQuestions, setNumQuestions] = useState(20);
-    const [weights, setWeights] = useState(defaultWeights);
+    const [majorWeights, setMajorWeights] = useState(majorDefaultWeights);
+    const [minorWeights, setMinorWeights] = useState(minorDefaultWeights);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [minorType, setMinorType] = useState('natural');
+    const [useMajorVInNaturalMinor, setUseMajorVInNaturalMinor] = useState(true);
+    const [activeWeightTab, setActiveWeightTab] = useState('major');
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [userAnswer, setUserAnswer] = useState('');
@@ -206,7 +224,7 @@ const ChordTrainer = () => {
     const [score, setScore] = useState(0);
     const [autoAdvance, setAutoAdvance] = useState(true);
 
-    const chordData = getChordData(minorType);
+    const chordData = getChordData(minorType, useMajorVInNaturalMinor);
 
     const handleKeySelection = (key) => setSelectedKeys(prev => ({ ...prev, [key]: !prev[key] }));
     const handleModeSelection = (modeId, selectAll = false, deselectAll = false) => {
@@ -219,9 +237,15 @@ const ChordTrainer = () => {
         }
     };
     const handleWeightChange = (index, value) => {
-        const newWeights = [...weights];
-        newWeights[index] = Number(value);
-        setWeights(newWeights);
+        if (activeWeightTab === 'major') {
+            const newWeights = [...majorWeights];
+            newWeights[index] = Number(value);
+            setMajorWeights(newWeights);
+        } else {
+            const newWeights = [...minorWeights];
+            newWeights[index] = Number(value);
+            setMinorWeights(newWeights);
+        }
     };
 
     const handleStartQuiz = () => {
@@ -232,7 +256,7 @@ const ChordTrainer = () => {
         if (modes.length === 0) { alert("Please select at least one game mode."); return; }
         if (modes.includes(3) && keys.length < 2) { alert("Transpose Progression requires at least two keys to be selected."); return; }
 
-        const generatedQuestions = generateQuestions(keys, modes, numQuestions, weights, chordData);
+        const generatedQuestions = generateQuestions(keys, modes, numQuestions, majorWeights, minorWeights, chordData);
         if (generatedQuestions.length === 0) { alert("Could not generate questions with the current settings."); return; }
 
         setQuestions(generatedQuestions);
@@ -434,7 +458,7 @@ const ChordTrainer = () => {
                     {showAdvanced && (
                         <div className="mt-2 p-3 bg-slate-800/50 rounded-lg space-y-4">
                             <div>
-                                <h4 className="font-semibold text-lg text-gray-300 mb-2">Minor Scale Type</h4>
+                                <h4 className="font-semibold text-lg text-gray-300 mb-2">Minor Scale Options</h4>
                                 <div className="flex justify-around bg-slate-700 p-1 rounded-lg">
                                     {['natural', 'harmonic', 'melodic'].map(type => (
                                         <label key={type} className={`flex-1 py-1 text-center rounded-md cursor-pointer text-sm capitalize ${minorType === type ? 'bg-blue-600 text-white' : 'hover:bg-slate-600'}`}>
@@ -443,19 +467,31 @@ const ChordTrainer = () => {
                                         </label>
                                     ))}
                                 </div>
+                                {minorType === 'natural' && (
+                                    <label className="flex items-center mt-2 p-2 cursor-pointer">
+                                        <input type="checkbox" checked={useMajorVInNaturalMinor} onChange={(e) => setUseMajorVInNaturalMinor(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"/>
+                                        <span className="text-sm">Use Major V Chord (common practice)</span>
+                                    </label>
+                                )}
                             </div>
 
                             <div>
                                 <h4 className="font-semibold text-lg text-gray-300 mb-1">Chord Weights</h4>
                                 <p className="text-xs text-gray-400 mb-2">Control the frequency of questions for each scale degree. Defaults are based on how often chords appear in actual music.</p>
-                                {weights.map((weight, index) => (
+                                
+                                <div className="flex mb-2 border-b border-slate-600">
+                                    <button onClick={() => setActiveWeightTab('major')} className={`flex-1 py-1 text-center text-sm rounded-t-md ${activeWeightTab === 'major' ? 'bg-slate-700 text-teal-300' : 'bg-transparent text-gray-400'}`}>Major Keys</button>
+                                    <button onClick={() => setActiveWeightTab('minor')} className={`flex-1 py-1 text-center text-sm rounded-t-md ${activeWeightTab === 'minor' ? 'bg-slate-700 text-teal-300' : 'bg-transparent text-gray-400'}`}>Minor Keys</button>
+                                </div>
+
+                                {(activeWeightTab === 'major' ? majorWeights : minorWeights).map((weight, index) => (
                                     <div key={index} className="flex items-center gap-3">
                                         <label className="w-8 font-mono text-right">{scaleDegreeNames[index]}</label>
                                         <input type="range" min="0" max="10" value={weight} onChange={(e) => handleWeightChange(index, e.target.value)} className="flex-1" />
                                         <span className="w-4 text-left">{weight}</span>
                                     </div>
                                 ))}
-                                <button onClick={() => setWeights(defaultWeights)} className="text-sm bg-slate-600 hover:bg-slate-500 p-2 rounded-md w-full mt-2">Reset to Default Weights</button>
+                                <button onClick={() => activeWeightTab === 'major' ? setMajorWeights(majorDefaultWeights) : setMinorWeights(minorDefaultWeights)} className="text-sm bg-slate-600 hover:bg-slate-500 p-2 rounded-md w-full mt-2">Reset to Default</button>
                             </div>
                         </div>
                     )}

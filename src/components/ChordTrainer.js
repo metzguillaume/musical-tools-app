@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useTools } from '../context/ToolsContext';
+// MINOR_KEY_FEATURE: The useTools context is used for logging sessions, which can be re-enabled later.
+// import { useTools } from '../context/ToolsContext';
 
 // --- Core Data and Logic ---
-const getChordData = (minorType = 'natural', useMajorV = true) => {
+const getChordData = (/* MINOR_KEY_FEATURE: minorType = 'natural', useMajorV = true */) => {
     const majorData = {
         'C': { chords: ['C', 'Dm', 'Em', 'F', 'G', 'Am', 'Bdim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
         'G': { chords: ['G', 'Am', 'Bm', 'C', 'D', 'Em', 'F#dim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
@@ -19,6 +20,8 @@ const getChordData = (minorType = 'natural', useMajorV = true) => {
         'F': { chords: ['F', 'Gm', 'Am', 'Bb', 'C', 'Dm', 'Edim'], numerals: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], type: 'major' },
     };
     
+    // MINOR_KEY_FEATURE: All data and logic for minor keys are commented out below.
+    /*
     let naturalMinorData = {
         'Am': { chords: ['Am', 'Bdim', 'C', 'Dm', 'Em', 'F', 'G'], numerals: ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'], type: 'natural minor' },
         'Em': { chords: ['Em', 'F#dim', 'G', 'Am', 'Bm', 'C', 'D'], numerals: ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'], type: 'natural minor' },
@@ -83,36 +86,42 @@ const getChordData = (minorType = 'natural', useMajorV = true) => {
     }
     
     return { ...majorData, ...minorData };
+    */
+    return { ...majorData };
 };
 
 const reminders = {
     1: { 
         "major": "e.g., G, Am, Bdim",
-        "natural minor": "e.g., C, Dm, Bdim",
-        "harmonic minor": "e.g., E, F, C+",
-        "melodic minor": "e.g., D, E, C+",
-        "natural minor (Major V)": "e.g., E, F, Bdim"
+        // MINOR_KEY_FEATURE: Minor key reminders commented out.
+        // "natural minor": "e.g., C, Dm, Bdim",
+        // "harmonic minor": "e.g., E, F, C+",
+        // "melodic minor": "e.g., D, E, C+",
+        // "natural minor (Major V)": "e.g., E, F, Bdim"
     },
     2: {
         "major": "e.g., C G Am Edim",
-        "natural minor": "e.g., Am F G Bdim",
-        "harmonic minor": "e.g., Am Dm E G#dim",
-        "melodic minor": "e.g., Am D E F#dim",
-        "natural minor (Major V)": "e.g., Am Dm E Bdim"
+        // MINOR_KEY_FEATURE: Minor key reminders commented out.
+        // "natural minor": "e.g., Am F G Bdim",
+        // "harmonic minor": "e.g., Am Dm E G#dim",
+        // "melodic minor": "e.g., Am D E F#dim",
+        // "natural minor (Major V)": "e.g., Am Dm E Bdim"
     },
     3: {
         "major": "e.g., G D Em Bdim",
-        "natural minor": "e.g., Em C D F#dim",
-        "harmonic minor": "e.g., Bm Em F# A#dim",
-        "melodic minor": "e.g., Bm E F# G#dim",
-        "natural minor (Major V)": "e.g., Bm Em F# G"
+        // MINOR_KEY_FEATURE: Minor key reminders commented out.
+        // "natural minor": "e.g., Em C D F#dim",
+        // "harmonic minor": "e.g., Bm Em F# A#dim",
+        // "melodic minor": "e.g., Bm E F# G#dim",
+        // "natural minor (Major V)": "e.g., Bm Em F# G"
     },
     4: {
         "major": "e.g., I V vi vii°",
-        "natural minor": "e.g., i v VI ii°",
-        "harmonic minor": "e.g., i V VI III+",
-        "melodic minor": "e.g., i IV V vi°",
-        "natural minor (Major V)": "e.g., i V VI ii°"
+        // MINOR_KEY_FEATURE: Minor key reminders commented out.
+        // "natural minor": "e.g., i v VI ii°",
+        // "harmonic minor": "e.g., i V VI III+",
+        // "melodic minor": "e.g., i IV V vi°",
+        // "natural minor (Major V)": "e.g., i V VI ii°"
     }
 };
 
@@ -120,10 +129,12 @@ const keysInFifthsOrder = [
     ['C', 'Am'], ['G', 'Em'], ['D', 'Bm'], ['A', 'F#m'], ['E', 'C#m'], ['B', 'G#m'],
     ['F#', 'D#m'], ['Db', 'Bbm'], ['Ab', 'Fm'], ['Eb', 'Cm'], ['Bb', 'Gm'], ['F', 'Dm']
 ];
-const extraEnharmonicKeys = ['Gb', 'Ebm'];
+// MINOR_KEY_FEATURE: Enharmonic minor key 'Ebm' commented out.
+const extraEnharmonicKeys = ['Gb' /*, 'Ebm' */];
 const scaleDegreeNames = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii'];
 const majorDefaultWeights = [10, 6, 4, 8, 10, 8, 2];
-const minorDefaultWeights = [10, 3, 7, 8, 10, 8, 2];
+// MINOR_KEY_FEATURE: Default weights for minor keys commented out.
+// const minorDefaultWeights = [10, 3, 7, 8, 10, 8, 2];
 
 const shuffle = (array) => {
     const newArr = [...array];
@@ -142,7 +153,8 @@ function generateQuestions(selectedKeys, modes, numQuestions, majorWeights, mino
         const keyData = chordData[key];
         if (!keyData) continue;
         
-        const currentWeights = keyData.type === 'major' ? majorWeights : minorWeights;
+        // MINOR_KEY_FEATURE: Logic to switch between major/minor weights is simplified to always use major.
+        const currentWeights = majorWeights; // keyData.type === 'major' ? majorWeights : minorWeights;
         const weightedPool = [];
         currentWeights.forEach((weight, index) => {
             for (let i = 0; i < weight; i++) {
@@ -211,11 +223,12 @@ const SetupScreen = React.memo(({
     selectedModes, handleModeSelection,
     numQuestions, setNumQuestions,
     showAdvanced, setShowAdvanced,
-    minorType, setMinorType,
-    useMajorVInNaturalMinor, setUseMajorVInNaturalMinor,
+    // MINOR_KEY_FEATURE: Props for minor key settings commented out.
+    // minorType, setMinorType,
+    // useMajorVInNaturalMinor, setUseMajorVInNaturalMinor,
     majorWeights, setMajorWeights,
-    minorWeights, setMinorWeights,
-    activeWeightTab, setActiveWeightTab,
+    // minorWeights, setMinorWeights,
+    // activeWeightTab, setActiveWeightTab,
     handleStartQuiz, handleWeightChange
 }) => (
     <div className="w-full">
@@ -227,11 +240,13 @@ const SetupScreen = React.memo(({
                     {keysInFifthsOrder.map(([majorKey, minorKey], index) => {
                         const angle = index * (360 / 12) - 90;
                         const radiusMajor = window.innerWidth < 640 ? 120 : 150;
-                        const radiusMinor = window.innerWidth < 640 ? 80 : 105;
+                        // MINOR_KEY_FEATURE: Radius for minor key circle commented out.
+                        // const radiusMinor = window.innerWidth < 640 ? 80 : 105;
                         return (
                             <React.Fragment key={majorKey}>
                                 <KeyCheckbox angle={angle} radius={radiusMajor} keyName={majorKey} selected={!!selectedKeys[majorKey]} onChange={handleKeySelection} />
-                                <KeyCheckbox angle={angle} radius={radiusMinor} keyName={minorKey} selected={!!selectedKeys[minorKey]} onChange={handleKeySelection} />
+                                {/* MINOR_KEY_FEATURE: KeyCheckbox for minor keys commented out. */}
+                                {/* <KeyCheckbox angle={angle} radius={radiusMinor} keyName={minorKey} selected={!!selectedKeys[minorKey]} onChange={handleKeySelection} /> */}
                             </React.Fragment>
                         )
                     })}
@@ -280,6 +295,8 @@ const SetupScreen = React.memo(({
                 </button>
                 {showAdvanced && (
                     <div className="mt-2 p-3 bg-slate-800/50 rounded-lg space-y-4">
+                        {/* MINOR_KEY_FEATURE: Entire section for Minor Scale Options is commented out. */}
+                        {/*
                         <div>
                             <h4 className="font-semibold text-lg text-gray-300 mb-2">Minor Scale Options</h4>
                             <div className="flex justify-around bg-slate-700 p-1 rounded-lg">
@@ -297,21 +314,26 @@ const SetupScreen = React.memo(({
                                 </label>
                             )}
                         </div>
+                        */}
                         <div>
                             <h4 className="font-semibold text-lg text-gray-300 mb-1">Chord Weights</h4>
-                            <p className="text-xs text-gray-400 mb-2">Adjust the frequency of questions for each scale degree.</p>
+                            <p className="text-xs text-gray-400 mb-2">Control how often each chord appears in the quiz. The default weights are set to mimic their frequency in common songs.</p>
+                            {/* MINOR_KEY_FEATURE: Tabs for switching between major/minor weights are commented out. The UI now only shows Major Key weights. */}
+                            {/*
                             <div className="flex mb-2 border-b border-slate-600">
                                 <button onClick={() => setActiveWeightTab('major')} className={`flex-1 py-1 text-center text-sm rounded-t-md ${activeWeightTab === 'major' ? 'bg-slate-700 text-teal-300' : 'bg-transparent text-gray-400'}`}>Major Keys</button>
                                 <button onClick={() => setActiveWeightTab('minor')} className={`flex-1 py-1 text-center text-sm rounded-t-md ${activeWeightTab === 'minor' ? 'bg-slate-700 text-teal-300' : 'bg-transparent text-gray-400'}`}>Minor Keys</button>
                             </div>
-                            {(activeWeightTab === 'major' ? majorWeights : minorWeights).map((weight, index) => (
-                                <div key={index} className="flex items-center gap-3">
+                            */}
+                            <div className="py-1 text-center text-sm rounded-t-md bg-slate-700 text-teal-300">Major Keys</div>
+                            {majorWeights.map((weight, index) => (
+                                <div key={index} className="flex items-center gap-3 mt-2">
                                     <label className="w-8 font-mono text-right">{scaleDegreeNames[index]}</label>
                                     <input type="range" min="0" max="10" value={weight} onChange={(e) => handleWeightChange(index, e.target.value)} className="flex-1" />
                                     <span className="w-4 text-left">{weight}</span>
                                 </div>
                             ))}
-                            <button onClick={() => activeWeightTab === 'major' ? setMajorWeights(majorDefaultWeights) : setMinorWeights(minorDefaultWeights)} className="text-sm bg-slate-600 hover:bg-slate-500 p-2 rounded-md w-full mt-2">Reset to Default</button>
+                            <button onClick={() => setMajorWeights(majorDefaultWeights)} className="text-sm bg-slate-600 hover:bg-slate-500 p-2 rounded-md w-full mt-2">Reset to Default</button>
                         </div>
                     </div>
                 )}
@@ -404,26 +426,31 @@ const ResultsScreen = React.memo(({ score, questions, setScreen, handleLogSessio
             <button onClick={() => setScreen('setup')} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg text-xl">
                 Play Again
             </button>
-            <button onClick={handleLogSession} className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-xl">
+            {/* MINOR_KEY_FEATURE: The Log Session button is commented out. */}
+            {/* <button onClick={handleLogSession} className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-xl">
                 Log Session
             </button>
+            */}
         </div>
     </div>
 ));
 
 
 const ChordTrainer = () => {
-    const { addLogEntry } = useTools();
+    // MINOR_KEY_FEATURE: The useTools hook is not needed if logging is disabled.
+    // const { addLogEntry } = useTools();
     const [screen, setScreen] = useState('setup');
     const [selectedKeys, setSelectedKeys] = useState({});
     const [selectedModes, setSelectedModes] = useState({ 1: true });
     const [numQuestions, setNumQuestions] = useState(20);
     const [majorWeights, setMajorWeights] = useState(majorDefaultWeights);
-    const [minorWeights, setMinorWeights] = useState(minorDefaultWeights);
     const [showAdvanced, setShowAdvanced] = useState(false);
-    const [minorType, setMinorType] = useState('natural');
-    const [useMajorVInNaturalMinor, setUseMajorVInNaturalMinor] = useState(true);
-    const [activeWeightTab, setActiveWeightTab] = useState('major');
+    // MINOR_KEY_FEATURE: State related to minor keys is commented out.
+    // const [minorWeights, setMinorWeights] = useState(minorDefaultWeights);
+    // const [minorType, setMinorType] = useState('natural');
+    // const [useMajorVInNaturalMinor, setUseMajorVInNaturalMinor] = useState(true);
+    // const [activeWeightTab, setActiveWeightTab] = useState('major');
+    
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [userAnswer, setUserAnswer] = useState('');
@@ -431,7 +458,8 @@ const ChordTrainer = () => {
     const [score, setScore] = useState(0);
     const [autoAdvance, setAutoAdvance] = useState(true);
 
-    const chordData = getChordData(minorType, useMajorVInNaturalMinor);
+    // MINOR_KEY_FEATURE: Arguments for minor keys are removed from getChordData call.
+    const chordData = getChordData();
 
     const handleKeySelection = (key) => setSelectedKeys(prev => ({ ...prev, [key]: !prev[key] }));
     const handleModeSelection = (modeId, selectAll = false, deselectAll = false) => {
@@ -444,15 +472,10 @@ const ChordTrainer = () => {
         }
     };
     const handleWeightChange = (index, value) => {
-        if (activeWeightTab === 'major') {
-            const newWeights = [...majorWeights];
-            newWeights[index] = Number(value);
-            setMajorWeights(newWeights);
-        } else {
-            const newWeights = [...minorWeights];
-            newWeights[index] = Number(value);
-            setMinorWeights(newWeights);
-        }
+        // MINOR_KEY_FEATURE: Logic is simplified to only handle major key weights.
+        const newWeights = [...majorWeights];
+        newWeights[index] = Number(value);
+        setMajorWeights(newWeights);
     };
 
     const handleStartQuiz = () => {
@@ -463,7 +486,8 @@ const ChordTrainer = () => {
         if (modes.length === 0) { alert("Please select at least one game mode."); return; }
         if (modes.includes(3) && keys.length < 2) { alert("Transpose Progression requires at least two keys to be selected."); return; }
 
-        const generatedQuestions = generateQuestions(keys, modes, numQuestions, majorWeights, minorWeights, chordData);
+        // MINOR_KEY_FEATURE: The 'minorWeights' argument is removed here. It's passed as null.
+        const generatedQuestions = generateQuestions(keys, modes, numQuestions, majorWeights, null, chordData);
         if (generatedQuestions.length === 0) { alert("Could not generate questions with the current settings."); return; }
 
         setQuestions(generatedQuestions);
@@ -513,6 +537,8 @@ const ChordTrainer = () => {
         }
     };
 
+    // MINOR_KEY_FEATURE: The session logging functionality is commented out.
+    /*
     const handleLogSession = () => {
         const remarks = prompt("Enter any remarks for this session:", `Score: ${score}/${questions.length}`);
         if (remarks !== null) {
@@ -524,6 +550,7 @@ const ChordTrainer = () => {
             alert("Session logged!");
         }
     };
+    */
     
     if (screen === 'setup') {
         return <SetupScreen 
@@ -531,11 +558,12 @@ const ChordTrainer = () => {
             selectedModes={selectedModes} handleModeSelection={handleModeSelection}
             numQuestions={numQuestions} setNumQuestions={setNumQuestions}
             showAdvanced={showAdvanced} setShowAdvanced={setShowAdvanced}
-            minorType={minorType} setMinorType={setMinorType}
-            useMajorVInNaturalMinor={useMajorVInNaturalMinor} setUseMajorVInNaturalMinor={setUseMajorVInNaturalMinor}
+            // MINOR_KEY_FEATURE: Props for minor key settings are not passed.
+            // minorType={minorType} setMinorType={setMinorType}
+            // useMajorVInNaturalMinor={useMajorVInNaturalMinor} setUseMajorVInNaturalMinor={setUseMajorVInNaturalMinor}
             majorWeights={majorWeights} setMajorWeights={setMajorWeights}
-            minorWeights={minorWeights} setMinorWeights={setMinorWeights}
-            activeWeightTab={activeWeightTab} setActiveWeightTab={setActiveWeightTab}
+            // minorWeights={minorWeights} setMinorWeights={setMinorWeights}
+            // activeWeightTab={activeWeightTab} setActiveWeightTab={setActiveWeightTab}
             handleStartQuiz={handleStartQuiz}
             handleWeightChange={handleWeightChange}
         />;
@@ -552,7 +580,9 @@ const ChordTrainer = () => {
     if (screen === 'results') {
         return <ResultsScreen 
             score={score} questions={questions} 
-            setScreen={setScreen} handleLogSession={handleLogSession} 
+            setScreen={setScreen} 
+            // MINOR_KEY_FEATURE: handleLogSession is not passed.
+            // handleLogSession={handleLogSession} 
         />;
     }
 };

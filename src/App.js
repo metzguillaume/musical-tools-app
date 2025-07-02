@@ -8,7 +8,7 @@ import NameTheIntervalQuiz from './components/NameTheIntervalQuiz';
 import NoteGenerator from './components/NoteGenerator';
 import ChordTrainer from './components/ChordTrainer';
 import GlobalTools from './components/GlobalTools';
-// import SilentSwitchNotification from './components/SilentSwitchNotification'; // REMOVED THIS UNUSED IMPORT
+import IntervalFretboardQuiz from './components/IntervalFretboardQuiz'; // New game imported
 
 // This component contains the main application view
 const AppContent = () => {
@@ -64,6 +64,12 @@ const AppContent = () => {
           >
               Interval Practice
           </button>
+          <button
+              onClick={() => handleTabClick('interval-fretboard-quiz')}
+              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'interval-fretboard-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
+          >
+              Fretboard Intervals
+          </button>
           {/* CHORD TRAINER MOVED TO THE END */}
           <button
               onClick={() => handleTabClick('chord-trainer')}
@@ -79,6 +85,7 @@ const AppContent = () => {
           {activeTab === 'intervals-quiz' && <IntervalsQuiz />}
           {activeTab === 'name-the-interval-quiz' && <NameTheIntervalQuiz />}
           {activeTab === 'note-generator' && <NoteGenerator />}
+          {activeTab === 'interval-fretboard-quiz' && <IntervalFretboardQuiz />}
       </main>
 
       <footer className="w-full max-w-5xl text-center mt-8 text-gray-400 text-sm">

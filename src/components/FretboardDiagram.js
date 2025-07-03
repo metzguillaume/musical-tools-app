@@ -108,12 +108,11 @@ const FretboardDiagram = ({
     const Notes = () => (
         <g className="notes">
             {notesToDisplay.map((note) => {
-                // --- FIX 1: Corrected the boundary condition to include the last fret ---
-                // The upper bound check is changed from '>=' to '>' to correctly include the last fret in the view.
                 if (note.fret < startFret || note.fret > startFret + fretCount) { return null; }
                 
-                let x;
+                let x, y;
                 const displayFret = note.movedFret !== undefined ? note.movedFret : note.fret;
+                const displayString = note.movedString !== undefined ? note.movedString : note.string;
 
                 if (displayFret > 0) {
                     const relativeFret = displayFret - startFret;
@@ -122,7 +121,8 @@ const FretboardDiagram = ({
                     if (startFret !== 0) return null;
                     x = NUT_WIDTH / 2;
                 }
-                const y = (note.string - 1) * STRING_SPACING + (STRING_SPACING / 2);
+                
+                y = (displayString - 1) * STRING_SPACING + (STRING_SPACING / 2);
                 
                 const defaultColor = note.isRoot ? 'hsl(170, 100%, 35%)' : 'hsl(220, 80%, 55%)';
                 const colorMapEntry = colorMap[note.degree];
@@ -144,6 +144,7 @@ const FretboardDiagram = ({
                          }}
                     >
                         <circle r="16" fill={fillColor} stroke={strokeColor} strokeWidth="2" />
+                        {/* --- THIS IS THE FIX: Removed the incorrect id from the text element --- */}
                         <text textAnchor="middle" dy=".3em" fill="white" fontSize="1.1rem" fontWeight="bold">{displayLabel}</text>
                     </g>
                 );
@@ -154,6 +155,7 @@ const FretboardDiagram = ({
     return (
         <div className="flex flex-col items-center w-full">
             {startFret > 0 && (<div className="text-gray-400 text-sm font-bold mb-1">Fret: {startFret}</div>)}
+            {/* --- THIS IS THE FIX: Added the id back to the main svg element --- */}
             <svg
                 id="fretboard-diagram-svg"
                 className="w-full max-w-4xl bg-slate-800 rounded-lg shadow-lg border border-slate-700"
@@ -191,6 +193,7 @@ FretboardDiagram.propTypes = {
     overrideColor: PropTypes.string,
     overrideLabel: PropTypes.string,
     movedFret: PropTypes.number,
+    movedString: PropTypes.number,
   })),
   showLabels: PropTypes.bool,
   labelType: PropTypes.oneOf(['name', 'degree']),
@@ -202,6 +205,4 @@ FretboardDiagram.propTypes = {
   draggingNote: PropTypes.object,
 };
 
-// --- FIX 2: Removed React.memo to prevent stale rendering issues ---
-// This ensures the component always re-renders with fresh data from its parent.
 export default FretboardDiagram;

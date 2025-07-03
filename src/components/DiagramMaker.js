@@ -15,23 +15,22 @@ const DiagramMaker = () => {
     const [labelType, setLabelType] = useState('degree');
     const [colorMap, setColorMap] = useState({
         '1':    { color: '#ef4444', active: true },   'b2':   { color: '#f97316', active: false },
-        '2':    { color: '#a3e635', active: false },  'b3':   { color: '#ec4899', active: false },
+        '2':    { color: '#a3e635', active: false },  'b3':   { color: '##ec4899', active: false },
         '3':    { color: '#22c55e', active: false },  '4':    { color: '#14b8a6', active: false },
         '#4/b5':{ color: '#6b7280', active: false },  '5':    { color: '#eab308', active: false },
         'b6':   { color: '#8b5cf6', active: false },  '6':    { color: '#a855f7', active: false },
         'b7':   { color: '#3b82f6', active: false },  '7':    { color: '#7dd3fc', active: false },
     });
-    // --- FIX 1: Start with an empty board in Customize Mode ---
     const [isManualMode, setIsManualMode] = useState(true);
     const [editingNote, setEditingNote] = useState(null);
     const [editLabel, setEditLabel] = useState('');
     const [editColor, setEditColor] = useState('#ffffff');
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    const [useWhiteBackground, setUseWhiteBackground] = useState(false);
     const clickManager = useRef({ clickTimeout: null, lastClickTimestamp: 0, clickedNote: null });
     const [draggingNote, setDraggingNote] = useState(null);
     const isModalInteraction = useRef(false);
 
-    // --- FIX 3: Corrected PNG export scaling and added a background color ---
     const handleExportAsPng = () => {
         const svgElement = document.getElementById('fretboard-diagram-svg');
         if (!svgElement) {
@@ -42,6 +41,10 @@ const DiagramMaker = () => {
         const serializer = new XMLSerializer();
         let svgString = serializer.serializeToString(svgElement);
 
+        if (useWhiteBackground) {
+            svgString = svgString.replace(/fill="white"/g, 'fill="#111827"');
+        }
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
@@ -51,8 +54,7 @@ const DiagramMaker = () => {
         canvas.width = width * scale;
         canvas.height = height * scale;
 
-        // Add a background color to the canvas matching the site theme
-        ctx.fillStyle = '#1e293b'; // bg-slate-800
+        ctx.fillStyle = useWhiteBackground ? '#ffffff' : '#1e293b';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const img = new Image();
@@ -61,7 +63,6 @@ const DiagramMaker = () => {
         
         img.onload = () => {
             ctx.scale(scale, scale);
-            // Explicitly set the destination width and height to prevent incorrect scaling
             ctx.drawImage(img, 0, 0, width, height);
 
             const pngUrl = canvas.toDataURL('image/png');
@@ -121,13 +122,18 @@ const DiagramMaker = () => {
             const fretWidth = (viewWidth - nutWidth) / fretCount;
             const fretChange = Math.round(deltaX / fretWidth);
             let newFret = draggingNote.note.fret + fretChange;
-    
             if (newFret < 0) newFret = 0;
             if (newFret > 24) newFret = 24;
+
+            const stringSpacing = 240 / 6;
+            const stringChange = Math.round(deltaY / stringSpacing);
+            let newString = draggingNote.note.string + stringChange;
+            if (newString < 1) newString = 1;
+            if (newString > 6) newString = 6;
     
             setDisplayedNotes(prevNotes => prevNotes.map(n => {
                 if (n.string === draggingNote.note.string && n.fret === draggingNote.note.fret) {
-                    return { ...n, movedFret: newFret };
+                    return { ...n, movedFret: newFret, movedString: newString };
                 }
                 return n;
             }));
@@ -143,20 +149,30 @@ const DiagramMaker = () => {
             }, 250);
         } else {
             const movedNote = displayedNotes.find(n => n.string === draggingNote.note.string && n.fret === draggingNote.note.fret);
-            if (movedNote && movedNote.movedFret !== undefined) {
+            if (movedNote && movedNote.movedFret !== undefined && movedNote.movedString !== undefined) {
                 const newFret = movedNote.movedFret;
-                const targetOccupied = displayedNotes.some(n => n.string === movedNote.string && n.fret === newFret && n.fret !== draggingNote.note.fret);
+                const newString = movedNote.movedString;
+
+                const targetOccupied = displayedNotes.some(n => 
+                    n.string === newString && 
+                    n.fret === newFret && 
+                    !(n.string === draggingNote.note.string && n.fret === draggingNote.note.fret)
+                );
+
                 if (!targetOccupied && newFret >= 0 && newFret <= 24) {
-                    const newNoteData = fretboardModel[6 - movedNote.string][newFret];
+                    const newNoteData = fretboardModel[6 - newString][newFret];
                     setDisplayedNotes(prevNotes => prevNotes.map(n => {
                         if (n.string === movedNote.string && n.fret === movedNote.fret) {
-                            const { movedFret, ...rest } = n;
-                            return { ...rest, ...newNoteData, string: movedNote.string, fret: newFret };
+                            const { movedFret, movedString, ...rest } = n;
+                            return { ...rest, ...newNoteData, string: newString, fret: newFret };
                         }
                         return n;
                     }));
                 } else {
-                    setDisplayedNotes(prevNotes => prevNotes.map(n => { const { movedFret, ...rest } = n; return rest; }));
+                    setDisplayedNotes(prevNotes => prevNotes.map(n => { 
+                        const { movedFret, movedString, ...rest } = n; 
+                        return rest; 
+                    }));
                 }
             }
         }
@@ -168,14 +184,32 @@ const DiagramMaker = () => {
     const handleClearBoard = () => { setDisplayedNotes([]); setIsManualMode(true); };
     
     useEffect(() => { if (selectedType === 'Scale') { setSelectedName(Object.keys(SCALES)[0]); } else { setSelectedName(Object.keys(CHORDS)[0]); } }, [selectedType]);
+    
+    // This effect now handles BOTH generating scales/chords AND updating degrees when the root changes.
     useEffect(() => {
-        if (isManualMode) return;
-        const theoryData = selectedType === 'Scale' ? SCALES : CHORDS;
-        const intervals = theoryData[selectedName]?.intervals;
-        if (intervals) {
-            const notes = getNotesFor(selectedRoot, intervals, fretboardModel);
-            const notesWithOverrides = notes.map(n => ({ ...n, overrideColor: null, overrideLabel: null }));
-            setDisplayedNotes(notesWithOverrides);
+        const rootMidi = NOTE_TO_MIDI[selectedRoot];
+        if (rootMidi === undefined) return;
+        
+        // If in customize mode, just update the degrees of existing notes.
+        if (isManualMode) {
+            setDisplayedNotes(prevNotes => 
+                prevNotes.map(note => {
+                    const interval = (note.midi - rootMidi) % 12;
+                    const positiveInterval = interval < 0 ? interval + 12 : interval;
+                    const newDegree = SEMITONE_TO_DEGREE[positiveInterval] || '?';
+                    const newIsRoot = note.midi % 12 === rootMidi % 12;
+                    return { ...note, degree: newDegree, isRoot: newIsRoot };
+                })
+            );
+        } else {
+            // If in generator mode, generate the full scale/chord diagram.
+            const theoryData = selectedType === 'Scale' ? SCALES : CHORDS;
+            const intervals = theoryData[selectedName]?.intervals;
+            if (intervals) {
+                const notes = getNotesFor(selectedRoot, intervals, fretboardModel);
+                const notesWithOverrides = notes.map(n => ({ ...n, overrideColor: null, overrideLabel: null }));
+                setDisplayedNotes(notesWithOverrides);
+            }
         }
     }, [selectedRoot, selectedType, selectedName, isManualMode]);
     
@@ -202,15 +236,30 @@ const DiagramMaker = () => {
     
     return (
         <div className="flex flex-col items-center w-full">
+            {/* --- FIX 2: Updated the help text with more comprehensive information --- */}
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Fretboard Diagram Maker Guide">
                 <div className="space-y-4 text-sm">
-                    <div><h4 className="font-bold text-indigo-300 mb-1">Generator Mode</h4><p>Use the dropdowns to select a root note, type (scale or chord), and a name. The fretboard will update automatically.</p></div>
-                    <div><h4 className="font-bold text-indigo-300 mb-1">Customize Mode</h4><p>Click the "Customize Diagram" button to lock the current notes and enable editing. In this mode:</p>
-                        <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
-                            <li><strong className="text-teal-300">Click an empty spot</strong> on the fretboard to add a new note.</li>
-                            <li><strong className="text-teal-300">Single-Click</strong> an existing note to delete it.</li>
-                            <li><strong className="text-teal-300">Double-Click</strong> an existing note to open an editor.</li>
-                            <li><strong className="text-teal-300">Drag and Drop</strong> a note to move it to a new fret.</li>
+                    <div>
+                        <h4 className="font-bold text-indigo-300 mb-1">Generator Mode</h4>
+                        <p>Use the dropdowns to automatically generate a diagram for any scale or chord. The diagram will update as you change the root note, type, or name.</p>
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-indigo-300 mb-1">Customize Mode</h4>
+                        <p>Click the "Customize Diagram" button to start with a blank canvas or lock the current diagram for editing. In this mode:</p>
+                        <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
+                            <li><strong className="text-teal-300">Add Note:</strong> Click any empty spot on the fretboard. The new note's degree will be automatically calculated relative to the selected root note.</li>
+                            <li><strong className="text-teal-300">Delete Note:</strong> Single-click an existing note.</li>
+                            <li><strong className="text-teal-300">Edit Note:</strong> Double-click an existing note to change its color or label.</li>
+                            <li><strong className="text-teal-300">Move Note:</strong> Click and drag a note to any other fret or string. Note that this won't change the name or scale degree written inside that note!</li>
+                            <li><strong className="text-teal-300">Change Root Note:</strong> The Root Note dropdown is always active! Change it at any time to see the scale degrees update instantly for your custom diagram.</li>
+                        </ul>
+                    </div>
+                     <div>
+                        <h4 className="font-bold text-indigo-300 mb-1">Display & Export</h4>
+                        <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
+                            <li><strong className="text-teal-300">Sliders:</strong> Use the "Start Fret" and "Fret Count" sliders to focus on a specific area of the fretboard.</li>
+                             <li><strong className="text-teal-300">Advanced Options:</strong> Expand this section to toggle between "Name" and "Degree" labels, highlight specific degrees, or choose a white background for your PNG export (great for printing).</li>
+                            <li><strong className="text-teal-300">Export/Print:</strong> Use the buttons in the header to export your diagram as a high-resolution PNG image or to print it directly.</li>
                         </ul>
                     </div>
                 </div>
@@ -246,7 +295,6 @@ const DiagramMaker = () => {
                 </InfoModal> 
             )}
             
-            {/* --- FIX 2: Moved Export/Print buttons to the header --- */}
             <div className="w-full flex justify-between items-center gap-4 mb-6">
                 <div className="flex items-center gap-2">
                     <h2 className="text-3xl font-extrabold text-indigo-300">Fretboard Diagram Maker</h2>
@@ -273,7 +321,8 @@ const DiagramMaker = () => {
             
             <div id="controls-panel" className="w-full max-w-2xl bg-slate-700 p-4 rounded-lg flex flex-col items-center gap-4">
                 <div className="w-full flex flex-col md:flex-row items-center gap-4">
-                    <div className="flex-1 w-full"><label htmlFor="root-note" className="block text-sm font-medium text-gray-300 mb-1">Root Note</label><select id="root-note" value={selectedRoot} onChange={e => setSelectedRoot(e.target.value)} disabled={isManualMode} className="w-full p-2 rounded-md bg-slate-600 text-white disabled:opacity-50 disabled:cursor-not-allowed">{rootNoteOptions.map(note => <option key={note.value} value={note.value}>{note.name}</option>)}</select></div>
+                    {/* --- FIX 1: Removed 'disabled' prop to allow changing root note anytime --- */}
+                    <div className="flex-1 w-full"><label htmlFor="root-note" className="block text-sm font-medium text-gray-300 mb-1">Root Note</label><select id="root-note" value={selectedRoot} onChange={e => setSelectedRoot(e.target.value)} className="w-full p-2 rounded-md bg-slate-600 text-white disabled:opacity-50 disabled:cursor-not-allowed">{rootNoteOptions.map(note => <option key={note.value} value={note.value}>{note.name}</option>)}</select></div>
                     <div className="flex-1 w-full"><label htmlFor="type" className="block text-sm font-medium text-gray-300 mb-1">Type</label><select id="type" value={selectedType} onChange={e => setSelectedType(e.target.value)} disabled={isManualMode} className="w-full p-2 rounded-md bg-slate-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"><option value="Scale">Scale</option><option value="Chord">Chord</option></select></div>
                     <div className="flex-1 w-full"><label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">{selectedType} Name</label><select id="name" value={selectedName} onChange={e => setSelectedName(e.target.value)} disabled={isManualMode} className="w-full p-2 rounded-md bg-slate-600 text-white disabled:opacity-50 disabled:cursor-not-allowed">{nameOptions.map(name => <option key={name} value={name}>{name}</option>)}</select></div>
                 </div>
@@ -300,6 +349,12 @@ const DiagramMaker = () => {
                             {Object.entries(colorMap).map(([degree, { color, active }]) => (
                                 <div key={degree} className="flex items-center gap-2"><input type="checkbox" id={`toggle-${degree}`} checked={active} onChange={() => handleColorToggle(degree)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" /><input type="color" value={color} onChange={(e) => handleColorChange(degree, e.target.value)} className="w-6 h-6 p-0 border-none rounded-md cursor-pointer bg-transparent" /><label htmlFor={`toggle-${degree}`} className="text-sm font-bold text-gray-300 w-12 text-left">{degree}</label></div>
                             ))}
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-700">
+                             <label htmlFor="png-bg" className="flex items-center gap-2 cursor-pointer">
+                                <input id="png-bg" type="checkbox" checked={useWhiteBackground} onChange={e => setUseWhiteBackground(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                <span className="text-sm font-medium text-gray-300">Use white background for PNG export</span>
+                            </label>
                         </div>
                     </div>
                 </details>

@@ -11,3 +11,25 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* --- Print Styles for Diagram Maker --- */
+@media print {
+  /* Hide everything on the page by default when printing */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Make ONLY the printable diagram and its contents visible again */
+  #printable-diagram, #printable-diagram * {
+    visibility: visible;
+  }
+
+  /* Position the diagram to fill the entire printed page */
+  #printable-diagram {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+  }
+}

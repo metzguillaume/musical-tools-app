@@ -3,7 +3,8 @@
  * like scales and chords.
  */
 
-const SEMITONE_TO_DEGREE = {
+// --- FIX: Added 'export' so this can be imported by other files ---
+export const SEMITONE_TO_DEGREE = {
     0: '1', 1: 'b2', 2: '2', 3: 'b3', 4: '3', 5: '4',
     6: '#4/b5', 7: '5', 8: 'b6', 9: '6', 10: 'b7', 11: '7'
 };
@@ -29,8 +30,8 @@ export const CHORDS = {
     'Dominant 7th': { intervals: [0, 4, 7, 10] },
 };
 
-// UPDATED: The map now understands common flat enharmonic equivalents
-const NOTE_TO_MIDI = {
+// --- FIX: Added 'export' so this can be imported by other files ---
+export const NOTE_TO_MIDI = {
     'C': 48, 'C#': 49, 'Db': 49, 'D': 50, 'D#': 51, 'Eb': 51, 'E': 52, 'F': 53,
     'F#': 54, 'Gb': 54, 'G': 55, 'G#': 56, 'Ab': 56, 'A': 57, 'A#': 58, 'Bb': 58, 'B': 59,
 };

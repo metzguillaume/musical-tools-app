@@ -5,20 +5,10 @@ import { fretboardModel } from '../utils/fretboardUtils.js';
 import InfoModal from './InfoModal';
 import InfoButton from './InfoButton';
 
-// ADDED: A helper function to convert MIDI numbers to note names with octaves (e.g., "C4")
-const midiToNoteName = (midi) => {
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const octave = Math.floor(midi / 12) - 1;
-    const noteName = notes[midi % 12];
-    return `${noteName}${octave}`;
-};
-
-
 const IntervalFretboardQuiz = () => {
-    // UPDATED: Get the new playInterval function from the context
-    const { addLogEntry, playInterval } = useTools();
-    const [score, setScore] = useState(0);
-    // ... (other state variables are the same)
+    // ... (state variables remain the same) ...
+    const { addLogEntry } = useTools();
+    const [score, setScore] =useState(0);
     const [totalAsked, setTotalAsked] = useState(0);
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [feedback, setFeedback] = useState({ message: '', type: '' });
@@ -31,7 +21,6 @@ const IntervalFretboardQuiz = () => {
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
     const quizData = useMemo(() => ({
-        // ... (quizData is the same)
         qualities: ['Diminished', 'Minor', 'Perfect', 'Major', 'Augmented'],
         numericButtons: ['Unison / Octave', '2nd', '3rd', '4th', 'Tritone', '5th', '6th', '7th'],
         intervalsToTest: [
@@ -75,8 +64,7 @@ const IntervalFretboardQuiz = () => {
                         fretboardModel[targetStringIndex].forEach((noteOnString, fret) => {
                             const isInRange = Math.abs(fret - rootFret) <= 4;
                             if (noteOnString.midi === targetMidi && fret < 12 && isInRange && (targetStringIndex !== rootStringIndex || fret !== rootFret)) {
-                                // UPDATED: Include the MIDI value in the note object
-                                possibleTargets.push({ string: 6 - targetStringIndex, fret: fret, label: noteOnString.note, midi: noteOnString.midi });
+                                possibleTargets.push({ string: 6 - targetStringIndex, fret: fret, label: noteOnString.note });
                             }
                         });
                     }
@@ -84,11 +72,7 @@ const IntervalFretboardQuiz = () => {
                 if (possibleTargets.length > 0) {
                     const targetNote = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
                     newQuestion = {
-                        notes: [
-                            // UPDATED: Include the MIDI value for the root note
-                            { string: 6 - rootStringIndex, fret: rootFret, label: rootNote.note, isRoot: true, midi: rootNote.midi },
-                             targetNote
-                        ],
+                        notes: [{ string: 6 - rootStringIndex, fret: rootFret, label: rootNote.note, isRoot: true }, targetNote],
                         answer: interval.name
                     };
                 }
@@ -101,8 +85,7 @@ const IntervalFretboardQuiz = () => {
         setIsAnswered(false);
     }, [quizData.intervalsToTest]);
 
-    // ... (useEffect for initial load is the same) ...
-     useEffect(() => {
+    useEffect(() => {
         setScore(0);
         setTotalAsked(0);
         setHistory([]);
@@ -126,7 +109,7 @@ const IntervalFretboardQuiz = () => {
                 isCorrect = true;
             }
         }
-        
+
         if (isCorrect) {
             setScore(s => s + 1);
             setFeedback({ message: 'Correct!', type: 'correct' });
@@ -135,23 +118,12 @@ const IntervalFretboardQuiz = () => {
             setFeedback({ message: `Incorrect! It was ${correctAnswerText}.`, type: 'incorrect' });
         }
         setIsAnswered(true);
-
-        // ADDED: Play the interval sound after answering
-        if (currentQuestion.notes && currentQuestion.notes.length === 2) {
-            const notesToPlay = [
-                midiToNoteName(currentQuestion.notes[0].midi),
-                midiToNoteName(currentQuestion.notes[1].midi)
-            ];
-            playInterval(notesToPlay);
-        }
-
         if (autoAdvance) {
             timeoutRef.current = setTimeout(startNewRound, 2000);
         }
-    }, [isAnswered, selected, currentQuestion, autoAdvance, startNewRound, playInterval]);
+    }, [isAnswered, selected, currentQuestion, autoAdvance, startNewRound]);
 
-    // ... (rest of the component, including JSX, remains unchanged) ...
-     useEffect(() => {
+    useEffect(() => {
         if (selected.quality && selected.number && !isAnswered) {
             checkAnswer();
         }
@@ -172,8 +144,10 @@ const IntervalFretboardQuiz = () => {
         }
     };
 
+    // UPDATED: This function now cancels any pending auto-advance timer
     const handleEnterReview = () => {
         if (history.length > 0) {
+            clearTimeout(timeoutRef.current); // Stop the next question from loading
             setReviewIndex(history.length - 1);
         }
     };
@@ -191,16 +165,12 @@ const IntervalFretboardQuiz = () => {
     const isReviewing = reviewIndex !== null;
     const questionToDisplay = isReviewing ? history[reviewIndex] : currentQuestion;
     const buttonsDisabled = isAnswered || isReviewing;
-    
+
     if (!questionToDisplay) { return <div>Loading...</div>; }
 
     return (
         <div className="bg-slate-800 p-4 md:p-8 rounded-lg w-full max-w-2xl mx-auto text-center">
-            <InfoModal 
-                isOpen={isInfoModalOpen}
-                onClose={() => setIsInfoModalOpen(false)}
-                title="How to Play: Intervals on Fretboard"
-            >
+            <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="How to Play: Intervals on Fretboard">
                 <p>A diagram of a guitar fretboard will be displayed with two notes.</p>
                 <p>The green note marked 'R' is the **root note**.</p>
                 <p>Your goal is to identify the interval between the root note and the second note by its shape.</p>
@@ -221,34 +191,32 @@ const IntervalFretboardQuiz = () => {
                     </h1>
                     <InfoButton onClick={() => setIsInfoModalOpen(true)} />
                 </div>
-                <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button>
+                {/* UPDATED: The Review History button is now here and always accessible when history is available. */}
+                <div className="flex items-center gap-2">
+                    {history.length > 0 && (
+                        <button onClick={handleEnterReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50">
+                            Review History
+                        </button>
+                    )}
+                    <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button>
+                </div>
             </div>
-
+            
             <div className="text-xl mb-4 text-gray-300">Score: {score} / {totalAsked > 0 ? totalAsked - 1 : 0}</div>
-
-            <FretboardDiagram
-                notesToDisplay={questionToDisplay.notes}
-                showLabels={isReviewing || isAnswered}
-                startFret={0}
-                fretCount={12}
-            />
-
+            
+            <FretboardDiagram notesToDisplay={questionToDisplay.notes} showLabels={isReviewing || isAnswered} startFret={0} fretCount={12} />
+            
             <div className={`text-lg font-bold my-4 min-h-[28px] ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
-                {isReviewing
-                    ? `The correct answer was ${questionToDisplay.answer.number === 'Tritone' ? 'a Tritone' : `a ${questionToDisplay.answer.quality} ${questionToDisplay.answer.number}`}.`
-                    : (feedback.message || <>&nbsp;</>)
-                }
+                {isReviewing ? `The correct answer was ${questionToDisplay.answer.number === 'Tritone' ? 'a Tritone' : `a ${questionToDisplay.answer.quality} ${questionToDisplay.answer.number}`}.` : (feedback.message || <>&nbsp;</>)}
             </div>
-
+            
             <div className="grid grid-cols-2 gap-6 mb-4">
                 <div>
                     <h3 className="text-lg font-semibold text-gray-400 mb-3">Quality</h3>
                     <div className="flex flex-col gap-2">
                         {quizData.qualities.map(q => {
                             const isDisabled = buttonsDisabled || q === 'Augmented' || q === 'Diminished';
-                            return (
-                                <button key={q} onClick={() => handleSelection('quality', q)} disabled={isDisabled} className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.quality === q && !isReviewing ? 'bg-indigo-600 text-white ring-2 ring-white' : 'bg-teal-600 hover:bg-teal-500'}`}>{q}</button>
-                            );
+                            return (<button key={q} onClick={() => handleSelection('quality', q)} disabled={isDisabled} className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${selected.quality === q && !isReviewing ? 'bg-indigo-600 text-white ring-2 ring-white' : 'bg-teal-600 hover:bg-teal-500'}`}>{q}</button>);
                         })}
                     </div>
                 </div>
@@ -259,10 +227,7 @@ const IntervalFretboardQuiz = () => {
                             const normalColor = 'bg-teal-600 hover:bg-teal-500';
                             const selectedColor = 'bg-indigo-600 text-white ring-2 ring-white';
                             const colorClasses = selected.number === n && !isReviewing ? selectedColor : normalColor;
-
-                            return (
-                                <button key={n} onClick={() => handleSelection('number', n)} disabled={buttonsDisabled} className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${colorClasses}`}>{n}</button>
-                            )
+                            return (<button key={n} onClick={() => handleSelection('number', n)} disabled={buttonsDisabled} className={`p-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${colorClasses}`}>{n}</button>)
                         })}
                     </div>
                 </div>
@@ -277,11 +242,7 @@ const IntervalFretboardQuiz = () => {
                     </div>
                 ) : (
                     <>
-                        {isAnswered && history.length > 0 && (
-                            <button onClick={handleEnterReview} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg text-md">
-                                Review History
-                            </button>
-                        )}
+                        {/* REMOVED: The old Review History button logic is gone from here */}
                         {isAnswered && !autoAdvance && (
                             <button onClick={startNewRound} className="flex-grow max-w-xs bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg text-xl animate-pulse">
                                 Next Question

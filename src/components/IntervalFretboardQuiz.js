@@ -3,7 +3,12 @@ import { useTools } from '../context/ToolsContext';
 import FretboardDiagram from './FretboardDiagram';
 import { fretboardModel } from '../utils/fretboardUtils.js';
 
+// ADDED: Import the new reusable components
+import InfoModal from './InfoModal';
+import InfoButton from './InfoButton';
+
 const IntervalFretboardQuiz = () => {
+    // ... (most state variables remain the same) ...
     const { addLogEntry } = useTools();
     const [score, setScore] = useState(0);
     const [totalAsked, setTotalAsked] = useState(0);
@@ -21,32 +26,28 @@ const IntervalFretboardQuiz = () => {
         qualities: ['Diminished', 'Minor', 'Perfect', 'Major', 'Augmented'],
         numericButtons: ['Unison / Octave', '2nd', '3rd', '4th', 'Tritone', '5th', '6th', '7th'],
         intervalsToTest: [
-            { name: { quality: 'Perfect', number: 'Unison' }, semitones: 0 },
-            { name: { quality: 'Minor', number: '2nd' }, semitones: 1 },
-            { name: { quality: 'Major', number: '2nd' }, semitones: 2 },
-            { name: { quality: 'Minor', number: '3rd' }, semitones: 3 },
-            { name: { quality: 'Major', number: '3rd' }, semitones: 4 },
-            { name: { quality: 'Perfect', number: '4th' }, semitones: 5 },
-            { name: { quality: 'Tritone', number: 'Tritone' }, semitones: 6 },
-            { name: { quality: 'Perfect', number: '5th' }, semitones: 7 },
-            { name: { quality: 'Minor', number: '6th' }, semitones: 8 },
-            { name: { quality: 'Major', number: '6th' }, semitones: 9 },
-            { name: { quality: 'Minor', number: '7th' }, semitones: 10 },
-            { name: { quality: 'Major', number: '7th' }, semitones: 11 },
+            { name: { quality: 'Perfect', number: 'Unison' }, semitones: 0 }, { name: { quality: 'Minor', number: '2nd' }, semitones: 1 },
+            { name: { quality: 'Major', number: '2nd' }, semitones: 2 }, { name: { quality: 'Minor', number: '3rd' }, semitones: 3 },
+            { name: { quality: 'Major', number: '3rd' }, semitones: 4 }, { name: { quality: 'Perfect', number: '4th' }, semitones: 5 },
+            { name: { quality: 'Tritone', number: 'Tritone' }, semitones: 6 }, { name: { quality: 'Perfect', number: '5th' }, semitones: 7 },
+            { name: { quality: 'Minor', number: '6th' }, semitones: 8 }, { name: { quality: 'Major', number: '6th' }, semitones: 9 },
+            { name: { quality: 'Minor', number: '7th' }, semitones: 10 }, { name: { quality: 'Major', number: '7th' }, semitones: 11 },
             { name: { quality: 'Perfect', number: 'Octave' }, semitones: 12 },
         ]
     }), []);
 
-    // ... (startNewRound, checkAnswer, and other handler functions remain the same) ...
+    const intervalList = quizData.intervalsToTest
+        .map(i => i.name.number === 'Tritone' ? 'Tritone' : `${i.name.quality} ${i.name.number}`)
+        .join(', ');
+
+    // ... (startNewRound, checkAnswer, and other handlers are unchanged) ...
     const startNewRound = useCallback(() => {
         clearTimeout(timeoutRef.current);
         setReviewIndex(null);
-
         setCurrentQuestion(prevQuestion => {
             if (prevQuestion) {
                 setHistory(prevHistory => [...prevHistory, prevQuestion]);
             }
-
             let newQuestion = null;
             let attempts = 0;
             while (newQuestion === null && attempts < 50) {
@@ -55,7 +56,6 @@ const IntervalFretboardQuiz = () => {
                 const rootFret = Math.floor(Math.random() * 8);
                 const rootNote = fretboardModel[rootStringIndex][rootFret];
                 const interval = quizData.intervalsToTest[Math.floor(Math.random() * quizData.intervalsToTest.length)];
-
                 if (prevQuestion && JSON.stringify(interval.name) === JSON.stringify(prevQuestion.answer)) {
                     continue;
                 }
@@ -72,7 +72,6 @@ const IntervalFretboardQuiz = () => {
                         });
                     }
                 });
-
                 if (possibleTargets.length > 0) {
                     const targetNote = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
                     newQuestion = {
@@ -83,7 +82,6 @@ const IntervalFretboardQuiz = () => {
             }
             return newQuestion || prevQuestion;
         });
-
         setTotalAsked(prev => prev + 1);
         setFeedback({ message: '', type: '' });
         setSelected({ quality: null, number: null });
@@ -168,66 +166,43 @@ const IntervalFretboardQuiz = () => {
     const isReviewing = reviewIndex !== null;
     const questionToDisplay = isReviewing ? history[reviewIndex] : currentQuestion;
     const buttonsDisabled = isAnswered || isReviewing;
-    
-    // UPDATED: Create a formatted list of intervals to display in the help modal
-    const intervalList = quizData.intervalsToTest
-        .map(i => i.name.number === 'Tritone' ? 'Tritone' : `${i.name.quality} ${i.name.number}`)
-        .join(', ');
 
     if (!questionToDisplay) { return <div>Loading...</div>; }
 
     return (
         <div className="bg-slate-800 p-4 md:p-8 rounded-lg w-full max-w-2xl mx-auto text-center">
-            {isInfoModalOpen && (
-                <div 
-                    className="fixed inset-0 bg-black/60 flex justify-center items-center z-50"
-                    onClick={() => setIsInfoModalOpen(false)}
-                >
-                    <div 
-                        className="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-lg w-11/12 shadow-2xl"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <h3 className="text-2xl font-bold text-indigo-300 mb-4">How to Play</h3>
-                        <div className="text-left text-gray-300 space-y-3">
-                            <p>A diagram of a guitar fretboard will be displayed with two notes.</p>
-                            <p>The green note marked 'R' is the **root note**.</p>
-                            <p>Your goal is to identify the interval between the root note and the second note by its shape on the fretboard.</p>
-                            <div className="p-3 bg-slate-800 rounded-lg border border-slate-600">
-                                <h4 className="font-bold text-indigo-300">Special Note on Tritones:</h4>
-                                {/* UPDATED: The explanation for the Tritone button is now clearer. */}
-                                <p className="text-sm mt-1">The 'Tritone' button represents the augmented 4th/ diminished 5th. Since it's a unique interval, selecting 'Tritone' counts as a complete answer without needing to select a quality.</p>
-                            </div>
-                             {/* ADDED: A list of all intervals tested in the game. */}
-                            <div className="p-3 bg-slate-800 rounded-lg border border-slate-600">
-                                <h4 className="font-bold text-indigo-300">Intervals Tested:</h4>
-                                <p className="text-sm mt-1">{intervalList}.</p>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={() => setIsInfoModalOpen(false)}
-                            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-                        >
-                            Got it!
-                        </button>
-                    </div>
+            {/* UPDATED: Using the new reusable InfoModal component */}
+            <InfoModal 
+                isOpen={isInfoModalOpen}
+                onClose={() => setIsInfoModalOpen(false)}
+                title="How to Play: Intervals on Fretboard"
+            >
+                <p>A diagram of a guitar fretboard will be displayed with two notes.</p>
+                <p>The green note marked 'R' is the **root note**.</p>
+                <p>Your goal is to identify the interval between the root note and the second note by its shape.</p>
+                <div className="p-3 bg-slate-800 rounded-lg border border-slate-600">
+                    <h4 className="font-bold text-indigo-300">Special Note on Tritones:</h4>
+                    <p className="text-sm mt-1">The 'Tritone' button represents the augmented 4th/diminished 5th. Since it's a unique interval, selecting 'Tritone' counts as a complete answer without needing to select a quality.</p>
                 </div>
-            )}
+                <div className="p-3 bg-slate-800 rounded-lg border border-slate-600">
+                    <h4 className="font-bold text-indigo-300">Intervals Tested:</h4>
+                    <p className="text-sm mt-1">{intervalList}.</p>
+                </div>
+            </InfoModal>
 
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                     <h1 className="text-2xl md:text-3xl font-extrabold text-indigo-300">
                         {isReviewing ? `Reviewing Question ${reviewIndex + 1}` : 'Intervals on Fretboard'}
                     </h1>
-                    <button onClick={() => setIsInfoModalOpen(true)} className="p-1 rounded-full text-gray-400 hover:bg-slate-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </button>
+                    {/* UPDATED: Using the new reusable InfoButton component */}
+                    <InfoButton onClick={() => setIsInfoModalOpen(true)} />
                 </div>
                 <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button>
             </div>
 
-            <div className="text-xl mb-4 text-gray-300">Score: {score} / {totalAsked > 0 ? totalAsked - 1 : 0}</div>
+            {/* ... (rest of the component JSX is unchanged) ... */}
+             <div className="text-xl mb-4 text-gray-300">Score: {score} / {totalAsked > 0 ? totalAsked - 1 : 0}</div>
 
             <FretboardDiagram
                 notesToDisplay={questionToDisplay.notes}
@@ -259,7 +234,6 @@ const IntervalFretboardQuiz = () => {
                     <h3 className="text-lg font-semibold text-gray-400 mb-3">Number</h3>
                     <div className="grid grid-cols-2 gap-2">
                         {quizData.numericButtons.map(n => {
-                            // UPDATED: Removed the special color logic for the Tritone button.
                             const normalColor = 'bg-teal-600 hover:bg-teal-500';
                             const selectedColor = 'bg-indigo-600 text-white ring-2 ring-white';
                             const colorClasses = selected.number === n && !isReviewing ? selectedColor : normalColor;

@@ -8,7 +8,8 @@ import NameTheIntervalQuiz from './components/NameTheIntervalQuiz';
 import NoteGenerator from './components/NoteGenerator';
 import ChordTrainer from './components/ChordTrainer';
 import GlobalTools from './components/GlobalTools';
-import IntervalFretboardQuiz from './components/IntervalFretboardQuiz'; // New game imported
+import IntervalFretboardQuiz from './components/IntervalFretboardQuiz';
+import DiagramMaker from './components/DiagramMaker';
 
 // This component contains the main application view
 const AppContent = () => {
@@ -70,7 +71,12 @@ const AppContent = () => {
           >
               Fretboard Intervals
           </button>
-          {/* CHORD TRAINER MOVED TO THE END */}
+          <button
+              onClick={() => handleTabClick('diagram-maker')}
+              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'diagram-maker' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
+          >
+              Diagram Maker
+          </button>
           <button
               onClick={() => handleTabClick('chord-trainer')}
               className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'chord-trainer' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
@@ -86,6 +92,7 @@ const AppContent = () => {
           {activeTab === 'name-the-interval-quiz' && <NameTheIntervalQuiz />}
           {activeTab === 'note-generator' && <NoteGenerator />}
           {activeTab === 'interval-fretboard-quiz' && <IntervalFretboardQuiz />}
+          {activeTab === 'diagram-maker' && <DiagramMaker />}
       </main>
 
       <footer className="w-full max-w-5xl text-center mt-8 text-gray-400 text-sm">

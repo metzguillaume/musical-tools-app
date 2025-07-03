@@ -68,6 +68,8 @@ export const ToolsProvider = ({ children }) => {
     const [laps, setLaps] = useState([]);
     const stopwatchIntervalRef = useRef(null);
 
+    const intervalSynth = useRef(null);
+
     // Initialize ALL audio components
     useEffect(() => {
         let loadedDronesCount = 0;
@@ -77,6 +79,12 @@ export const ToolsProvider = ({ children }) => {
         metronomePlayer.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/click.wav`, fadeOut: 0.1, onload: () => setIsMetronomeReady(true) }).toDestination();
         timerAlarm.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/ding.wav`, fadeOut: 0.1 }).toDestination();
         
+        intervalSynth.current = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 },
+        }).toDestination();
+        intervalSynth.current.volume.value = 5;
+
         const players = {};
         notes.forEach(note => {
             players[note.toUpperCase().replace('S', '#')] = new Tone.Player({ 
@@ -98,6 +106,7 @@ export const ToolsProvider = ({ children }) => {
             metronomePlayer.current?.dispose();
             timerAlarm.current?.dispose();
             Object.values(dronePlayers.current).forEach(player => player.dispose());
+            intervalSynth.current?.dispose();
         };
     }, []);
 
@@ -131,28 +140,19 @@ export const ToolsProvider = ({ children }) => {
         setIsDronePlaying(prev => !prev);
     }, [areDronesReady, unlockAudio]);
 
-    // --- MODIFIED: This entire block is restructured to correctly handle stopping the drone ---
     useEffect(() => {
         const currentPlayer = dronePlayers.current[droneNote];
-
         if (isDronePlaying) {
-            // This is the PLAY logic
             if (!currentPlayer || !currentPlayer.loaded) return;
-
-            // Stop other drones before starting the new one
             Object.values(dronePlayers.current).forEach(p => {
                 if (p !== currentPlayer && p.state === 'started') {
                     p.stop();
                 }
             });
-            
-            // Start the current player if it's not already started
             if (currentPlayer.state !== 'started') {
                 currentPlayer.start();
             }
         } else {
-            // This is the STOP logic
-            // Stop any drone that is currently playing
             Object.values(dronePlayers.current).forEach(p => {
                 if (p.state === 'started') {
                     p.stop();
@@ -160,7 +160,6 @@ export const ToolsProvider = ({ children }) => {
             });
         }
     }, [droneNote, isDronePlaying, areDronesReady]);
-
 
     useEffect(() => {
         if (isTimerRunning) {
@@ -178,6 +177,19 @@ export const ToolsProvider = ({ children }) => {
         } else { clearInterval(timerIntervalRef.current); }
         return () => clearInterval(timerIntervalRef.current);
     }, [isTimerRunning]);
+    
+    // ADDED: The missing useEffect to run the stopwatch timer.
+    // This makes the stopwatch functional and resolves the "unused variable" warning.
+    useEffect(() => {
+        if (isStopwatchRunning) {
+            stopwatchIntervalRef.current = setInterval(() => {
+                setStopwatchTime(prevTime => prevTime + 10);
+            }, 10);
+        } else {
+            clearInterval(stopwatchIntervalRef.current);
+        }
+        return () => clearInterval(stopwatchIntervalRef.current);
+    }, [isStopwatchRunning]);
 
     const toggleTimer = useCallback(async () => {
         await unlockAudio();
@@ -195,13 +207,26 @@ export const ToolsProvider = ({ children }) => {
     const resetStopwatch = () => { setIsStopwatchRunning(false); setStopwatchTime(0); setLaps([]); };
     const addLap = () => setLaps(prevLaps => [...prevLaps, stopwatchTime]);
 
+    const playInterval = useCallback(async (notes) => {
+        if (!notes || notes.length < 2) return;
+        await unlockAudio();
+        
+        const now = Tone.now();
+        intervalSynth.current.triggerAttackRelease(notes[0], "8n", now);
+        intervalSynth.current.triggerAttackRelease(notes[1], "8n", now + 0.5);
+        intervalSynth.current.triggerAttackRelease(notes, "4n", now + 1.2);
+
+    }, [unlockAudio]);
+
+
     const value = {
         unlockAudio, activeTool, toggleActiveTool,
         bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady,
         droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady,
         timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration,
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,
-        practiceLog, addLogEntry, clearLog
+        practiceLog, addLogEntry, clearLog,
+        playInterval,
     };
 
     return (

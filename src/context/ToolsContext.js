@@ -50,6 +50,9 @@ export const ToolsProvider = ({ children }) => {
     const [metronomeVolume, setMetronomeVolume] = useState(0);
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
     const metronomePlayer = useRef(null);
+    // --- FIX: Refs to manage scheduled tasks and beat counting ---
+    const transportEventRef = useRef({ id: null, beatCounter: 0 });
+    const scheduledTaskRef = useRef(null); // Will hold { callback, interval }
 
     const [droneNote, setDroneNote] = useState('C');
     const [isDronePlaying, setIsDronePlaying] = useState(false);
@@ -70,7 +73,6 @@ export const ToolsProvider = ({ children }) => {
 
     const intervalSynth = useRef(null);
 
-    // Initialize ALL audio components
     useEffect(() => {
         let loadedDronesCount = 0;
         const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
@@ -113,18 +115,48 @@ export const ToolsProvider = ({ children }) => {
     useEffect(() => { if (isMetronomeReady) metronomePlayer.current.volume.value = metronomeVolume; }, [metronomeVolume, isMetronomeReady]);
     useEffect(() => { if (areDronesReady) Object.values(dronePlayers.current).forEach(p => p.volume.value = droneVolume); }, [droneVolume, areDronesReady]);
 
+    // --- FIX: New function to allow components to set a scheduled task ---
+    const setMetronomeSchedule = useCallback((task) => {
+        scheduledTaskRef.current = task;
+    }, []);
+
+    // --- FIX: Upgraded startMetronome to handle custom scheduled tasks ---
     const startMetronome = useCallback(() => {
         if (!isMetronomeReady) return;
-        setIsMetronomePlaying(true);
+        
         Tone.Transport.bpm.value = bpm;
-        Tone.Transport.scheduleRepeat(time => metronomePlayer.current.start(time), "4n");
+        if (transportEventRef.current.id) {
+            Tone.Transport.clear(transportEventRef.current.id);
+        }
+        
+        transportEventRef.current.beatCounter = 0;
+
+        transportEventRef.current.id = Tone.Transport.scheduleRepeat(time => {
+            transportEventRef.current.beatCounter++;
+            
+            // UI updates should be scheduled with Tone.Draw to sync with audio
+            Tone.Draw.schedule(() => {
+                metronomePlayer.current.start(time);
+                const task = scheduledTaskRef.current;
+                if (task && task.callback && task.interval > 0) {
+                    if (transportEventRef.current.beatCounter % task.interval === 0) {
+                        task.callback();
+                    }
+                }
+            }, time);
+        }, "4n");
+        
         Tone.Transport.start();
+        setIsMetronomePlaying(true);
     }, [bpm, isMetronomeReady]);
 
     const stopMetronome = useCallback(() => {
-        setIsMetronomePlaying(false);
         Tone.Transport.stop();
-        Tone.Transport.cancel();
+        if (transportEventRef.current.id) {
+            Tone.Transport.clear(transportEventRef.current.id);
+            transportEventRef.current.id = null;
+        }
+        setIsMetronomePlaying(false);
     }, []);
 
     const toggleMetronome = useCallback(async () => {
@@ -178,8 +210,6 @@ export const ToolsProvider = ({ children }) => {
         return () => clearInterval(timerIntervalRef.current);
     }, [isTimerRunning]);
     
-    // ADDED: The missing useEffect to run the stopwatch timer.
-    // This makes the stopwatch functional and resolves the "unused variable" warning.
     useEffect(() => {
         if (isStopwatchRunning) {
             stopwatchIntervalRef.current = setInterval(() => {
@@ -218,10 +248,10 @@ export const ToolsProvider = ({ children }) => {
 
     }, [unlockAudio]);
 
-
     const value = {
         unlockAudio, activeTool, toggleActiveTool,
-        bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady,
+        // Add the new scheduler function and metronome playing state to the context value
+        bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady, setMetronomeSchedule,
         droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady,
         timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration,
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,

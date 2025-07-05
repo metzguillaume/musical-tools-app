@@ -11,7 +11,7 @@ const IntervalsQuiz = () => {
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [userAnswer, setUserAnswer] = useState('');
     const [rootNoteType, setRootNoteType] = useState('natural');
-    const [autoAdvance, setAutoAdvance] = useState(false); // New state for the toggle
+    const [autoAdvance, setAutoAdvance] = useState(false);
     const answerInputRef = useRef(null);
     const lastQuestionRef = useRef(null);
     const timeoutRef = useRef(null);
@@ -145,13 +145,7 @@ const IntervalsQuiz = () => {
                                 <label className="flex items-center gap-2 cursor-pointer text-lg"><input type="radio" name="rootType" value="chromatic" checked={rootNoteType === 'chromatic'} onChange={() => setRootNoteType('chromatic')} />Chromatic</label>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <label htmlFor="auto-advance-menu" className="font-semibold text-lg text-gray-300">Auto-Advance:</label>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="auto-advance-menu" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            </label>
-                        </div>
+                        {/* --- FIX: "Auto-Advance" toggle was moved from here --- */}
                     </div>
                 </div>
                 <button onClick={startQuiz} disabled={!Object.values(selectedIntervals).some(v => v)} className="w-full mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-xl disabled:bg-gray-500 disabled:cursor-not-allowed">Start Quiz</button>
@@ -162,10 +156,18 @@ const IntervalsQuiz = () => {
     return (
         <div className="flex flex-col items-center bg-slate-800 p-4 md:p-8 rounded-lg w-full max-w-md mx-auto">
             <h1 className="text-3xl font-extrabold mb-2 text-indigo-300">Interval Practice</h1>
-            <div className="w-full flex justify-between items-center mb-4">
-                <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button>
-                <div className="text-xl text-gray-300">Score: {score} / {totalQuestions}</div>
+            {/* --- FIX: "Auto-Advance" toggle moved here for better UX --- */}
+            <div className="w-full grid grid-cols-2 items-center mb-4 text-sm">
+                <div className="flex justify-start">
+                    <label htmlFor="auto-advance-quiz" className="flex items-center gap-2 cursor-pointer font-semibold">
+                        <input type="checkbox" id="auto-advance-quiz" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" />
+                        <div className="relative w-9 h-5 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        <span>Auto-Advance</span>
+                    </label>
+                </div>
+                <div className="text-xl text-gray-300 text-right">Score: {score} / {totalQuestions}</div>
             </div>
+            
             {currentQuestion && (<><div className="text-5xl font-bold text-teal-300 mb-4">{currentQuestion.rootNote}</div><div className="text-2xl font-semibold text-gray-400 mb-6">What is the {currentQuestion.intervalName} above?</div></>)}
             <input ref={answerInputRef} type="text" value={userAnswer} onChange={(e) => setUserAnswer(e.target.value)} className="w-full text-center text-2xl p-3 rounded-lg bg-slate-700 text-white border-2 border-slate-600 focus:border-blue-500 focus:outline-none mb-4" placeholder="e.g., E, Bb" disabled={answerChecked} />
             <div className={`text-lg font-bold my-4 min-h-[28px] ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>{feedback.message || <>&nbsp;</>}</div>
@@ -184,7 +186,10 @@ const IntervalsQuiz = () => {
                 <div className="h-[52px]"></div> // Placeholder to prevent layout shift
             )}
 
-            <button onClick={() => setScreen('menu')} className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Back to Menu</button>
+            <div className="w-full flex justify-between items-center mt-4">
+                 <button onClick={() => setScreen('menu')} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Back to Menu</button>
+                 <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Log Session</button>
+            </div>
         </div>
     );
 };

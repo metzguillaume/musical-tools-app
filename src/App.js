@@ -14,17 +14,51 @@ import DiagramMaker from './components/DiagramMaker';
 // This component contains the main application view
 const AppContent = () => {
   const [activeTab, setActiveTab] = useState('welcome');
+  // --- FIX: Add state to manage which category dropdown is open ---
+  const [openCategory, setOpenCategory] = useState(null);
   const { activeTool, unlockAudio } = useTools();
+
+  // --- FIX: "Chord Trainer" moved to "Music Theory Exercises" ---
+  const toolCategories = [
+    {
+      name: 'Generators',
+      tools: [
+        { id: 'note-generator', name: 'Note Generator' },
+        { id: 'diagram-maker', name: 'Diagram Maker' },
+      ],
+    },
+    {
+      name: 'Theory Exercises',
+      tools: [
+        { id: 'name-the-interval-quiz', name: 'Name The Interval' },
+        { id: 'intervals-quiz', name: 'Interval Practice' },
+        { id: 'chord-trainer', name: 'Chord Trainer' },
+      ],
+    },
+    {
+      name: 'Practical Exercises',
+      tools: [
+        { id: 'interval-fretboard-quiz', name: 'Fretboard Intervals' },
+      ],
+    },
+  ];
 
   const handleTabClick = (tabName) => {
     unlockAudio();
     setActiveTab(tabName);
   }
 
+  // --- FIX: Function to handle opening and closing the category dropdowns ---
+  const handleCategoryClick = (categoryName) => {
+    setOpenCategory(prevOpenCategory => 
+        // If the clicked category is already open, close it. Otherwise, open it.
+        prevOpenCategory === categoryName ? null : categoryName
+    );
+  };
+
   return (
     <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-4 pb-32 md:p-6 transition-all duration-300 ${activeTool === 'log' ? 'md:pl-96' : 'md:pl-72'}`}>
 
-      {/* Signature Logo: Hidden on mobile (default), visible on medium screens and up */}
       <div className="hidden md:block fixed top-5 left-0 z-50">
         <img src={`${process.env.PUBLIC_URL}/logo.png`} alt="Signature Logo" className="h-32 w-auto" />
       </div>
@@ -39,50 +73,45 @@ const AppContent = () => {
           Your comprehensive companion for musical growth!
         </p>
       </header>
-
-      <nav className="w-full max-w-5xl bg-slate-800 shadow-md rounded-xl p-2 mb-8 flex flex-wrap justify-center gap-2 md:gap-4">
-         <button
-              onClick={() => handleTabClick('welcome')}
-              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'welcome' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
-          >
-              Welcome
-          </button>
-           <button
-              onClick={() => handleTabClick('note-generator')}
-              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'note-generator' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
-            >
-              Note Generator
-            </button>
-          <button
-              onClick={() => handleTabClick('name-the-interval-quiz')}
-              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'name-the-interval-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
-          >
-              Name The Interval
-          </button>
-         <button
-              onClick={() => handleTabClick('intervals-quiz')}
-              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'intervals-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
-          >
-              Interval Practice
-          </button>
-          <button
-              onClick={() => handleTabClick('interval-fretboard-quiz')}
-              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'interval-fretboard-quiz' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
-          >
-              Fretboard Intervals
-          </button>
-          <button
-              onClick={() => handleTabClick('diagram-maker')}
-              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'diagram-maker' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
-          >
-              Diagram Maker
-          </button>
-          <button
-              onClick={() => handleTabClick('chord-trainer')}
-              className={`px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === 'chord-trainer' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
-          >
-              Chord Trainer
-          </button>
+      
+      {/* --- FIX: The navigation is now an accordion dropdown menu --- */}
+      <nav className="w-full max-w-5xl bg-slate-800 shadow-md rounded-xl p-4 md:p-6 mb-8">
+        <div className="flex flex-col md:flex-row justify-around gap-y-4 md:gap-x-6">
+            <div className="flex-1 text-center">
+                 <button
+                    onClick={() => handleTabClick('welcome')}
+                    className={`px-6 py-3 rounded-lg text-lg font-bold transition-all duration-300 ease-in-out w-full ${activeTab === 'welcome' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-700 text-blue-300 hover:bg-slate-600'}`}
+                >
+                    Welcome
+                </button>
+            </div>
+            {toolCategories.map(category => (
+                <div key={category.name} className="flex-1 flex flex-col items-center gap-2">
+                    {/* The category title is now a button to toggle the dropdown */}
+                    <button 
+                        onClick={() => handleCategoryClick(category.name)}
+                        className="w-full bg-slate-700 hover:bg-slate-600 rounded-lg p-3 flex justify-between items-center transition-all"
+                    >
+                        <h3 className="text-lg font-bold text-teal-300">{category.name}</h3>
+                        <span className={`transform transition-transform duration-300 ${openCategory === category.name ? 'rotate-180' : ''}`}>▼</span>
+                    </button>
+                    {/* The list of tools is now rendered conditionally */}
+                    {openCategory === category.name && (
+                        <div className="w-full flex flex-col items-center gap-2 bg-slate-900/50 p-2 rounded-b-lg animate-fade-in-down">
+                           {category.tools.map(tool => (
+                                <button
+                                    key={tool.id}
+                                    onClick={() => handleTabClick(tool.id)}
+                                    className={`w-full px-4 py-2 rounded-full text-md font-medium transition-all duration-300 ease-in-out ${activeTab === tool.id ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-300 hover:bg-slate-700'}`}
+                                >
+                                    {tool.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
       </nav>
 
       <main className="w-full max-w-5xl bg-slate-800 shadow-2xl rounded-xl p-4 md:p-8 transform transition-transform duration-500 ease-out flex-grow">
@@ -102,7 +131,6 @@ const AppContent = () => {
   );
 }
 
-// The final App component now just sets up the provider and the main content
 function App() {
   return (
     <ToolsProvider>

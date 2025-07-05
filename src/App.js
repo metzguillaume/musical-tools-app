@@ -10,25 +10,27 @@ import ChordTrainer from './components/ChordTrainer';
 import GlobalTools from './components/GlobalTools';
 import IntervalFretboardQuiz from './components/IntervalFretboardQuiz';
 import DiagramMaker from './components/DiagramMaker';
+// --- FIX: Import the new component ---
+import ChordProgressionGenerator from './components/ChordProgressionGenerator';
 
-// This component contains the main application view
+
 const AppContent = () => {
   const [activeTab, setActiveTab] = useState('welcome');
-  // --- FIX: Add state to manage which category dropdown is open ---
   const [openCategory, setOpenCategory] = useState(null);
   const { activeTool, unlockAudio } = useTools();
 
-  // --- FIX: "Chord Trainer" moved to "Music Theory Exercises" ---
   const toolCategories = [
     {
       name: 'Generators',
       tools: [
         { id: 'note-generator', name: 'Note Generator' },
         { id: 'diagram-maker', name: 'Diagram Maker' },
+        // --- FIX: Add the new generator to the list ---
+        { id: 'chord-progression-generator', name: 'Chord Progression Generator' },
       ],
     },
     {
-      name: 'Theory Exercises',
+      name: 'Music Theory',
       tools: [
         { id: 'name-the-interval-quiz', name: 'Name The Interval' },
         { id: 'intervals-quiz', name: 'Interval Practice' },
@@ -48,10 +50,8 @@ const AppContent = () => {
     setActiveTab(tabName);
   }
 
-  // --- FIX: Function to handle opening and closing the category dropdowns ---
   const handleCategoryClick = (categoryName) => {
     setOpenCategory(prevOpenCategory => 
-        // If the clicked category is already open, close it. Otherwise, open it.
         prevOpenCategory === categoryName ? null : categoryName
     );
   };
@@ -74,7 +74,6 @@ const AppContent = () => {
         </p>
       </header>
       
-      {/* --- FIX: The navigation is now an accordion dropdown menu --- */}
       <nav className="w-full max-w-5xl bg-slate-800 shadow-md rounded-xl p-4 md:p-6 mb-8">
         <div className="flex flex-col md:flex-row justify-around gap-y-4 md:gap-x-6">
             <div className="flex-1 text-center">
@@ -87,7 +86,6 @@ const AppContent = () => {
             </div>
             {toolCategories.map(category => (
                 <div key={category.name} className="flex-1 flex flex-col items-center gap-2">
-                    {/* The category title is now a button to toggle the dropdown */}
                     <button 
                         onClick={() => handleCategoryClick(category.name)}
                         className="w-full bg-slate-700 hover:bg-slate-600 rounded-lg p-3 flex justify-between items-center transition-all"
@@ -95,7 +93,6 @@ const AppContent = () => {
                         <h3 className="text-lg font-bold text-teal-300">{category.name}</h3>
                         <span className={`transform transition-transform duration-300 ${openCategory === category.name ? 'rotate-180' : ''}`}>▼</span>
                     </button>
-                    {/* The list of tools is now rendered conditionally */}
                     {openCategory === category.name && (
                         <div className="w-full flex flex-col items-center gap-2 bg-slate-900/50 p-2 rounded-b-lg animate-fade-in-down">
                            {category.tools.map(tool => (
@@ -122,6 +119,8 @@ const AppContent = () => {
           {activeTab === 'note-generator' && <NoteGenerator />}
           {activeTab === 'interval-fretboard-quiz' && <IntervalFretboardQuiz />}
           {activeTab === 'diagram-maker' && <DiagramMaker />}
+          {/* --- FIX: Add the new component to the main view --- */}
+          {activeTab === 'chord-progression-generator' && <ChordProgressionGenerator />}
       </main>
 
       <footer className="w-full max-w-5xl text-center mt-8 text-gray-400 text-sm">

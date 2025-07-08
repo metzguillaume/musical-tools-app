@@ -23,7 +23,8 @@ const ChordProgressionGenerator = () => {
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
     const [autoGenerateInterval, setAutoGenerateInterval] = useState(numChords);
 
-    const [showDegrees, setShowDegrees] = useState(false);
+    // UPDATED: State changed from a boolean `showDegrees` to a string `displayMode` to handle three states.
+    const [displayMode, setDisplayMode] = useState('both');
     const [isControlsOpen, setIsControlsOpen] = useState(true);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
@@ -44,7 +45,6 @@ const ChordProgressionGenerator = () => {
                 const basePatterns = COMMON_PATTERNS[keyType === 'Major' ? 'Major' : 'Minor'] || COMMON_PATTERNS['Major'];
                 const basePattern = basePatterns[Math.floor(Math.random() * basePatterns.length)];
                 
-                // --- FIX: Logic to correctly handle numChords > 4 for common patterns ---
                 const finalPattern = [];
                 for (let j = 0; j < numChords; j++) {
                     finalPattern.push(basePattern[j % basePattern.length]);
@@ -107,7 +107,7 @@ const ChordProgressionGenerator = () => {
                     <div><h4 className="font-bold text-indigo-300 mb-1">Features</h4>
                         <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
                             <li><strong className="text-teal-300">Complexity:</strong> Switch between basic 3-note triads and richer 4-note 7th chords.</li>
-                            <li><strong className="text-teal-300">Toggle Degrees:</strong> Use the switch in the controls to show or hide the Roman numeral analysis for a cleaner look.</li>
+                            <li><strong className="text-teal-300">Display Mode:</strong> Use the selector in the controls to show chord names, Roman numeral degrees, or both.</li>
                             <li><strong className="text-teal-300">Auto-Generate:</strong> Turn on this feature to get a new set of progressions automatically in time with the metronome, perfect for continuous practice.</li>
                         </ul>
                     </div>
@@ -132,10 +132,20 @@ const ChordProgressionGenerator = () => {
                     {progressions.map((prog, progIndex) => (
                         <div key={progIndex} className="flex flex-wrap gap-x-8 gap-y-6 items-center">
                             {prog.map((chord, chordIndex) => (
-                                // --- FIX: Restyled the chord display ---
-                                <div key={chordIndex} className="text-center shrink-0 flex flex-col-reverse h-24 justify-end">
-                                    <div className="text-3xl font-bold text-teal-300">{chord.name}</div>
-                                    {showDegrees && <div className="text-xl text-gray-200 mb-1">{chord.roman}</div>}
+                                // UPDATED: The rendering logic is changed to handle three display modes.
+                                <div key={chordIndex} className="text-center shrink-0 flex flex-col items-center justify-center h-24 w-24">
+                                    {displayMode === 'chords' && (
+                                        <div className="text-3xl font-bold text-teal-300">{chord.name}</div>
+                                    )}
+                                    {displayMode === 'degrees' && (
+                                        <div className="text-3xl font-bold text-teal-300">{chord.roman}</div>
+                                    )}
+                                    {displayMode === 'both' && (
+                                        <>
+                                            <div className="text-3xl font-bold text-teal-300">{chord.name}</div>
+                                            <div className="text-xl text-gray-200 mt-1">{chord.roman}</div>
+                                        </>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -173,10 +183,17 @@ const ChordProgressionGenerator = () => {
                             <label className="font-semibold block mb-1">Generation Method</label>
                             <div className="flex bg-slate-600 rounded-md p-1"><button onClick={() => setUseCommonPatterns(true)} className={`flex-1 rounded-md text-sm py-1 ${useCommonPatterns ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Common</button><button onClick={() => setUseCommonPatterns(false)} className={`flex-1 rounded-md text-sm py-1 ${!useCommonPatterns ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Random</button></div>
                         </div>
-                        <div className="pt-2 space-y-2">
-                            <label className="font-semibold block">Display Options</label>
-                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={showDegrees} onChange={() => setShowDegrees(p => !p)} />Show Scale Degrees (Roman)</label>
-                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includeDiminished} onChange={() => setIncludeDiminished(p => !p)} />Include Diminished Chords</label>
+                        <div className="pt-2 space-y-3">
+                            {/* UPDATED: The checkbox is replaced with a segmented button control for three modes. */}
+                            <div>
+                                <label className="font-semibold block mb-1">Display Mode</label>
+                                <div className="flex bg-slate-600 rounded-md p-1">
+                                    <button onClick={() => setDisplayMode('chords')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'chords' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Chords</button>
+                                    <button onClick={() => setDisplayMode('degrees')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'degrees' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Degrees</button>
+                                    <button onClick={() => setDisplayMode('both')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'both' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Both</button>
+                                </div>
+                            </div>
+                            <label className="flex items-center gap-2 cursor-pointer pt-1"><input type="checkbox" checked={includeDiminished} onChange={() => setIncludeDiminished(p => !p)} />Include Diminished Chords</label>
                         </div>
                         <div className="pt-4 border-t border-slate-600 space-y-4">
                             <div className="flex items-center justify-between">

@@ -12,6 +12,7 @@ import IntervalFretboardQuiz from './components/IntervalFretboardQuiz';
 import DiagramMaker from './components/DiagramMaker';
 // --- FIX: Import the new component ---
 import ChordProgressionGenerator from './components/ChordProgressionGenerator';
+import IntervalGenerator from './components/IntervalGenerator';
 
 
 const AppContent = () => {
@@ -24,9 +25,10 @@ const AppContent = () => {
       name: 'Generators',
       tools: [
         { id: 'note-generator', name: 'Note Generator' },
-        { id: 'diagram-maker', name: 'Diagram Maker' },
         // --- FIX: Add the new generator to the list ---
+        { id: 'interval-generator', name: 'Interval Generator' },
         { id: 'chord-progression-generator', name: 'Chord Progression Generator' },
+        { id: 'diagram-maker', name: 'Diagram Maker' },
       ],
     },
     {
@@ -121,6 +123,7 @@ const AppContent = () => {
           {activeTab === 'diagram-maker' && <DiagramMaker />}
           {/* --- FIX: Add the new component to the main view --- */}
           {activeTab === 'chord-progression-generator' && <ChordProgressionGenerator />}
+          {activeTab === 'interval-generator' && <IntervalGenerator />}
       </main>
 
       <footer className="w-full max-w-5xl text-center mt-8 text-gray-400 text-sm">

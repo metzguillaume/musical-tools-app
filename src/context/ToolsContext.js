@@ -24,10 +24,42 @@ export const ToolsProvider = ({ children }) => {
     }, []);
 
     const clearLog = useCallback(() => {
-        if (window.confirm("Are you sure you want to clear the entire practice log?")) {
+        if (window.confirm("Are you sure you want to clear the entire practice log? This action cannot be undone.")) {
             setPracticeLog([]);
         }
     }, []);
+    
+    // ADDED: Function to handle importing a log file.
+    const importLog = useCallback((file) => {
+        if (!file) return;
+
+        if (!window.confirm("Are you sure you want to import a new log? This will overwrite your current practice log.")) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                if (Array.isArray(data)) {
+                    // Basic validation to ensure the file looks like a log file.
+                    if (data.length > 0 && (data[0].game === undefined || data[0].date === undefined || data[0].remarks === undefined)) {
+                        alert("Import failed: The JSON file appears to have an invalid format.");
+                        return;
+                    }
+                    setPracticeLog(data);
+                    alert("Practice log imported successfully!");
+                } else {
+                    alert("Import failed: The JSON file does not contain a valid log array.");
+                }
+            } catch (error) {
+                console.error("Failed to parse log file:", error);
+                alert("Import failed: The selected file is not a valid JSON file.");
+            }
+        };
+        reader.readAsText(file);
+    }, []);
+
 
     const toggleActiveTool = (tool) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
@@ -50,9 +82,8 @@ export const ToolsProvider = ({ children }) => {
     const [metronomeVolume, setMetronomeVolume] = useState(0);
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
     const metronomePlayer = useRef(null);
-    // --- FIX: Refs to manage scheduled tasks and beat counting ---
     const transportEventRef = useRef({ id: null, beatCounter: 0 });
-    const scheduledTaskRef = useRef(null); // Will hold { callback, interval }
+    const scheduledTaskRef = useRef(null); 
 
     const [droneNote, setDroneNote] = useState('C');
     const [isDronePlaying, setIsDronePlaying] = useState(false);
@@ -115,12 +146,10 @@ export const ToolsProvider = ({ children }) => {
     useEffect(() => { if (isMetronomeReady) metronomePlayer.current.volume.value = metronomeVolume; }, [metronomeVolume, isMetronomeReady]);
     useEffect(() => { if (areDronesReady) Object.values(dronePlayers.current).forEach(p => p.volume.value = droneVolume); }, [droneVolume, areDronesReady]);
 
-    // --- FIX: New function to allow components to set a scheduled task ---
     const setMetronomeSchedule = useCallback((task) => {
         scheduledTaskRef.current = task;
     }, []);
 
-    // --- FIX: Upgraded startMetronome to handle custom scheduled tasks ---
     const startMetronome = useCallback(() => {
         if (!isMetronomeReady) return;
         
@@ -134,7 +163,6 @@ export const ToolsProvider = ({ children }) => {
         transportEventRef.current.id = Tone.Transport.scheduleRepeat(time => {
             transportEventRef.current.beatCounter++;
             
-            // UI updates should be scheduled with Tone.Draw to sync with audio
             Tone.Draw.schedule(() => {
                 metronomePlayer.current.start(time);
                 const task = scheduledTaskRef.current;
@@ -250,12 +278,11 @@ export const ToolsProvider = ({ children }) => {
 
     const value = {
         unlockAudio, activeTool, toggleActiveTool,
-        // Add the new scheduler function and metronome playing state to the context value
         bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady, setMetronomeSchedule,
         droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady,
         timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration,
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,
-        practiceLog, addLogEntry, clearLog,
+        practiceLog, addLogEntry, clearLog, importLog, // ADDED: Expose importLog through the context
         playInterval,
     };
 

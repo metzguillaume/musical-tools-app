@@ -13,6 +13,7 @@ import DiagramMaker from './components/DiagramMaker';
 // --- FIX: Import the new component ---
 import ChordProgressionGenerator from './components/ChordProgressionGenerator';
 import IntervalGenerator from './components/IntervalGenerator';
+import TriadQuiz from './components/TriadQuiz';
 
 
 const AppContent = () => {
@@ -36,6 +37,7 @@ const AppContent = () => {
       tools: [
         { id: 'name-the-interval-quiz', name: 'Name The Interval' },
         { id: 'intervals-quiz', name: 'Interval Practice' },
+        { id: 'triad-quiz', name: 'Triad & Tetrad Quiz' },
         { id: 'chord-trainer', name: 'Chord Trainer' },
       ],
     },
@@ -124,6 +126,7 @@ const AppContent = () => {
           {/* --- FIX: Add the new component to the main view --- */}
           {activeTab === 'chord-progression-generator' && <ChordProgressionGenerator />}
           {activeTab === 'interval-generator' && <IntervalGenerator />}
+          {activeTab === 'triad-quiz' && <TriadQuiz />}
       </main>
 
       <footer className="w-full max-w-5xl text-center mt-8 text-gray-400 text-sm">

@@ -10,7 +10,6 @@ import ChordTrainer from './components/ChordTrainer';
 import GlobalTools from './components/GlobalTools';
 import IntervalFretboardQuiz from './components/IntervalFretboardQuiz';
 import DiagramMaker from './components/DiagramMaker';
-// --- FIX: Import the new component ---
 import ChordProgressionGenerator from './components/ChordProgressionGenerator';
 import IntervalGenerator from './components/IntervalGenerator';
 import TriadQuiz from './components/TriadQuiz';
@@ -26,10 +25,9 @@ const AppContent = () => {
       name: 'Generators',
       tools: [
         { id: 'note-generator', name: 'Note Generator' },
-        // --- FIX: Add the new generator to the list ---
-        { id: 'interval-generator', name: 'Interval Generator' },
-        { id: 'chord-progression-generator', name: 'Chord Progression Generator' },
         { id: 'diagram-maker', name: 'Diagram Maker' },
+        { id: 'chord-progression-generator', name: 'Chord Progression Generator' },
+        { id: 'interval-generator', name: 'Interval Generator' },
       ],
     },
     {
@@ -37,8 +35,8 @@ const AppContent = () => {
       tools: [
         { id: 'name-the-interval-quiz', name: 'Name The Interval' },
         { id: 'intervals-quiz', name: 'Interval Practice' },
-        { id: 'triad-quiz', name: 'Triad & Tetrad Quiz' },
         { id: 'chord-trainer', name: 'Chord Trainer' },
+        { id: 'triad-quiz', name: 'Triad & Tetrads Quiz' },
       ],
     },
     {
@@ -52,6 +50,8 @@ const AppContent = () => {
   const handleTabClick = (tabName) => {
     unlockAudio();
     setActiveTab(tabName);
+    // UPDATED: This line collapses the open category menu after a selection is made.
+    setOpenCategory(null);
   }
 
   const handleCategoryClick = (categoryName) => {
@@ -69,7 +69,7 @@ const AppContent = () => {
 
       <GlobalTools />
 
-      <header className="w-full max-w-5xl bg-slate-800 shadow-lg rounded-xl p-6 mb-8 text-center">
+      <header className="w-full max-w-5xl mx-auto bg-slate-800 shadow-lg rounded-xl p-6 mb-8 text-center">
         <h1 className="text-3xl md:text-5xl font-extrabold text-teal-400 leading-tight">
           Musical Practice Tools
         </h1>
@@ -78,7 +78,7 @@ const AppContent = () => {
         </p>
       </header>
       
-      <nav className="w-full max-w-5xl bg-slate-800 shadow-md rounded-xl p-4 md:p-6 mb-8">
+      <nav className="w-full max-w-5xl mx-auto bg-slate-800 shadow-md rounded-xl p-4 md:p-6 mb-8">
         <div className="flex flex-col md:flex-row justify-around gap-y-4 md:gap-x-6">
             <div className="flex-1 text-center">
                  <button
@@ -115,7 +115,7 @@ const AppContent = () => {
         </div>
       </nav>
 
-      <main className="w-full max-w-5xl bg-slate-800 shadow-2xl rounded-xl p-4 md:p-8 transform transition-transform duration-500 ease-out flex-grow">
+      <main className="w-full max-w-5xl mx-auto bg-slate-800 shadow-2xl rounded-xl p-4 md:p-8 transform transition-transform duration-500 ease-out flex-grow">
           {activeTab === 'welcome' && <Welcome />}
           {activeTab === 'chord-trainer' && <ChordTrainer />}
           {activeTab === 'intervals-quiz' && <IntervalsQuiz />}
@@ -123,13 +123,12 @@ const AppContent = () => {
           {activeTab === 'note-generator' && <NoteGenerator />}
           {activeTab === 'interval-fretboard-quiz' && <IntervalFretboardQuiz />}
           {activeTab === 'diagram-maker' && <DiagramMaker />}
-          {/* --- FIX: Add the new component to the main view --- */}
           {activeTab === 'chord-progression-generator' && <ChordProgressionGenerator />}
           {activeTab === 'interval-generator' && <IntervalGenerator />}
           {activeTab === 'triad-quiz' && <TriadQuiz />}
       </main>
 
-      <footer className="w-full max-w-5xl text-center mt-8 text-gray-400 text-sm">
+      <footer className="w-full max-w-5xl mx-auto text-center mt-8 text-gray-400 text-sm">
         <p>&copy; 2025 Toon's Musical Practice Tools. All rights reserved.</p>
       </footer>
     </div>

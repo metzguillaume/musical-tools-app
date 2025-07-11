@@ -79,7 +79,7 @@ export const ToolsProvider = ({ children }) => {
     // ---- State for all tools ----
     const [bpm, setBpm] = useState(120);
     const [isMetronomePlaying, setIsMetronomePlaying] = useState(false);
-    const [metronomeVolume, setMetronomeVolume] = useState(0);
+    const [metronomeVolume, setMetronomeVolume] = useState(-10);
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
     const metronomePlayer = useRef(null);
     const transportEventRef = useRef({ id: null, beatCounter: 0 });

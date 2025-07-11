@@ -25,9 +25,9 @@ const AppContent = () => {
       name: 'Generators',
       tools: [
         { id: 'note-generator', name: 'Note Generator' },
-        { id: 'diagram-maker', name: 'Diagram Maker' },
-        { id: 'chord-progression-generator', name: 'Chord Progression Generator' },
         { id: 'interval-generator', name: 'Interval Generator' },
+        { id: 'chord-progression-generator', name: 'Chord Progression Generator' },
+        { id: 'diagram-maker', name: 'Diagram Maker' },
       ],
     },
     {
@@ -35,8 +35,8 @@ const AppContent = () => {
       tools: [
         { id: 'name-the-interval-quiz', name: 'Name The Interval' },
         { id: 'intervals-quiz', name: 'Interval Practice' },
-        { id: 'chord-trainer', name: 'Chord Trainer' },
         { id: 'triad-quiz', name: 'Triad & Tetrads Quiz' },
+        { id: 'chord-trainer', name: 'Chord Trainer' },
       ],
     },
     {

@@ -29,7 +29,6 @@ export const ToolsProvider = ({ children }) => {
         }
     }, []);
     
-    // ADDED: Function to handle importing a log file.
     const importLog = useCallback((file) => {
         if (!file) return;
 
@@ -42,7 +41,6 @@ export const ToolsProvider = ({ children }) => {
             try {
                 const data = JSON.parse(event.target.result);
                 if (Array.isArray(data)) {
-                    // Basic validation to ensure the file looks like a log file.
                     if (data.length > 0 && (data[0].game === undefined || data[0].date === undefined || data[0].remarks === undefined)) {
                         alert("Import failed: The JSON file appears to have an invalid format.");
                         return;
@@ -81,7 +79,9 @@ export const ToolsProvider = ({ children }) => {
     const [isMetronomePlaying, setIsMetronomePlaying] = useState(false);
     const [metronomeVolume, setMetronomeVolume] = useState(-10);
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
+    const [countdownClicks, setCountdownClicks] = useState(4);
     const metronomePlayer = useRef(null);
+    const countdownPlayers = useRef([]);
     const transportEventRef = useRef({ id: null, beatCounter: 0 });
     const scheduledTaskRef = useRef(null); 
 
@@ -112,6 +112,11 @@ export const ToolsProvider = ({ children }) => {
         metronomePlayer.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/click.wav`, fadeOut: 0.1, onload: () => setIsMetronomeReady(true) }).toDestination();
         timerAlarm.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/ding.wav`, fadeOut: 0.1 }).toDestination();
         
+        const countdownFileNames = ['1.wav', '2.wav', '3.wav', '4.wav'];
+        countdownPlayers.current = countdownFileNames.map(fileName => 
+            new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/${fileName}` }).toDestination()
+        );
+
         intervalSynth.current = new Tone.PolySynth(Tone.Synth, {
             oscillator: { type: 'sine' },
             envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 },
@@ -138,6 +143,7 @@ export const ToolsProvider = ({ children }) => {
         return () => {
             metronomePlayer.current?.dispose();
             timerAlarm.current?.dispose();
+            countdownPlayers.current.forEach(player => player.dispose());
             Object.values(dronePlayers.current).forEach(player => player.dispose());
             intervalSynth.current?.dispose();
         };
@@ -152,38 +158,59 @@ export const ToolsProvider = ({ children }) => {
 
     const startMetronome = useCallback(() => {
         if (!isMetronomeReady) return;
+        const transport = Tone.getTransport();
         
-        Tone.Transport.bpm.value = bpm;
+        transport.bpm.value = bpm;
         if (transportEventRef.current.id) {
-            Tone.Transport.clear(transportEventRef.current.id);
+            transport.clear(transportEventRef.current.id);
         }
         
         transportEventRef.current.beatCounter = 0;
 
-        transportEventRef.current.id = Tone.Transport.scheduleRepeat(time => {
-            transportEventRef.current.beatCounter++;
+        transportEventRef.current.id = transport.scheduleRepeat(time => {
+            const task = scheduledTaskRef.current;
+            const hasTask = task && task.callback && task.interval > 0;
             
-            Tone.Draw.schedule(() => {
+            if (!hasTask) {
                 metronomePlayer.current.start(time);
-                const task = scheduledTaskRef.current;
-                if (task && task.callback && task.interval > 0) {
-                    if (transportEventRef.current.beatCounter % task.interval === 0) {
-                        task.callback();
-                    }
+                return;
+            }
+
+            const mainInterval = task.interval;
+            const countIn = countdownClicks > 0 ? countdownClicks : 0;
+            const cycleLength = mainInterval + countIn;
+            
+            const positionInCycle = transportEventRef.current.beatCounter % cycleLength;
+
+            if (positionInCycle < countIn) {
+                const countdownNumber = positionInCycle;
+                if (countdownPlayers.current[countdownNumber]?.loaded) {
+                    countdownPlayers.current[countdownNumber].start(time);
+                } else {
+                    metronomePlayer.current.start(time);
                 }
-            }, time);
+            } else {
+                if (positionInCycle === countIn) {
+                    task.callback();
+                }
+                metronomePlayer.current.start(time);
+            }
+            
+            transportEventRef.current.beatCounter++;
         }, "4n");
         
-        Tone.Transport.start();
+        transport.start();
         setIsMetronomePlaying(true);
-    }, [bpm, isMetronomeReady]);
+    }, [bpm, isMetronomeReady, countdownClicks]);
 
     const stopMetronome = useCallback(() => {
-        Tone.Transport.stop();
-        if (transportEventRef.current.id) {
-            Tone.Transport.clear(transportEventRef.current.id);
-            transportEventRef.current.id = null;
-        }
+        const transport = Tone.getTransport();
+        transport.pause();
+        transport.cancel(); // THIS IS THE FIX: Clears all scheduled events from the timeline.
+        
+        // Reset our internal references
+        transportEventRef.current.id = null;
+        
         setIsMetronomePlaying(false);
     }, []);
 
@@ -192,7 +219,11 @@ export const ToolsProvider = ({ children }) => {
         if (isMetronomePlaying) stopMetronome(); else startMetronome();
     }, [isMetronomePlaying, startMetronome, stopMetronome, unlockAudio]);
 
-    useEffect(() => { if (isMetronomePlaying) Tone.Transport.bpm.value = bpm; }, [bpm, isMetronomePlaying]);
+    useEffect(() => { 
+        if (isMetronomePlaying) {
+            Tone.getTransport().bpm.value = bpm;
+        }
+    }, [bpm, isMetronomePlaying]);
 
     const toggleDrone = useCallback(async () => {
         await unlockAudio();
@@ -279,10 +310,11 @@ export const ToolsProvider = ({ children }) => {
     const value = {
         unlockAudio, activeTool, toggleActiveTool,
         bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady, setMetronomeSchedule,
+        countdownClicks, setCountdownClicks,
         droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady,
         timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration,
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,
-        practiceLog, addLogEntry, clearLog, importLog, // ADDED: Expose importLog through the context
+        practiceLog, addLogEntry, clearLog, importLog,
         playInterval,
     };
 

@@ -6,20 +6,20 @@ import SilentSwitchNotification from './SilentSwitchNotification';
 const Metronome = () => {
     const { bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume } = useTools();
 
+    // UPDATED: This handler now allows any numeric input while typing.
     const handleBpmInputChange = (e) => {
-        const value = e.target.value;
-        // Allow empty input for typing, but set a valid number on blur or if invalid
-        if (value === '' || (value >= 40 && value <= 240)) {
-            setBpm(value);
-        }
+        setBpm(e.target.value);
     };
 
-    const handleBpmInputBlur = (e) => {
-        let value = parseInt(e.target.value, 10);
+    // UPDATED: This handler now validates the final number when you click away.
+    const handleBpmInputBlur = () => {
+        let value = parseInt(bpm, 10);
         if (isNaN(value) || value < 40) {
             setBpm(40);
         } else if (value > 240) {
             setBpm(240);
+        } else {
+            setBpm(value); // Ensure the final value is a number, not a string.
         }
     };
 

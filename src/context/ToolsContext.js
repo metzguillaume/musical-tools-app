@@ -31,11 +31,9 @@ export const ToolsProvider = ({ children }) => {
     
     const importLog = useCallback((file) => {
         if (!file) return;
-
         if (!window.confirm("Are you sure you want to import a new log? This will overwrite your current practice log.")) {
             return;
         }
-
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
@@ -80,9 +78,11 @@ export const ToolsProvider = ({ children }) => {
     const [metronomeVolume, setMetronomeVolume] = useState(-10);
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
     const [countdownClicks, setCountdownClicks] = useState(4);
+    const [countdownMode, setCountdownMode] = useState('every');
+    const [isCountdownReady, setIsCountdownReady] = useState(false);
     const metronomePlayer = useRef(null);
     const countdownPlayers = useRef([]);
-    const transportEventRef = useRef({ id: null, beatCounter: 0 });
+    const transportEventRef = useRef({ id: null, phase: 'main', phaseBeat: 0 });
     const scheduledTaskRef = useRef(null); 
 
     const [droneNote, setDroneNote] = useState('C');
@@ -112,9 +112,19 @@ export const ToolsProvider = ({ children }) => {
         metronomePlayer.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/click.wav`, fadeOut: 0.1, onload: () => setIsMetronomeReady(true) }).toDestination();
         timerAlarm.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/ding.wav`, fadeOut: 0.1 }).toDestination();
         
-        const countdownFileNames = ['1.wav', '2.wav', '3.wav', '4.wav'];
+        let loadedCountdownCount = 0;
+        const countdownFileNames = ['1.wav', '2.wav', '3.wav', '4.wav', '5.wav', '6.wav', '7.wav'];
+        const totalCountdownFiles = countdownFileNames.length;
         countdownPlayers.current = countdownFileNames.map(fileName => 
-            new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/${fileName}` }).toDestination()
+            new Tone.Player({ 
+                url: `${process.env.PUBLIC_URL}/sounds/${fileName}`,
+                onload: () => {
+                    loadedCountdownCount++;
+                    if (loadedCountdownCount === totalCountdownFiles) {
+                        setIsCountdownReady(true);
+                    }
+                }
+            }).toDestination()
         );
 
         intervalSynth.current = new Tone.PolySynth(Tone.Synth, {
@@ -150,12 +160,10 @@ export const ToolsProvider = ({ children }) => {
     }, []);
 
     useEffect(() => { if (isMetronomeReady) metronomePlayer.current.volume.value = metronomeVolume; }, [metronomeVolume, isMetronomeReady]);
+    useEffect(() => { if (isCountdownReady) { countdownPlayers.current.forEach(player => { player.volume.value = metronomeVolume; }); } }, [metronomeVolume, isCountdownReady]);
     useEffect(() => { if (areDronesReady) Object.values(dronePlayers.current).forEach(p => p.volume.value = droneVolume); }, [droneVolume, areDronesReady]);
 
-    const setMetronomeSchedule = useCallback((task) => {
-        scheduledTaskRef.current = task;
-    }, []);
-
+    // UPDATED: Reordered functions to prevent 'no-use-before-define' warning.
     const startMetronome = useCallback(() => {
         if (!isMetronomeReady) return;
         const transport = Tone.getTransport();
@@ -165,59 +173,93 @@ export const ToolsProvider = ({ children }) => {
             transport.clear(transportEventRef.current.id);
         }
         
-        transportEventRef.current.beatCounter = 0;
+        const task = scheduledTaskRef.current;
+        const hasTask = task && task.callback;
+        
+        if (hasTask) {
+            task.callback();
+        }
+
+        const needsInitialCountdown = hasTask && countdownClicks > 0 && (countdownMode === 'every' || countdownMode === 'first');
+        transportEventRef.current.phase = needsInitialCountdown ? 'countdown' : 'main';
+        transportEventRef.current.phaseBeat = 0;
 
         transportEventRef.current.id = transport.scheduleRepeat(time => {
-            const task = scheduledTaskRef.current;
-            const hasTask = task && task.callback && task.interval > 0;
-            
-            if (!hasTask) {
+            const currentTask = scheduledTaskRef.current;
+            if (!currentTask || !currentTask.callback || currentTask.interval <= 0) {
                 metronomePlayer.current.start(time);
                 return;
             }
 
-            const mainInterval = task.interval;
-            const countIn = countdownClicks > 0 ? countdownClicks : 0;
-            const cycleLength = mainInterval + countIn;
-            
-            const positionInCycle = transportEventRef.current.beatCounter % cycleLength;
-
-            if (positionInCycle < countIn) {
-                const countdownNumber = positionInCycle;
-                if (countdownPlayers.current[countdownNumber]?.loaded) {
-                    countdownPlayers.current[countdownNumber].start(time);
+            if (transportEventRef.current.phase === 'countdown') {
+                const countdownBeat = transportEventRef.current.phaseBeat;
+                
+                if (countdownBeat < countdownPlayers.current.length && countdownPlayers.current[countdownBeat]?.loaded) {
+                    countdownPlayers.current[countdownBeat].start(time);
                 } else {
                     metronomePlayer.current.start(time);
                 }
-            } else {
-                if (positionInCycle === countIn) {
-                    task.callback();
+
+                if (countdownBeat >= countdownClicks - 1) {
+                    transportEventRef.current.phase = 'main';
+                    transportEventRef.current.phaseBeat = 0;
+                } else {
+                    transportEventRef.current.phaseBeat++;
                 }
+
+            } else { // phase is 'main'
+                const mainBeat = transportEventRef.current.phaseBeat;
+                
                 metronomePlayer.current.start(time);
+
+                if (mainBeat >= currentTask.interval - 1) {
+                    currentTask.callback();
+                    
+                    if (countdownClicks > 0 && countdownMode === 'every') {
+                        transportEventRef.current.phase = 'countdown';
+                    } else {
+                        transportEventRef.current.phase = 'main';
+                    }
+                    transportEventRef.current.phaseBeat = 0;
+                } else {
+                    transportEventRef.current.phaseBeat++;
+                }
             }
-            
-            transportEventRef.current.beatCounter++;
         }, "4n");
         
         transport.start();
         setIsMetronomePlaying(true);
-    }, [bpm, isMetronomeReady, countdownClicks]);
+    }, [bpm, isMetronomeReady, countdownClicks, countdownMode]);
 
     const stopMetronome = useCallback(() => {
         const transport = Tone.getTransport();
         transport.pause();
-        transport.cancel(); // THIS IS THE FIX: Clears all scheduled events from the timeline.
-        
-        // Reset our internal references
+        transport.cancel(); 
         transportEventRef.current.id = null;
-        
         setIsMetronomePlaying(false);
     }, []);
 
+    const setMetronomeSchedule = useCallback((task) => {
+        scheduledTaskRef.current = task;
+        const transport = Tone.getTransport();
+        const wasPlaying = transport.state === 'started';
+
+        if (wasPlaying) {
+            stopMetronome();
+            setTimeout(() => {
+                startMetronome();
+            }, 50);
+        }
+    }, [stopMetronome, startMetronome]);
+
     const toggleMetronome = useCallback(async () => {
         await unlockAudio();
-        if (isMetronomePlaying) stopMetronome(); else startMetronome();
-    }, [isMetronomePlaying, startMetronome, stopMetronome, unlockAudio]);
+        if (isMetronomePlaying) {
+            stopMetronome();
+        } else {
+            startMetronome();
+        }
+    }, [isMetronomePlaying, stopMetronome, startMetronome, unlockAudio]);
 
     useEffect(() => { 
         if (isMetronomePlaying) {
@@ -225,6 +267,7 @@ export const ToolsProvider = ({ children }) => {
         }
     }, [bpm, isMetronomePlaying]);
 
+    // ... (rest of the file is unchanged)
     const toggleDrone = useCallback(async () => {
         await unlockAudio();
         if (!areDronesReady) return;
@@ -310,7 +353,7 @@ export const ToolsProvider = ({ children }) => {
     const value = {
         unlockAudio, activeTool, toggleActiveTool,
         bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady, setMetronomeSchedule,
-        countdownClicks, setCountdownClicks,
+        countdownClicks, setCountdownClicks, countdownMode, setCountdownMode,
         droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady,
         timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration,
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,

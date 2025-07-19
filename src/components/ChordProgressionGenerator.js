@@ -24,8 +24,8 @@ const CollapsibleSection = ({ title, isOpen, onToggle, children }) => (
 
 
 const ChordProgressionGenerator = () => {
-    const { isMetronomePlaying, setMetronomeSchedule, addLogEntry, bpm } = useTools();
-
+    // UPDATED: Removed unused 'isMetronomePlaying' variable
+    const { setMetronomeSchedule, addLogEntry, bpm, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode } = useTools();
     const [rootNote, setRootNote] = useState('C');
     const [keyType, setKeyType] = useState('Major');
     const [numChords, setNumChords] = useState(4);
@@ -34,17 +34,13 @@ const ChordProgressionGenerator = () => {
     const [useCommonPatterns, setUseCommonPatterns] = useState(true);
     const [includeDiminished, setIncludeDiminished] = useState(false);
     const [qualityFilter, setQualityFilter] = useState('all');
-
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
     const [autoGenerateInterval, setAutoGenerateInterval] = useState(numChords);
-
     const [displayMode, setDisplayMode] = useState('both');
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [fontSize, setFontSize] = useState(3);
-
     const [progressions, setProgressions] = useState([]);
-    
     const [openSections, setOpenSections] = useState({
         general: true,
         options: false,
@@ -137,14 +133,12 @@ const ChordProgressionGenerator = () => {
     }, [numChords]);
 
     useEffect(() => {
-        if (isAutoGenerateOn && isMetronomePlaying) {
+        if (isAutoGenerateOn) {
             setMetronomeSchedule({ callback: scheduledGenerate, interval: autoGenerateInterval });
         } else {
             setMetronomeSchedule(null);
         }
-        return () => setMetronomeSchedule(null);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAutoGenerateOn, isMetronomePlaying, autoGenerateInterval, scheduledGenerate]);
+    }, [isAutoGenerateOn, autoGenerateInterval, scheduledGenerate, setMetronomeSchedule]);
 
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -180,6 +174,106 @@ const ChordProgressionGenerator = () => {
 
     const rootNoteOptions = ['C', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'F#', 'B', 'E', 'A', 'D', 'G'];
     const keyTypeOptions = ['Major', 'Natural Minor', 'Harmonic Minor', 'Melodic Minor'];
+
+    const ControlsContent = (
+        <>
+            <CollapsibleSection title="General Settings" isOpen={openSections.general} onToggle={() => toggleSection('general')}>
+                <div>
+                    <label className="font-semibold block mb-1">Root Note</label>
+                    <select value={rootNote} onChange={e => setRootNote(e.target.value)} className="w-full p-2 rounded-md bg-slate-600 text-white">{rootNoteOptions.map(n => <option key={n} value={n}>{n}</option>)}</select>
+                </div>
+                <div>
+                    <label className="font-semibold block mb-1">Key / Scale</label>
+                    <select value={keyType} onChange={e => setKeyType(e.target.value)} className="w-full p-2 rounded-md bg-slate-600 text-white">{keyTypeOptions.map(k => <option key={k} value={k}>{k}</option>)}</select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="font-semibold block mb-1">Chords/Line</label>
+                        <input type="number" value={numChords} onChange={e => setNumChords(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-full p-2 rounded-md bg-slate-600 text-white"/>
+                    </div>
+                    <div>
+                        <label className="font-semibold block mb-1">Lines</label>
+                        <input type="number" value={numProgressions} onChange={e => setNumProgressions(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-full p-2 rounded-md bg-slate-600 text-white"/>
+                    </div>
+                </div>
+                <div>
+                    <label className="font-semibold block mb-1">Generation Method</label>
+                    <div className="flex bg-slate-600 rounded-md p-1">
+                        <button onClick={() => setUseCommonPatterns(true)} className={`flex-1 rounded-md text-sm py-1 ${useCommonPatterns ? 'bg-blue-600 text-white' : 'text-gray-300'} disabled:bg-slate-800 disabled:text-gray-500 disabled:cursor-not-allowed`} disabled={qualityFilter !== 'all'} title={qualityFilter !== 'all' ? "Not available with quality filters" : ""}>Common</button>
+                        <button onClick={() => setUseCommonPatterns(false)} className={`flex-1 rounded-md text-sm py-1 ${!useCommonPatterns ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Random</button>
+                    </div>
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Chord Options" isOpen={openSections.options} onToggle={() => toggleSection('options')}>
+                <div>
+                    <label className="font-semibold block mb-1">Chord Complexity</label>
+                    <div className="flex bg-slate-600 rounded-md p-1"><button onClick={() => setChordComplexity('Triads')} className={`flex-1 rounded-md text-sm py-1 ${chordComplexity === 'Triads' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Triads</button><button onClick={() => setChordComplexity('Tetrads')} className={`flex-1 rounded-md text-sm py-1 ${chordComplexity === 'Tetrads' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Tetrads</button></div>
+                </div>
+                <div>
+                    <label className="font-semibold block mb-1">Chord Quality</label>
+                    <div className="flex bg-slate-600 rounded-md p-1">
+                        <button onClick={() => handleQualityFilterChange('all')} className={`flex-1 rounded-md text-sm py-1 ${qualityFilter === 'all' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>All</button>
+                        <button onClick={() => handleQualityFilterChange('major')} className={`flex-1 rounded-md text-sm py-1 ${qualityFilter === 'major' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Major</button>
+                        <button onClick={() => handleQualityFilterChange('minor')} className={`flex-1 rounded-md text-sm py-1 ${qualityFilter === 'minor' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Minor</button>
+                    </div>
+                </div>
+                 <label className="flex items-center justify-between gap-2 cursor-pointer pt-1">
+                    <span className="font-semibold">Include Diminished</span>
+                    <div className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={includeDiminished} onChange={() => setIncludeDiminished(p => !p)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </div>
+                </label>
+            </CollapsibleSection>
+            
+            <CollapsibleSection title="Display Settings" isOpen={openSections.display} onToggle={() => toggleSection('display')}>
+                <div>
+                    <label className="font-semibold block mb-1">Display Mode</label>
+                    <div className="flex bg-slate-600 rounded-md p-1">
+                        <button onClick={() => setDisplayMode('chords')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'chords' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Chords</button>
+                        <button onClick={() => setDisplayMode('degrees')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'degrees' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Degrees</button>
+                        <button onClick={() => setDisplayMode('both')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'both' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Both</button>
+                    </div>
+                </div>
+                <div>
+                    <label htmlFor="font-size" className="font-semibold block mb-1">Font Size</label>
+                    <input type="range" id="font-size" min="1.5" max="5" step="0.1" value={fontSize} onChange={(e) => setFontSize(e.target.value)} className="w-full" />
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Automation" isOpen={openSections.automation} onToggle={() => toggleSection('automation')}>
+                <div className="flex items-center justify-between">
+                    <label htmlFor="auto-generate-prog" className="font-semibold text-lg text-teal-300">Auto-Generate:</label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-generate-prog" checked={isAutoGenerateOn} onChange={() => setIsAutoGenerateOn(p => !p)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                    </label>
+                </div>
+                <div className="flex items-center justify-between">
+                    <label htmlFor="auto-generate-interval-prog" className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>Every:</label>
+                    <div className="flex items-center gap-2">
+                        <input type="number" id="auto-generate-interval-prog" value={autoGenerateInterval} onChange={(e) => setAutoGenerateInterval(Math.max(1, parseInt(e.target.value, 10) || 1))} className={`w-20 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} />
+                        <span className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
+                    </div>
+                </div>
+                 <div className="flex items-center justify-between">
+                    <label htmlFor="countdown-clicks-prog" className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown:</label>
+                    <div className="flex items-center gap-2">
+                        <input type="number" id="countdown-clicks-prog" value={countdownClicks} onChange={(e) => setCountdownClicks(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`w-20 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="0" max="7" disabled={!isAutoGenerateOn} />
+                         <span className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
+                    </div>
+                </div>
+                 <div>
+                    <label className={`font-semibold block mb-2 text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown Mode:</label>
+                    <div className="flex bg-slate-600 rounded-md p-1">
+                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('every')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'every' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Every Time</button>
+                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('first')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'first' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>First Time Only</button>
+                    </div>
+                </div>
+            </CollapsibleSection>
+        </>
+    );
 
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
@@ -247,93 +341,26 @@ const ChordProgressionGenerator = () => {
                 </div>
             </div>
             
-            <div className={`bg-slate-700 rounded-lg transition-all duration-300 ease-in-out overflow-hidden ${isControlsOpen ? 'w-full md:w-80 p-4' : 'w-full md:w-0 p-0 opacity-0 md:opacity-100'}`}>
-                <div className={`${!isControlsOpen && 'hidden md:block'}`}>
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
+                <div className={`${!isControlsOpen && 'hidden'}`}>
                     <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
-                    
-                    <CollapsibleSection title="General Settings" isOpen={openSections.general} onToggle={() => toggleSection('general')}>
-                        <div>
-                            <label className="font-semibold block mb-1">Root Note</label>
-                            <select value={rootNote} onChange={e => setRootNote(e.target.value)} className="w-full p-2 rounded-md bg-slate-600 text-white">{rootNoteOptions.map(n => <option key={n} value={n}>{n}</option>)}</select>
-                        </div>
-                        <div>
-                            <label className="font-semibold block mb-1">Key / Scale</label>
-                            <select value={keyType} onChange={e => setKeyType(e.target.value)} className="w-full p-2 rounded-md bg-slate-600 text-white">{keyTypeOptions.map(k => <option key={k} value={k}>{k}</option>)}</select>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="font-semibold block mb-1">Chords/Line</label>
-                                <input type="number" value={numChords} onChange={e => setNumChords(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-full p-2 rounded-md bg-slate-600 text-white"/>
-                            </div>
-                            <div>
-                                <label className="font-semibold block mb-1">Lines</label>
-                                <input type="number" value={numProgressions} onChange={e => setNumProgressions(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-full p-2 rounded-md bg-slate-600 text-white"/>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="font-semibold block mb-1">Generation Method</label>
-                            <div className="flex bg-slate-600 rounded-md p-1">
-                                <button onClick={() => setUseCommonPatterns(true)} className={`flex-1 rounded-md text-sm py-1 ${useCommonPatterns ? 'bg-blue-600 text-white' : 'text-gray-300'} disabled:bg-slate-800 disabled:text-gray-500 disabled:cursor-not-allowed`} disabled={qualityFilter !== 'all'} title={qualityFilter !== 'all' ? "Not available with quality filters" : ""}>Common</button>
-                                <button onClick={() => setUseCommonPatterns(false)} className={`flex-1 rounded-md text-sm py-1 ${!useCommonPatterns ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Random</button>
-                            </div>
-                        </div>
-                    </CollapsibleSection>
-
-                    <CollapsibleSection title="Chord Options" isOpen={openSections.options} onToggle={() => toggleSection('options')}>
-                        <div>
-                            <label className="font-semibold block mb-1">Chord Complexity</label>
-                            <div className="flex bg-slate-600 rounded-md p-1"><button onClick={() => setChordComplexity('Triads')} className={`flex-1 rounded-md text-sm py-1 ${chordComplexity === 'Triads' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Triads</button><button onClick={() => setChordComplexity('Tetrads')} className={`flex-1 rounded-md text-sm py-1 ${chordComplexity === 'Tetrads' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Tetrads</button></div>
-                        </div>
-                        <div>
-                            <label className="font-semibold block mb-1">Chord Quality</label>
-                            <div className="flex bg-slate-600 rounded-md p-1">
-                                <button onClick={() => handleQualityFilterChange('all')} className={`flex-1 rounded-md text-sm py-1 ${qualityFilter === 'all' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>All</button>
-                                <button onClick={() => handleQualityFilterChange('major')} className={`flex-1 rounded-md text-sm py-1 ${qualityFilter === 'major' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Major</button>
-                                <button onClick={() => handleQualityFilterChange('minor')} className={`flex-1 rounded-md text-sm py-1 ${qualityFilter === 'minor' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Minor</button>
-                            </div>
-                        </div>
-                         <label className="flex items-center justify-between gap-2 cursor-pointer pt-1">
-                            <span className="font-semibold">Include Diminished</span>
-                            <div className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked={includeDiminished} onChange={() => setIncludeDiminished(p => !p)} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            </div>
-                        </label>
-                    </CollapsibleSection>
-                    
-                    <CollapsibleSection title="Display Settings" isOpen={openSections.display} onToggle={() => toggleSection('display')}>
-                        <div>
-                            <label className="font-semibold block mb-1">Display Mode</label>
-                            <div className="flex bg-slate-600 rounded-md p-1">
-                                <button onClick={() => setDisplayMode('chords')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'chords' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Chords</button>
-                                <button onClick={() => setDisplayMode('degrees')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'degrees' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Degrees</button>
-                                <button onClick={() => setDisplayMode('both')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'both' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Both</button>
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="font-size" className="font-semibold block mb-1">Font Size</label>
-                            <input type="range" id="font-size" min="1.5" max="5" step="0.1" value={fontSize} onChange={(e) => setFontSize(e.target.value)} className="w-full" />
-                        </div>
-                    </CollapsibleSection>
-
-                    <CollapsibleSection title="Automation" isOpen={openSections.automation} onToggle={() => toggleSection('automation')}>
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="auto-generate-prog" className="font-semibold text-lg text-teal-300">Auto-Generate:</label>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="auto-generate-prog" checked={isAutoGenerateOn} onChange={() => setIsAutoGenerateOn(p => !p)} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                            </label>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="auto-generate-interval-prog" className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>Every:</label>
-                            <div className="flex items-center gap-2">
-                                <input type="number" id="auto-generate-interval-prog" value={autoGenerateInterval} onChange={(e) => setAutoGenerateInterval(Math.max(1, parseInt(e.target.value, 10) || 1))} className={`w-20 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} />
-                                <span className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
-                            </div>
-                        </div>
-                    </CollapsibleSection>
+                    {ControlsContent}
                 </div>
             </div>
+
+            {isControlsOpen && (
+                <div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}>
+                    <div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex-shrink-0 flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-teal-300">Settings & Controls</h3>
+                            <button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+                        </div>
+                        <div className="flex-grow overflow-y-auto pr-2">
+                            {ControlsContent}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

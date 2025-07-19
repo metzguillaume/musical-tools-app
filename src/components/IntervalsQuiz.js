@@ -186,6 +186,56 @@ const IntervalsQuiz = () => {
 
     const selectedClass = 'bg-indigo-600 text-white';
     const buttonClass = 'bg-teal-600 hover:bg-teal-500';
+    
+    const ControlsContent = (
+        <div className="space-y-6">
+            <CollapsibleSection title="Quiz Options" isOpen={true}>
+                 <div className="flex flex-col gap-y-4">
+                    <div className="flex items-center gap-4">
+                        <span className="font-semibold text-lg">Root Notes:</span>
+                        <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer text-lg"><input type="radio" name="rootType" value="natural" checked={rootNoteType === 'natural'} onChange={() => setRootNoteType('natural')} />Natural</label>
+                            <label className="flex items-center gap-2 cursor-pointer text-lg"><input type="radio" name="rootType" value="chromatic" checked={rootNoteType === 'chromatic'} onChange={() => setRootNoteType('chromatic')} />Chromatic</label>
+                        </div>
+                    </div>
+                    <div>
+                        <span className="font-semibold text-lg">Direction:</span>
+                        <div className="flex bg-slate-600 rounded-md p-1 mt-2">
+                            <button onClick={() => setDirection('above')} className={`flex-1 rounded-md text-sm py-1 ${direction === 'above' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Above</button>
+                            <button onClick={() => setDirection('below')} className={`flex-1 rounded-md text-sm py-1 ${direction === 'below' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Below</button>
+                            <button onClick={() => setDirection('both')} className={`flex-1 rounded-md text-sm py-1 ${direction === 'both' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Both</button>
+                        </div>
+                    </div>
+                </div>
+            </CollapsibleSection>
+            <CollapsibleSection title="Interval Selection" isOpen={true}>
+                <div className="flex flex-wrap justify-start gap-2 mb-4">
+                    <h4 className="text-lg font-semibold text-blue-200 w-full">Quick Select</h4>
+                    <button onClick={() => handleQuickSelect('Major')} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Toggle Major</button>
+                    <button onClick={() => handleQuickSelect('Minor')} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Toggle Minor</button>
+                    <button onClick={() => handleQuickSelect('Perfect')} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Toggle Perfect</button>
+                    <button onClick={() => handleSelectAll(true)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Select All</button>
+                    <button onClick={() => handleSelectAll(false)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Deselect All</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                    {Object.entries(intervalData).map(([groupName, intervals]) => (
+                        <div key={groupName} className="break-inside-avoid">
+                            <h5 className="font-bold text-base text-teal-300 mb-2 border-b border-slate-600 pb-1">{groupName}s</h5>
+                            <div className="flex flex-col gap-3">{intervals.map(interval => (
+                                <label key={interval.name} className="flex items-center justify-between text-gray-200 cursor-pointer">
+                                    <span className="text-sm">{interval.name.replace(' (Tritone)', '')}</span>
+                                    <div className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={!!selectedIntervals[interval.name]} onChange={() => handleSelectionChange(interval.name)} className="sr-only peer" />
+                                        <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </div>
+                                </label>
+                            ))}</div>
+                        </div>
+                    ))}
+                </div>
+            </CollapsibleSection>
+        </div>
+    );
 
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
@@ -255,58 +305,28 @@ const IntervalsQuiz = () => {
                 </div>
             </div>
             
-             <div className={`bg-slate-700 rounded-lg transition-all duration-300 ease-in-out overflow-hidden ${isControlsOpen ? 'w-full md:w-96 p-4 mt-4 md:mt-0' : 'w-full md:w-0 p-0 opacity-0 md:opacity-100'}`}>
-                <div className={`${!isControlsOpen && 'hidden md:block'}`}>
+            {/* Desktop Panel */}
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-96 p-4' : 'w-0 p-0 overflow-hidden'}`}>
+                <div className={`${!isControlsOpen && 'hidden'}`}>
                     <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
-                    <div className="space-y-6">
-                        <CollapsibleSection title="Quiz Options" isOpen={true}>
-                             <div className="flex flex-col gap-y-4">
-                                <div className="flex items-center gap-4">
-                                    <span className="font-semibold text-lg">Root Notes:</span>
-                                    <div className="flex gap-4">
-                                        <label className="flex items-center gap-2 cursor-pointer text-lg"><input type="radio" name="rootType" value="natural" checked={rootNoteType === 'natural'} onChange={() => setRootNoteType('natural')} />Natural</label>
-                                        <label className="flex items-center gap-2 cursor-pointer text-lg"><input type="radio" name="rootType" value="chromatic" checked={rootNoteType === 'chromatic'} onChange={() => setRootNoteType('chromatic')} />Chromatic</label>
-                                    </div>
-                                </div>
-                                <div>
-                                    <span className="font-semibold text-lg">Direction:</span>
-                                    <div className="flex bg-slate-600 rounded-md p-1 mt-2">
-                                        <button onClick={() => setDirection('above')} className={`flex-1 rounded-md text-sm py-1 ${direction === 'above' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Above</button>
-                                        <button onClick={() => setDirection('below')} className={`flex-1 rounded-md text-sm py-1 ${direction === 'below' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Below</button>
-                                        <button onClick={() => setDirection('both')} className={`flex-1 rounded-md text-sm py-1 ${direction === 'both' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Both</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </CollapsibleSection>
-                        <CollapsibleSection title="Interval Selection" isOpen={true}>
-                            <div className="flex flex-wrap justify-start gap-2 mb-4">
-                                <h4 className="text-lg font-semibold text-blue-200 w-full">Quick Select</h4>
-                                <button onClick={() => handleQuickSelect('Major')} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Toggle Major</button>
-                                <button onClick={() => handleQuickSelect('Minor')} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Toggle Minor</button>
-                                <button onClick={() => handleQuickSelect('Perfect')} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Toggle Perfect</button>
-                                <button onClick={() => handleSelectAll(true)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Select All</button>
-                                <button onClick={() => handleSelectAll(false)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Deselect All</button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                                {Object.entries(intervalData).map(([groupName, intervals]) => (
-                                    <div key={groupName} className="break-inside-avoid">
-                                        <h5 className="font-bold text-base text-teal-300 mb-2 border-b border-slate-600 pb-1">{groupName}s</h5>
-                                        <div className="flex flex-col gap-3">{intervals.map(interval => (
-                                            <label key={interval.name} className="flex items-center justify-between text-gray-200 cursor-pointer">
-                                                <span className="text-sm">{interval.name.replace(' (Tritone)', '')}</span>
-                                                <div className="relative inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" checked={!!selectedIntervals[interval.name]} onChange={() => handleSelectionChange(interval.name)} className="sr-only peer" />
-                                                    <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                                </div>
-                                            </label>
-                                        ))}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CollapsibleSection>
-                    </div>
+                    {ControlsContent}
                 </div>
             </div>
+
+            {/* Mobile Overlay */}
+            {isControlsOpen && (
+                <div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}>
+                    <div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex-shrink-0 flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-teal-300">Settings & Controls</h3>
+                            <button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+                        </div>
+                        <div className="flex-grow overflow-y-auto pr-2">
+                            {ControlsContent}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

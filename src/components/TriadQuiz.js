@@ -4,7 +4,6 @@ import InfoModal from './InfoModal';
 import InfoButton from './InfoButton';
 
 // --- Data & Helpers ---
-// UPDATED: Restored sharps and kept flats for a full range of questions.
 const QUIZ_ROOT_NOTES = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
 const NOTES_ENHARMONIC = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
 const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -218,19 +217,70 @@ const TriadQuiz = () => {
             </div>
         )
     };
+
+    const ControlsContent = (
+        <div className="space-y-4">
+            <div>
+                <h3 className="font-semibold text-lg text-teal-300 mb-2">Quiz Mode</h3>
+                <div className="space-y-2">
+                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheTriad' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheTriad" checked={quizMode === 'nameTheTriad'} onChange={(e) => setQuizMode(e.target.value)} className="mr-3" />Name the Chord</label>
+                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheNotes' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheNotes" checked={quizMode === 'nameTheNotes'} onChange={(e) => setQuizMode(e.target.value)} className="mr-3" />Name the Notes</label>
+                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'mixed' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="mixed" checked={quizMode === 'mixed'} onChange={(e) => setQuizMode(e.target.value)} className="mr-3" />Mixed Quiz</label>
+                </div>
+            </div>
+            <div>
+                <h3 className="font-semibold text-lg text-teal-300 mb-2">Options</h3>
+                <label className="flex items-center gap-2 cursor-pointer p-2"><input type="checkbox" checked={include7ths} onChange={() => setInclude7ths(p => !p)} className="h-5 w-5" />Include 7th Chords</label>
+                <label className="flex items-center gap-2 cursor-pointer p-2"><input type="checkbox" checked={includeInversions} onChange={() => setIncludeInversions(p => !p)} className="h-5 w-5" />Include Inversions</label>
+            </div>
+        </div>
+    );
     
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="How to Play: Triad & Tetrads Quiz"><div className="space-y-3"><p>This quiz tests your ability to identify chords by their notes, and vice-versa.</p><div><h4 className="font-bold text-indigo-300">How It Works</h4><p className="text-sm">A question will appear in the main display. Use the green buttons below to construct your answer, then press "Submit" or the Enter key.</p></div><div><h4 className="font-bold text-indigo-300">Game Modes & Options</h4><p className="text-sm">Click the "Controls" button to change game settings at any time. You can choose between different quiz modes, and add 7th chords or inversions to make the quiz more challenging. Changing a setting will restart the quiz with a new question.</p></div></div></InfoModal>
+            
             <div className="w-full flex-1 bg-slate-800 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-4"><div className="flex-1"></div><div className="flex-1 flex justify-center items-center gap-2"><h1 className="text-2xl text-center font-bold text-indigo-300">Triad & Tetrads Quiz</h1><InfoButton onClick={() => setIsInfoModalOpen(true)} /></div><div className="flex-1 flex justify-end items-center gap-2"><button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Controls</button><button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button></div></div>
+                <div className="flex justify-between items-center mb-4">
+                    <div className="flex-1"></div>
+                    <div className="flex-1 flex justify-center items-center gap-2">
+                        <h1 className="text-2xl text-center font-bold text-indigo-300">Triad & Tetrads Quiz</h1>
+                        <InfoButton onClick={() => setIsInfoModalOpen(true)} />
+                    </div>
+                    <div className="flex-1 flex justify-end items-center gap-2">
+                        <button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button>
+                        <button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Controls</button>
+                    </div>
+                </div>
                 <div className="grid grid-cols-3 items-center mb-4"><span className="text-xl justify-self-start">Score: {score}/{totalAsked}</span><div className="justify-self-center">{history.length > 0 && <button onClick={() => setReviewIndex(history.length - 1)} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50">Review History</button>}</div><label className="flex items-center gap-2 cursor-pointer font-semibold justify-self-end"><span>Auto-Advance</span><div className="relative"><input type="checkbox" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label></div>
                 <div className="min-h-[6rem] p-4 bg-slate-900/50 rounded-lg flex justify-center items-center mb-4">{renderQuestion()}</div>
                 <div className={`my-4 min-h-[60px] flex flex-col justify-center ${isReviewing ? '' : (feedback.type === 'correct' ? 'text-green-400' : 'text-red-400')}`}>{isReviewing ? renderReviewFeedback() : <p className="text-lg font-bold text-center">{feedback.message || <>&nbsp;</>}</p>}</div>
                 <div className="space-y-4">{renderAnswerArea()}</div>
                 <div className="h-20 mt-4 flex justify-center items-center">{isReviewing ? (<div className="flex items-center justify-center gap-4 w-full"><button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button><button onClick={() => setReviewIndex(null)} className="flex-grow max-w-xs bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button><button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button></div>) : !isAnswered ? (<button onClick={checkAnswer} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Submit</button>) : !autoAdvance && (<button onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>)}</div>
             </div>
-            <div className={`bg-slate-700 rounded-lg transition-all duration-300 ease-in-out overflow-hidden ${isControlsOpen ? 'w-full md:w-80 p-4 mt-4 md:mt-0' : 'w-full md:w-0 p-0 opacity-0 md:opacity-100'}`}><div className={`${!isControlsOpen && 'hidden md:block'}`}><h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3><div className="space-y-4"><div><h3 className="font-semibold text-lg text-teal-300 mb-2">Quiz Mode</h3><div className="space-y-2"><label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheTriad' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheTriad" checked={quizMode === 'nameTheTriad'} onChange={(e) => setQuizMode(e.target.value)} className="mr-3" />Name the Chord</label><label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheNotes' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheNotes" checked={quizMode === 'nameTheNotes'} onChange={(e) => setQuizMode(e.target.value)} className="mr-3" />Name the Notes</label><label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'mixed' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="mixed" checked={quizMode === 'mixed'} onChange={(e) => setQuizMode(e.target.value)} className="mr-3" />Mixed Quiz</label></div></div><div><h3 className="font-semibold text-lg text-teal-300 mb-2">Options</h3><label className="flex items-center gap-2 cursor-pointer p-2"><input type="checkbox" checked={include7ths} onChange={() => setInclude7ths(p => !p)} className="h-5 w-5" />Include 7th Chords</label><label className="flex items-center gap-2 cursor-pointer p-2"><input type="checkbox" checked={includeInversions} onChange={() => setIncludeInversions(p => !p)} className="h-5 w-5" />Include Inversions</label></div></div></div></div>
+            
+            {/* Desktop Panel */}
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
+                <div className={`${!isControlsOpen && 'hidden'}`}>
+                    <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
+                    {ControlsContent}
+                </div>
+            </div>
+
+            {/* Mobile Overlay */}
+            {isControlsOpen && (
+                <div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}>
+                    <div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex-shrink-0 flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-teal-300">Settings & Controls</h3>
+                            <button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+                        </div>
+                        <div className="flex-grow overflow-y-auto pr-2">
+                            {ControlsContent}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

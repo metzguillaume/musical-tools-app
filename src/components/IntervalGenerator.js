@@ -4,8 +4,8 @@ import InfoModal from './InfoModal';
 import InfoButton from './InfoButton';
 
 const IntervalGenerator = () => {
-    const { addLogEntry, isMetronomePlaying, setMetronomeSchedule } = useTools();
-
+    // UPDATED: Removed unused 'isMetronomePlaying' variable
+    const { addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode } = useTools();
     const intervalData = useMemo(() => ({
         "Unison/Octave": [{ name: 'Perfect Unison', quality: 'Perfect'}, { name: 'Perfect Octave', quality: 'Perfect'}],
         "2nd": [{ name: 'Minor 2nd', quality: 'Minor' }, { name: 'Major 2nd', quality: 'Major' }],
@@ -17,11 +17,9 @@ const IntervalGenerator = () => {
     }), []);
 
     const allIntervals = useMemo(() => Object.values(intervalData).flat(), [intervalData]);
-
     const [numIntervals, setNumIntervals] = useState(1);
     const [generatedIntervals, setGeneratedIntervals] = useState([]);
     const [fontSize, setFontSize] = useState(4); 
-    
     const [selectedQualities, setSelectedQualities] = useState({
         'Perfect': true,
         'Major': true,
@@ -29,21 +27,17 @@ const IntervalGenerator = () => {
         'Augmented': false,
         'Diminished': false,
     });
-    
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
     const [autoGenerateInterval, setAutoGenerateInterval] = useState(1);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
-
     const generateIntervals = useCallback(() => {
         const activeIntervals = allIntervals.filter(interval => selectedQualities[interval.quality]);
-
         if (activeIntervals.length === 0) {
             setGeneratedIntervals(["Select a quality"]);
             return;
         }
-
         let newIntervals = [];
         let lastInterval = null;
         for (let i = 0; i < numIntervals; i++) {
@@ -73,7 +67,7 @@ const IntervalGenerator = () => {
     }, [numIntervals]);
 
     useEffect(() => {
-        if (isAutoGenerateOn && isMetronomePlaying) {
+        if (isAutoGenerateOn) {
             setMetronomeSchedule({
                 callback: scheduledGenerate,
                 interval: autoGenerateInterval,
@@ -81,10 +75,7 @@ const IntervalGenerator = () => {
         } else {
             setMetronomeSchedule(null);
         }
-        return () => setMetronomeSchedule(null);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAutoGenerateOn, isMetronomePlaying, autoGenerateInterval, scheduledGenerate]);
-
+    }, [isAutoGenerateOn, autoGenerateInterval, scheduledGenerate, setMetronomeSchedule]);
 
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -96,7 +87,6 @@ const IntervalGenerator = () => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [generateIntervals]);
-
 
     const handleLogSession = () => {
         const remarks = prompt("Enter any remarks for this session:", "Practiced random intervals.");
@@ -114,6 +104,61 @@ const IntervalGenerator = () => {
     const handleQualitySelection = (quality) => {
         setSelectedQualities(prev => ({...prev, [quality]: !prev[quality]}));
     };
+
+    const ControlsContent = (
+        <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+                <label htmlFor="num-intervals" className="font-semibold text-lg">Number of Intervals:</label>
+                <input type="number" id="num-intervals" value={numIntervals} onChange={(e) => setNumIntervals(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
+            </div>
+            
+            <div className="pt-4 border-t border-slate-600">
+                <span className="font-semibold text-lg">Include Qualities:</span>
+                <div className="flex flex-col gap-3 mt-2">
+                    {Object.keys(selectedQualities).map(quality => (
+                        <label key={quality} className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
+                            <span className="font-semibold">{quality}</span>
+                            <div className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked={selectedQualities[quality]} onChange={() => handleQualitySelection(quality)} className="sr-only peer" />
+                                <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-600 space-y-4">
+                <div className="flex items-center justify-between">
+                    <label htmlFor="auto-generate-int" className="font-semibold text-lg text-teal-300">Auto-Generate:</label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-generate-int" checked={isAutoGenerateOn} onChange={() => setIsAutoGenerateOn(p => !p)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                    </label>
+                </div>
+                <div className="flex items-center justify-between">
+                    <label htmlFor="auto-generate-interval-int" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Generate every:</label>
+                    <div className="flex items-center gap-2">
+                        <input type="number" id="auto-generate-interval-int" value={autoGenerateInterval} onChange={(e) => setAutoGenerateInterval(Math.max(1, parseInt(e.target.value, 10) || 1))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} />
+                        <span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
+                    </div>
+                </div>
+                 <div className="flex items-center justify-between">
+                    <label htmlFor="countdown-clicks-int" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown:</label>
+                    <div className="flex items-center gap-2">
+                        <input type="number" id="countdown-clicks-int" value={countdownClicks} onChange={(e) => setCountdownClicks(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="0" max="7" disabled={!isAutoGenerateOn} />
+                         <span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
+                    </div>
+                </div>
+                <div>
+                    <label className={`font-semibold block mb-2 text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown Mode:</label>
+                    <div className="flex bg-slate-600 rounded-md p-1">
+                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('every')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'every' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Every Time</button>
+                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('first')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'first' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>First Time Only</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
@@ -167,49 +212,26 @@ const IntervalGenerator = () => {
                 </div>
             </div>
 
-            <div className={`bg-slate-700 rounded-lg transition-all duration-300 ease-in-out overflow-hidden ${isControlsOpen ? 'w-full md:w-80 p-4 mt-4 md:mt-0' : 'w-full md:w-0 p-0 opacity-0 md:opacity-100'}`}>
-                <div className={`${!isControlsOpen && 'hidden md:block'}`}>
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
+                <div className={`${!isControlsOpen && 'hidden'}`}>
                     <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
-                     <div className="flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="num-intervals" className="font-semibold text-lg">Number of Intervals:</label>
-                            <input type="number" id="num-intervals" value={numIntervals} onChange={(e) => setNumIntervals(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
-                        </div>
-                        
-                        <div className="pt-4 border-t border-slate-600">
-                            <span className="font-semibold text-lg">Include Qualities:</span>
-                            <div className="flex flex-col gap-3 mt-2">
-                                {Object.keys(selectedQualities).map(quality => (
-                                    <label key={quality} className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
-                                        <span className="font-semibold">{quality}</span>
-                                        <div className="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" checked={selectedQualities[quality]} onChange={() => handleQualitySelection(quality)} className="sr-only peer" />
-                                            <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                        </div>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
+                     {ControlsContent}
+                </div>
+            </div>
 
-                        <div className="pt-4 border-t border-slate-600 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="auto-generate-int" className="font-semibold text-lg text-teal-300">Auto-Generate:</label>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" id="auto-generate-int" checked={isAutoGenerateOn} onChange={() => setIsAutoGenerateOn(p => !p)} className="sr-only peer" />
-                                    <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                                </label>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="auto-generate-interval-int" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Generate every:</label>
-                                <div className="flex items-center gap-2">
-                                    <input type="number" id="auto-generate-interval-int" value={autoGenerateInterval} onChange={(e) => setAutoGenerateInterval(Math.max(1, parseInt(e.target.value, 10) || 1))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} />
-                                    <span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
-                                </div>
-                            </div>
+            {isControlsOpen && (
+                <div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}>
+                    <div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex-shrink-0 flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-teal-300">Settings & Controls</h3>
+                            <button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+                        </div>
+                        <div className="flex-grow overflow-y-auto pr-2">
+                            {ControlsContent}
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

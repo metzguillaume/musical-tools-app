@@ -4,7 +4,8 @@ import InfoModal from './InfoModal';
 import InfoButton from './InfoButton';
 
 const NoteGenerator = () => {
-    const { bpm, addLogEntry, isMetronomePlaying, setMetronomeSchedule } = useTools();
+    // UPDATED: Removed unused 'isMetronomePlaying' variable
+    const { bpm, addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode } = useTools();
     const [numNotes, setNumNotes] = useState(12);
     const [noteType, setNoteType] = useState('chromatic');
     const [fontSize, setFontSize] = useState(4);
@@ -12,10 +13,8 @@ const NoteGenerator = () => {
     const [showBarlines, setShowBarlines] = useState(true);
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
     const [autoGenerateInterval, setAutoGenerateInterval] = useState(numNotes);
-
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-
 
     const generateNotes = useCallback(() => {
         const naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -60,7 +59,7 @@ const NoteGenerator = () => {
     }, [numNotes]);
 
     useEffect(() => {
-        if (isAutoGenerateOn && isMetronomePlaying) {
+        if (isAutoGenerateOn) {
             setMetronomeSchedule({
                 callback: scheduledGenerate,
                 interval: autoGenerateInterval,
@@ -68,9 +67,7 @@ const NoteGenerator = () => {
         } else {
             setMetronomeSchedule(null);
         }
-        return () => setMetronomeSchedule(null);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAutoGenerateOn, isMetronomePlaying, autoGenerateInterval, scheduledGenerate]);
+    }, [isAutoGenerateOn, autoGenerateInterval, scheduledGenerate, setMetronomeSchedule]);
 
 
     useEffect(() => {
@@ -98,6 +95,60 @@ const NoteGenerator = () => {
         }
     };
 
+    const ControlsContent = (
+        <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+                <label htmlFor="num-notes" className="font-semibold text-lg">Number of Notes:</label>
+                <input type="number" id="num-notes" value={numNotes} onChange={(e) => setNumNotes(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
+            </div>
+            <div className="flex items-center justify-between">
+                <span className="font-semibold text-lg">Note Type:</span>
+                <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="noteType" value="natural" checked={noteType === 'natural'} onChange={() => setNoteType('natural')} />Natural</label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="noteType" value="chromatic" checked={noteType === 'chromatic'} onChange={() => setNoteType('chromatic')} />Chromatic</label>
+                </div>
+            </div>
+            <div className="flex items-center justify-between">
+                <label htmlFor="show-barlines" className="font-semibold text-lg">Show Barlines:</label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="show-barlines" checked={showBarlines} onChange={() => setShowBarlines(p => !p)} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+            
+            <div className="pt-4 border-t border-slate-600 space-y-4">
+                <div className="flex items-center justify-between">
+                    <label htmlFor="auto-generate" className="font-semibold text-lg text-teal-300">Auto-Generate:</label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-generate" checked={isAutoGenerateOn} onChange={() => setIsAutoGenerateOn(p => !p)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                    </label>
+                </div>
+                <div className="flex items-center justify-between">
+                    <label htmlFor="auto-generate-interval" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Every:</label>
+                    <div className="flex items-center gap-2">
+                        <input type="number" id="auto-generate-interval" value={autoGenerateInterval} onChange={(e) => setAutoGenerateInterval(Math.max(1, parseInt(e.target.value, 10) || 1))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} />
+                        <span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
+                    </div>
+                </div>
+                <div className="flex items-center justify-between">
+                    <label htmlFor="countdown-clicks" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown:</label>
+                    <div className="flex items-center gap-2">
+                        <input type="number" id="countdown-clicks" value={countdownClicks} onChange={(e) => setCountdownClicks(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="0" max="7" disabled={!isAutoGenerateOn} />
+                         <span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
+                    </div>
+                </div>
+                 <div>
+                    <label className={`font-semibold block mb-2 text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown Mode:</label>
+                    <div className="flex bg-slate-600 rounded-md p-1">
+                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('every')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'every' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Every Time</button>
+                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('first')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'first' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>First Time Only</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Random Note Generator Guide">
@@ -108,7 +159,7 @@ const NoteGenerator = () => {
                         <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
                             <li><strong className="text-teal-300">Number of Notes:</strong> Choose how many notes to generate at a time.</li>
                             <li><strong className="text-teal-300">Note Type:</strong> Select "Natural" for notes without sharps or flats (A, B, C...) or "Chromatic" to include all 12 notes.</li>
-                            <li><strong className="text-teal-300">Auto-Generate:</strong> Turn on this feature to get a new set of notes automatically in time with the metronome.</li>
+                            <li><strong className="text-teal-300">Auto-Generate:</strong> Turn on this feature to get a new set of notes automatically in time with the metronome. Use the "Countdown" to get a few clicks to prepare.</li>
                         </ul>
                     </div>
                 </div>
@@ -163,48 +214,26 @@ const NoteGenerator = () => {
                 </div>
             </div>
             
-            <div className={`bg-slate-700 rounded-lg transition-all duration-300 ease-in-out overflow-hidden ${isControlsOpen ? 'w-full md:w-80 p-4 mt-4 md:mt-0' : 'w-full md:w-0 p-0 opacity-0 md:opacity-100'}`}>
-                <div className={`${!isControlsOpen && 'hidden md:block'}`}>
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
+                <div className={`${!isControlsOpen && 'hidden'}`}>
                      <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
-                    <div className="flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="num-notes" className="font-semibold text-lg">Number of Notes:</label>
-                            <input type="number" id="num-notes" value={numNotes} onChange={(e) => setNumNotes(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
+                    {ControlsContent}
+                </div>
+            </div>
+
+            {isControlsOpen && (
+                <div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}>
+                    <div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex-shrink-0 flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-teal-300">Settings & Controls</h3>
+                            <button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <span className="font-semibold text-lg">Note Type:</span>
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="noteType" value="natural" checked={noteType === 'natural'} onChange={() => setNoteType('natural')} />Natural</label>
-                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="noteType" value="chromatic" checked={noteType === 'chromatic'} onChange={() => setNoteType('chromatic')} />Chromatic</label>
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="show-barlines" className="font-semibold text-lg">Show Barlines:</label>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="show-barlines" checked={showBarlines} onChange={() => setShowBarlines(p => !p)} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            </label>
-                        </div>
-                        
-                        <div className="pt-4 border-t border-slate-600 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="auto-generate" className="font-semibold text-lg text-teal-300">Auto-Generate:</label>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" id="auto-generate" checked={isAutoGenerateOn} onChange={() => setIsAutoGenerateOn(p => !p)} className="sr-only peer" />
-                                    <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                                </label>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="auto-generate-interval" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Every:</label>
-                                <div className="flex items-center gap-2">
-                                    <input type="number" id="auto-generate-interval" value={autoGenerateInterval} onChange={(e) => setAutoGenerateInterval(Math.max(1, parseInt(e.target.value, 10) || 1))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} />
-                                    <span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
-                                </div>
-                            </div>
+                        <div className="flex-grow overflow-y-auto pr-2">
+                            {ControlsContent}
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

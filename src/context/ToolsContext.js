@@ -162,8 +162,7 @@ export const ToolsProvider = ({ children }) => {
     useEffect(() => { if (isMetronomeReady) metronomePlayer.current.volume.value = metronomeVolume; }, [metronomeVolume, isMetronomeReady]);
     useEffect(() => { if (isCountdownReady) { countdownPlayers.current.forEach(player => { player.volume.value = metronomeVolume; }); } }, [metronomeVolume, isCountdownReady]);
     useEffect(() => { if (areDronesReady) Object.values(dronePlayers.current).forEach(p => p.volume.value = droneVolume); }, [droneVolume, areDronesReady]);
-
-    // UPDATED: Reordered functions to prevent 'no-use-before-define' warning.
+    
     const startMetronome = useCallback(() => {
         if (!isMetronomeReady) return;
         const transport = Tone.getTransport();
@@ -173,63 +172,45 @@ export const ToolsProvider = ({ children }) => {
             transport.clear(transportEventRef.current.id);
         }
         
-        const task = scheduledTaskRef.current;
-        const hasTask = task && task.callback;
-        
-        if (hasTask) {
-            task.callback();
-        }
-
-        const needsInitialCountdown = hasTask && countdownClicks > 0 && (countdownMode === 'every' || countdownMode === 'first');
-        transportEventRef.current.phase = needsInitialCountdown ? 'countdown' : 'main';
-        transportEventRef.current.phaseBeat = 0;
+        transportEventRef.current.beatCounter = 0;
 
         transportEventRef.current.id = transport.scheduleRepeat(time => {
-            const currentTask = scheduledTaskRef.current;
-            if (!currentTask || !currentTask.callback || currentTask.interval <= 0) {
+            const task = scheduledTaskRef.current;
+            if (!task || !task.callback || task.interval <= 0) {
                 metronomePlayer.current.start(time);
                 return;
             }
 
-            if (transportEventRef.current.phase === 'countdown') {
-                const countdownBeat = transportEventRef.current.phaseBeat;
-                
-                if (countdownBeat < countdownPlayers.current.length && countdownPlayers.current[countdownBeat]?.loaded) {
-                    countdownPlayers.current[countdownBeat].start(time);
+            const mainInterval = task.interval;
+            const countIn = countdownClicks > 0 ? countdownClicks : 0;
+            const cycleLength = mainInterval + countIn;
+            
+            const positionInCycle = transportEventRef.current.beatCounter % cycleLength;
+
+            // THIS IS THE FIX: Generate new content on the first beat of the cycle ("beat 1").
+            if (positionInCycle === 0) {
+                task.callback();
+            }
+
+            if (positionInCycle < countIn) {
+                // Countdown phase
+                const countdownNumber = positionInCycle;
+                if (countdownNumber < countdownPlayers.current.length && countdownPlayers.current[countdownNumber]?.loaded) {
+                    countdownPlayers.current[countdownNumber].start(time);
                 } else {
                     metronomePlayer.current.start(time);
                 }
-
-                if (countdownBeat >= countdownClicks - 1) {
-                    transportEventRef.current.phase = 'main';
-                    transportEventRef.current.phaseBeat = 0;
-                } else {
-                    transportEventRef.current.phaseBeat++;
-                }
-
-            } else { // phase is 'main'
-                const mainBeat = transportEventRef.current.phaseBeat;
-                
+            } else {
+                // Main interval phase
                 metronomePlayer.current.start(time);
-
-                if (mainBeat >= currentTask.interval - 1) {
-                    currentTask.callback();
-                    
-                    if (countdownClicks > 0 && countdownMode === 'every') {
-                        transportEventRef.current.phase = 'countdown';
-                    } else {
-                        transportEventRef.current.phase = 'main';
-                    }
-                    transportEventRef.current.phaseBeat = 0;
-                } else {
-                    transportEventRef.current.phaseBeat++;
-                }
             }
+            
+            transportEventRef.current.beatCounter++;
         }, "4n");
         
         transport.start();
         setIsMetronomePlaying(true);
-    }, [bpm, isMetronomeReady, countdownClicks, countdownMode]);
+    }, [bpm, isMetronomeReady, countdownClicks]);
 
     const stopMetronome = useCallback(() => {
         const transport = Tone.getTransport();
@@ -240,17 +221,23 @@ export const ToolsProvider = ({ children }) => {
     }, []);
 
     const setMetronomeSchedule = useCallback((task) => {
-        scheduledTaskRef.current = task;
         const transport = Tone.getTransport();
         const wasPlaying = transport.state === 'started';
 
         if (wasPlaying) {
-            stopMetronome();
-            setTimeout(() => {
+            transport.pause();
+            transport.cancel();
+            transportEventRef.current.id = null;
+        }
+
+        scheduledTaskRef.current = task;
+        
+        if (wasPlaying) {
+             setTimeout(() => {
                 startMetronome();
             }, 50);
         }
-    }, [stopMetronome, startMetronome]);
+    }, [startMetronome]);
 
     const toggleMetronome = useCallback(async () => {
         await unlockAudio();
@@ -267,7 +254,7 @@ export const ToolsProvider = ({ children }) => {
         }
     }, [bpm, isMetronomePlaying]);
 
-    // ... (rest of the file is unchanged)
+    // ... (rest of the file is unchanged) ...
     const toggleDrone = useCallback(async () => {
         await unlockAudio();
         if (!areDronesReady) return;

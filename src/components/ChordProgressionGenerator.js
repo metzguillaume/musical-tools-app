@@ -24,8 +24,8 @@ const CollapsibleSection = ({ title, isOpen, onToggle, children }) => (
 
 
 const ChordProgressionGenerator = () => {
-    // UPDATED: Removed unused 'isMetronomePlaying' variable
-    const { setMetronomeSchedule, addLogEntry, bpm, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode } = useTools();
+    const { setMetronomeSchedule, addLogEntry, bpm, countdownClicks, setCountdownClicks } = useTools();
+
     const [rootNote, setRootNote] = useState('C');
     const [keyType, setKeyType] = useState('Major');
     const [numChords, setNumChords] = useState(4);
@@ -34,13 +34,17 @@ const ChordProgressionGenerator = () => {
     const [useCommonPatterns, setUseCommonPatterns] = useState(true);
     const [includeDiminished, setIncludeDiminished] = useState(false);
     const [qualityFilter, setQualityFilter] = useState('all');
+
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
     const [autoGenerateInterval, setAutoGenerateInterval] = useState(numChords);
+
     const [displayMode, setDisplayMode] = useState('both');
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [fontSize, setFontSize] = useState(3);
+
     const [progressions, setProgressions] = useState([]);
+    
     const [openSections, setOpenSections] = useState({
         general: true,
         options: false,
@@ -236,10 +240,7 @@ const ChordProgressionGenerator = () => {
                         <button onClick={() => setDisplayMode('both')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'both' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Both</button>
                     </div>
                 </div>
-                <div>
-                    <label htmlFor="font-size" className="font-semibold block mb-1">Font Size</label>
-                    <input type="range" id="font-size" min="1.5" max="5" step="0.1" value={fontSize} onChange={(e) => setFontSize(e.target.value)} className="w-full" />
-                </div>
+                {/* REMOVED: Font slider is no longer in the controls panel */}
             </CollapsibleSection>
 
             <CollapsibleSection title="Automation" isOpen={openSections.automation} onToggle={() => toggleSection('automation')}>
@@ -262,13 +263,6 @@ const ChordProgressionGenerator = () => {
                     <div className="flex items-center gap-2">
                         <input type="number" id="countdown-clicks-prog" value={countdownClicks} onChange={(e) => setCountdownClicks(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`w-20 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="0" max="7" disabled={!isAutoGenerateOn} />
                          <span className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
-                    </div>
-                </div>
-                 <div>
-                    <label className={`font-semibold block mb-2 text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown Mode:</label>
-                    <div className="flex bg-slate-600 rounded-md p-1">
-                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('every')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'every' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Every Time</button>
-                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('first')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'first' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>First Time Only</button>
                     </div>
                 </div>
             </CollapsibleSection>
@@ -334,6 +328,13 @@ const ChordProgressionGenerator = () => {
                         ))}
                     </div>
                 </div>
+                
+                {/* ADDED: Font slider is now in the main panel */}
+                <div className="flex items-center justify-center gap-4 my-6">
+                    <label htmlFor="font-size" className="font-semibold text-lg">Font Size:</label>
+                    <input type="range" id="font-size" min="1.5" max="5" step="0.1" value={fontSize} onChange={(e) => setFontSize(e.target.value)} className="w-1/2 max-w-xs" />
+                </div>
+
                 <div className="w-full flex justify-center my-6">
                      <button onClick={handleGenerate} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg text-xl">
                         Generate New Progression (Enter)

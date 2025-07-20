@@ -13,6 +13,8 @@ import DiagramMaker from './components/DiagramMaker';
 import ChordProgressionGenerator from './components/ChordProgressionGenerator';
 import IntervalGenerator from './components/IntervalGenerator';
 import TriadQuiz from './components/TriadQuiz';
+// ADDITION 1: Import the new CAGEDSystemQuiz component from its new directory
+import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
 
 
 const AppContent = () => {
@@ -28,6 +30,7 @@ const AppContent = () => {
         { id: 'interval-generator', name: 'Interval Generator' },
         { id: 'chord-progression-generator', name: 'Chord Progression Generator' },
         { id: 'diagram-maker', name: 'Diagram Maker' },
+        
       ],
     },
     {
@@ -43,6 +46,8 @@ const AppContent = () => {
       name: 'Practical Exercises',
       tools: [
         { id: 'interval-fretboard-quiz', name: 'Fretboard Intervals' },
+        // ADDITION 2: Add the new quiz to the "Practical Exercises" category
+        { id: 'caged-system-quiz', name: 'CAGED System Quiz' },
       ],
     },
   ];
@@ -50,7 +55,6 @@ const AppContent = () => {
   const handleTabClick = (tabName) => {
     unlockAudio();
     setActiveTab(tabName);
-    // UPDATED: This line collapses the open category menu after a selection is made.
     setOpenCategory(null);
   }
 
@@ -126,6 +130,8 @@ const AppContent = () => {
           {activeTab === 'chord-progression-generator' && <ChordProgressionGenerator />}
           {activeTab === 'interval-generator' && <IntervalGenerator />}
           {activeTab === 'triad-quiz' && <TriadQuiz />}
+          {/* ADDITION 3: Add the line to render the new component */}
+          {activeTab === 'caged-system-quiz' && <CAGEDSystemQuiz />}
       </main>
 
       <footer className="w-full max-w-5xl mx-auto text-center mt-8 text-gray-400 text-sm">

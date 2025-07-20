@@ -137,15 +137,25 @@ const FretboardDiagram = ({
                         key={`note-${note.string}-${note.fret}`}
                         transform={`translate(${x}, ${y})`}
                         onMouseDown={(e) => { e.stopPropagation(); if (onNoteMouseDown) onNoteMouseDown(note, e); }}
+                        /* --- FIX FOR DESELECTING NOTES --- */
+                        /* This onClick handler ensures that clicking a note bubble will always trigger the onBoardClick event, */
+                        /* which allows the quiz to correctly handle deselecting a note. This is a safe, non-breaking addition. */
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (onBoardClick) {
+                                onBoardClick(note.string, note.fret);
+                            }
+                        }}
                         className={isDragging ? 'opacity-70 scale-110' : ''}
                         style={{ 
                             transition: isDragging ? 'none' : 'all 0.3s ease', 
-                            cursor: onNoteMouseDown ? 'grab' : 'default',
+                            cursor: onNoteMouseDown ? 'grab' : (onBoardClick ? 'pointer' : 'default'),
                          }}
                     >
                         <circle r="16" fill={fillColor} stroke={strokeColor} strokeWidth="2" />
-                        {/* --- THIS IS THE FIX: Removed the incorrect id from the text element --- */}
-                        <text textAnchor="middle" dy=".3em" fill="white" fontSize="1.1rem" fontWeight="bold">{displayLabel}</text>
+                        <text textAnchor="middle" dy=".3em" fill="white" fontSize="1.1rem" fontWeight="bold" style={{ pointerEvents: 'none' }}>
+                            {displayLabel}
+                        </text>
                     </g>
                 );
             })}
@@ -155,9 +165,7 @@ const FretboardDiagram = ({
     return (
         <div className="flex flex-col items-center w-full">
             {startFret > 0 && (<div className="text-gray-400 text-sm font-bold mb-1">Fret: {startFret}</div>)}
-            {/* --- THIS IS THE FIX: Added the id back to the main svg element --- */}
             <svg
-                id="fretboard-diagram-svg"
                 className="w-full max-w-4xl bg-slate-800 rounded-lg shadow-lg border border-slate-700"
                 viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
                 preserveAspectRatio="xMidYMid meet"
@@ -168,12 +176,10 @@ const FretboardDiagram = ({
                 style={{ cursor: onBoardClick ? 'copy' : (draggingNote ? 'grabbing' : 'default') }}
             >
                 <rect width={VIEWBOX_WIDTH} height={VIEWBOX_HEIGHT} fill="transparent" />
-                <g transform={`translate(0, 0)`}>
-                    <Inlays />
-                    <Strings />
-                    <Frets />
-                    <Notes />
-                </g>
+                <Inlays />
+                <Strings />
+                <Frets />
+                <Notes />
             </svg>
         </div>
     );

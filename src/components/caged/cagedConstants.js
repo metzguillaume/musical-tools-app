@@ -1,3 +1,5 @@
+// src/components/caged/cagedConstants.js
+
 export const CAGED_SHAPES = {
     major: {
         E: { muted: [], notes: [{s:6,f:0,d:'R',degree:'1'}, {s:5,f:2,degree:'5'}, {s:4,f:2,d:'R',degree:'1'}, {s:3,f:1,degree:'3'}, {s:2,f:0,degree:'5'}, {s:1,f:0,d:'R',degree:'1'}] },

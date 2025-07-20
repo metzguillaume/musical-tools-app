@@ -329,7 +329,7 @@ const DiagramMaker = () => {
                 
                 <div className="w-full pt-4 border-t border-slate-600 mt-4 flex gap-2">
                     <button onClick={handleClearBoard} className="flex-1 bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Clear Board</button>
-                    {isManualMode ? ( <button onClick={() => setIsManualMode(false)} className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Return to Generator</button> ) : ( <button onClick={() => setIsManualMode(true)} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg">Customize Diagram</button> )}
+                    {isManualMode ? ( <button onClick={() => setIsManualMode(false)} className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg">Generate Scale / Chord</button> ) : ( <button onClick={() => setIsManualMode(true)} className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg">Customize Diagram</button> )}
                 </div>
                 {isManualMode && <p className="text-xs text-center text-gray-400">In Customize Mode: Click an empty spot to add, single-click to delete, double-click to edit, or drag to move.</p>}
 

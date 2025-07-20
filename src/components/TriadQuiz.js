@@ -192,7 +192,13 @@ const TriadQuiz = () => {
             return (<>
                 <div><h3 className="text-lg font-semibold text-gray-400 mb-2">Root Note</h3><div className="grid grid-cols-7 gap-1">{NOTE_LETTERS.map(note => <button key={note} onClick={() => handleNameSelect('noteLetter', note)} disabled={isAnswered} className={`py-2 rounded font-semibold ${answerToDisplay.noteLetter === note ? selectedClass : buttonClass}`}>{note}</button>)}</div></div>
                 <div><h3 className="text-lg font-semibold text-gray-400 mb-2">Accidental</h3><div className="grid grid-cols-3 gap-1">{ACCIDENTALS.map(acc => <button key={acc.id} onClick={() => handleNameSelect('accidental', acc.id === 'natural' ? '' : acc.id)} disabled={isAnswered} className={`py-2 rounded font-semibold text-xl ${answerToDisplay.accidental === (acc.id === 'natural' ? '' : acc.id) ? selectedClass : buttonClass}`}>{acc.display}</button>)}</div></div>
-                <div><h3 className="text-lg font-semibold text-gray-400 mb-2">Quality</h3><div className="grid grid-cols-2 lg:grid-cols-3 gap-1">{qualityOptions.map(q => <button key={q} onClick={() => handleNameSelect('quality', q)} disabled={isAnswered} className={`p-2 rounded font-semibold ${answerToDisplay.quality === q ? selectedClass : buttonClass}`}>{q}</button>)}</div></div>
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-400 mb-2">Quality</h3>
+                    {/* UPDATED: Changed grid to 4 columns and updated button styling */}
+                    <div className="grid grid-cols-4 gap-1">
+                        {qualityOptions.map(q => <button key={q} onClick={() => handleNameSelect('quality', q)} disabled={isAnswered} className={`py-2 px-1 rounded font-semibold text-sm ${answerToDisplay.quality === q ? selectedClass : buttonClass}`}>{q}</button>)}
+                    </div>
+                </div>
             </>);
         }
         return (<div><h3 className="text-lg font-semibold text-gray-400 mb-2">Select {requiredNotes} Notes</h3><div className="grid grid-cols-6 gap-1">{NOTES_ENHARMONIC.map(note => <button key={note} onClick={() => handleNoteSelect(note)} disabled={isAnswered} className={`py-2 rounded font-semibold text-sm ${answerToDisplay.notes?.includes(note) ? selectedClass : buttonClass}`}>{note}</button>)}</div></div>);
@@ -217,7 +223,7 @@ const TriadQuiz = () => {
             </div>
         )
     };
-
+    
     const ControlsContent = (
         <div className="space-y-4">
             <div>
@@ -259,7 +265,6 @@ const TriadQuiz = () => {
                 <div className="h-20 mt-4 flex justify-center items-center">{isReviewing ? (<div className="flex items-center justify-center gap-4 w-full"><button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button><button onClick={() => setReviewIndex(null)} className="flex-grow max-w-xs bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button><button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button></div>) : !isAnswered ? (<button onClick={checkAnswer} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Submit</button>) : !autoAdvance && (<button onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>)}</div>
             </div>
             
-            {/* Desktop Panel */}
             <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
                 <div className={`${!isControlsOpen && 'hidden'}`}>
                     <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
@@ -267,7 +272,6 @@ const TriadQuiz = () => {
                 </div>
             </div>
 
-            {/* Mobile Overlay */}
             {isControlsOpen && (
                 <div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}>
                     <div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>

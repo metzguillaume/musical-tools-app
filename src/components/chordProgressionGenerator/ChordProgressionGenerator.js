@@ -1,14 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useTools } from '../../context/ToolsContext';
-import { getDiatonicChords, ROMAN_NUMERALS } from '../../utils/musicTheory';
-// UPDATED PATHS
+import React from 'react';
+import { useChordProgressionGenerator } from './useChordProgressionGenerator';
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
-
-const COMMON_PATTERNS = {
-    'Major': [['I', 'V', 'vi', 'IV'], ['I', 'IV', 'V', 'I'], ['vi', 'IV', 'I', 'V'], ['I', 'vi', 'ii', 'V']],
-    'Minor': [['i', 'VI', 'III', 'VII'], ['i', 'iv', 'v', 'i'], ['i', 'iv', 'VII', 'III'], ['ii°', 'v', 'i', 'i']]
-};
 
 const CollapsibleSection = ({ title, isOpen, onToggle, children }) => (
     <div className="border-t border-slate-600/80 pt-3 mt-3">
@@ -23,159 +16,28 @@ const CollapsibleSection = ({ title, isOpen, onToggle, children }) => (
     </div>
 );
 
-
 const ChordProgressionGenerator = () => {
-    const { setMetronomeSchedule, addLogEntry, bpm, countdownClicks, setCountdownClicks } = useTools();
-
-    const [rootNote, setRootNote] = useState('C');
-    const [keyType, setKeyType] = useState('Major');
-    const [numChords, setNumChords] = useState(4);
-    const [numProgressions, setNumProgressions] = useState(1);
-    const [chordComplexity, setChordComplexity] = useState('Triads');
-    const [useCommonPatterns, setUseCommonPatterns] = useState(true);
-    const [includeDiminished, setIncludeDiminished] = useState(false);
-    const [qualityFilter, setQualityFilter] = useState('all');
-
-    const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
-    const [autoGenerateInterval, setAutoGenerateInterval] = useState(numChords);
-
-    const [displayMode, setDisplayMode] = useState('both');
-    const [isControlsOpen, setIsControlsOpen] = useState(false);
-    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-    const [fontSize, setFontSize] = useState(3);
-
-    const [progressions, setProgressions] = useState([]);
-    
-    const [openSections, setOpenSections] = useState({
-        general: true,
-        options: false,
-        display: false,
-        automation: false
-    });
-
-    const toggleSection = (section) => {
-        setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-    };
-
-    const handleGenerate = useCallback(() => {
-        const apiComplexity = chordComplexity === 'Tetrads' ? '7ths' : 'Triads';
-        let diatonicChords = getDiatonicChords(rootNote, keyType, apiComplexity);
-        
-        let availableChords = [...diatonicChords];
-        if (!includeDiminished) {
-            availableChords = availableChords.filter(c => !c.quality.includes('Diminished'));
-        }
-        
-        if (qualityFilter === 'major') {
-            availableChords = availableChords.filter(c => {
-                const q = c.quality;
-                return q.includes('Major') || q.includes('Dominant') || q.includes('Augmented');
-            });
-        } else if (qualityFilter === 'minor') {
-            availableChords = availableChords.filter(c => {
-                const q = c.quality;
-                return q.includes('Minor') || q.includes('Half-Diminished');
-            });
-        }
-        
-        const canUseCommonPatterns = useCommonPatterns && qualityFilter === 'all';
-
-        const newProgressions = [];
-        for (let i = 0; i < numProgressions; i++) {
-            const singleProgression = [];
-            if (canUseCommonPatterns && availableChords.length > 0) {
-                const basePatterns = COMMON_PATTERNS[keyType === 'Major' ? 'Major' : 'Minor'] || COMMON_PATTERNS['Major'];
-                const basePattern = basePatterns[Math.floor(Math.random() * basePatterns.length)];
-                
-                const finalPattern = [];
-                for (let j = 0; j < numChords; j++) {
-                    finalPattern.push(basePattern[j % basePattern.length]);
-                }
-
-                for (const roman of finalPattern) {
-                    const numeralIndex = ROMAN_NUMERALS.indexOf(roman.toUpperCase());
-                    let chord = diatonicChords[numeralIndex];
-                    if (chord) {
-                         if (keyType !== 'Major' && !['i', 'ii°', 'v', 'vii°'].includes(roman)) {
-                            chord.roman = roman.toUpperCase();
-                        } else {
-                            chord.roman = roman;
-                        }
-                        singleProgression.push(chord);
-                    }
-                }
-            } else if (availableChords.length > 0) { 
-                let lastChord = null;
-                for (let j = 0; j < numChords; j++) {
-                    if (availableChords.length === 0) continue;
-                    let nextChord;
-                    do {
-                        nextChord = availableChords[Math.floor(Math.random() * availableChords.length)];
-                    } while (nextChord === lastChord && availableChords.length > 1);
-                    singleProgression.push(nextChord);
-                    lastChord = nextChord;
-                }
-            }
-            newProgressions.push(singleProgression);
-        }
-        
-        if (newProgressions.every(prog => prog.length === 0)) {
-            return;
-        }
-        setProgressions(newProgressions);
-    }, [rootNote, keyType, chordComplexity, numChords, numProgressions, useCommonPatterns, includeDiminished, qualityFilter]);
-    
-    const scheduledGenerate = useCallback(() => {
-        setTimeout(handleGenerate, 0);
-    }, [handleGenerate]);
-
-    useEffect(() => {
-        handleGenerate();
-    }, [handleGenerate]);
-
-    useEffect(() => {
-        setAutoGenerateInterval(numChords);
-    }, [numChords]);
-
-    useEffect(() => {
-        if (isAutoGenerateOn) {
-            setMetronomeSchedule({ callback: scheduledGenerate, interval: autoGenerateInterval });
-        } else {
-            setMetronomeSchedule(null);
-        }
-    }, [isAutoGenerateOn, autoGenerateInterval, scheduledGenerate, setMetronomeSchedule]);
-
-    useEffect(() => {
-        const handleKeyDown = (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                handleGenerate();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleGenerate]);
-
-    const handleLogSession = () => {
-        const remarks = prompt("Enter any remarks for this session:", `Practiced chord progressions in ${rootNote} ${keyType}.`);
-        if (remarks !== null) {
-            const newEntry = {
-                game: 'Chord Progression Generator',
-                bpm: bpm || 'N/A',
-                date: new Date().toLocaleDateString(),
-                remarks: remarks || "No remarks."
-            };
-            addLogEntry(newEntry);
-            alert("Session logged!");
-        }
-    };
-    
-    const handleQualityFilterChange = (filter) => {
-        setQualityFilter(filter);
-        if (filter !== 'all') {
-            setUseCommonPatterns(false);
-        }
-    };
+    const {
+        rootNote, setRootNote,
+        keyType, setKeyType,
+        numChords, setNumChords,
+        numProgressions, setNumProgressions,
+        chordComplexity, setChordComplexity,
+        useCommonPatterns, setUseCommonPatterns,
+        includeDiminished, setIncludeDiminished,
+        qualityFilter, handleQualityFilterChange,
+        isAutoGenerateOn, setIsAutoGenerateOn,
+        autoGenerateInterval, setAutoGenerateInterval,
+        displayMode, setDisplayMode,
+        isControlsOpen, setIsControlsOpen,
+        isInfoModalOpen, setIsInfoModalOpen,
+        fontSize, setFontSize,
+        progressions,
+        openSections, toggleSection,
+        countdownClicks, setCountdownClicks,
+        handleGenerate,
+        handleLogSession,
+    } = useChordProgressionGenerator();
 
     const rootNoteOptions = ['C', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'F#', 'B', 'E', 'A', 'D', 'G'];
     const keyTypeOptions = ['Major', 'Natural Minor', 'Harmonic Minor', 'Melodic Minor'];
@@ -241,7 +103,6 @@ const ChordProgressionGenerator = () => {
                         <button onClick={() => setDisplayMode('both')} className={`flex-1 rounded-md text-sm py-1 ${displayMode === 'both' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Both</button>
                     </div>
                 </div>
-                {/* REMOVED: Font slider is no longer in the controls panel */}
             </CollapsibleSection>
 
             <CollapsibleSection title="Automation" isOpen={openSections.automation} onToggle={() => toggleSection('automation')}>
@@ -297,13 +158,7 @@ const ChordProgressionGenerator = () => {
                         </div>
                         <div className="flex-1 flex justify-end items-center gap-2">
                             <button onClick={handleLogSession} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button>
-                            <button 
-                                onClick={() => setIsControlsOpen(p => !p)} 
-                                className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold"
-                                title="Toggle Controls"
-                            >
-                                Controls
-                            </button>
+                            <button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold" title="Toggle Controls">Controls</button>
                         </div>
                     </div>
                     <div className="flex flex-col items-center space-y-6 p-4 rounded-lg min-h-[10rem]">
@@ -311,12 +166,8 @@ const ChordProgressionGenerator = () => {
                             <div key={progIndex} className="flex flex-wrap justify-center gap-x-8 gap-y-6 items-center">
                                 {prog.map((chord, chordIndex) => (
                                     <div key={chordIndex} className="text-center shrink-0 flex flex-col items-center justify-center h-24 w-24">
-                                        {displayMode === 'chords' && (
-                                            <div style={{ fontSize: `${fontSize}rem` }} className="font-bold text-teal-300">{chord.name}</div>
-                                        )}
-                                        {displayMode === 'degrees' && (
-                                            <div style={{ fontSize: `${fontSize}rem` }} className="font-bold text-teal-300">{chord.roman}</div>
-                                        )}
+                                        {displayMode === 'chords' && (<div style={{ fontSize: `${fontSize}rem` }} className="font-bold text-teal-300">{chord.name}</div>)}
+                                        {displayMode === 'degrees' && (<div style={{ fontSize: `${fontSize}rem` }} className="font-bold text-teal-300">{chord.roman}</div>)}
                                         {displayMode === 'both' && (
                                             <>
                                                 <div style={{ fontSize: `${fontSize}rem`, lineHeight: '1.1' }} className="font-bold text-teal-300">{chord.name}</div>
@@ -330,7 +181,6 @@ const ChordProgressionGenerator = () => {
                     </div>
                 </div>
                 
-                {/* ADDED: Font slider is now in the main panel */}
                 <div className="flex items-center justify-center gap-4 my-6">
                     <label htmlFor="font-size" className="font-semibold text-lg">Font Size:</label>
                     <input type="range" id="font-size" min="1.5" max="5" step="0.1" value={fontSize} onChange={(e) => setFontSize(e.target.value)} className="w-1/2 max-w-xs" />

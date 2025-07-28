@@ -82,7 +82,8 @@ const FretboardDiagram = ({
                     key={`string-${i}`}
                     x1={0} y1={i * STRING_SPACING + STRING_SPACING / 2}
                     x2={VIEWBOX_WIDTH} y2={i * STRING_SPACING + STRING_SPACING / 2}
-                    stroke="hsl(0, 0%, 70%)"
+                    // UPDATED: String color is now a more saturated, distinct golden-brass
+                    stroke="hsl(45, 50%, 60%)"
                     strokeWidth={1 + i * 0.3}
                 />
             ))}
@@ -137,9 +138,6 @@ const FretboardDiagram = ({
                         key={`note-${note.string}-${note.fret}`}
                         transform={`translate(${x}, ${y})`}
                         onMouseDown={(e) => { e.stopPropagation(); if (onNoteMouseDown) onNoteMouseDown(note, e); }}
-                        /* --- FIX FOR DESELECTING NOTES --- */
-                        /* This onClick handler ensures that clicking a note bubble will always trigger the onBoardClick event, */
-                        /* which allows the quiz to correctly handle deselecting a note. This is a safe, non-breaking addition. */
                         onClick={(e) => {
                             e.stopPropagation();
                             if (onBoardClick) {
@@ -166,6 +164,7 @@ const FretboardDiagram = ({
         <div className="flex flex-col items-center w-full">
             {startFret > 0 && (<div className="text-gray-400 text-sm font-bold mb-1">Fret: {startFret}</div>)}
             <svg
+                id="fretboard-diagram-svg"
                 className="w-full max-w-4xl bg-slate-800 rounded-lg shadow-lg border border-slate-700"
                 viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
                 preserveAspectRatio="xMidYMid meet"

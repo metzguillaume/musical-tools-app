@@ -3,17 +3,15 @@ import { ToolsProvider, useTools } from './context/ToolsContext';
 
 // Import all the components
 import Welcome from './components/Welcome';
-import IntervalsQuiz from './components/IntervalsQuiz';
-import NameTheIntervalQuiz from './components/NameTheIntervalQuiz';
+import IntervalsQuiz from './components/intervalsQuiz/IntervalsQuiz';
 import NoteGenerator from './components/NoteGenerator';
-import ChordTrainer from './components/ChordTrainer';
+import ChordTrainer from './components/chordTrainer/ChordTrainer';
 import GlobalTools from './components/GlobalTools';
-import IntervalFretboardQuiz from './components/IntervalFretboardQuiz';
+import IntervalFretboardQuiz from './components/intervalFretboardQuiz/IntervalFretboardQuiz';
 import DiagramMaker from './components/DiagramMaker';
 import ChordProgressionGenerator from './components/ChordProgressionGenerator';
 import IntervalGenerator from './components/IntervalGenerator';
-import TriadQuiz from './components/TriadQuiz';
-// ADDITION 1: Import the new CAGEDSystemQuiz component from its new directory
+import TriadQuiz from './components/triadQuiz/TriadQuiz';
 import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
 
 
@@ -36,7 +34,6 @@ const AppContent = () => {
     {
       name: 'Music Theory',
       tools: [
-        { id: 'name-the-interval-quiz', name: 'Name The Interval' },
         { id: 'intervals-quiz', name: 'Interval Practice' },
         { id: 'triad-quiz', name: 'Triad & Tetrads Quiz' },
         { id: 'chord-trainer', name: 'Chord Trainer' },
@@ -46,7 +43,6 @@ const AppContent = () => {
       name: 'Practical Exercises',
       tools: [
         { id: 'interval-fretboard-quiz', name: 'Fretboard Intervals' },
-        // ADDITION 2: Add the new quiz to the "Practical Exercises" category
         { id: 'caged-system-quiz', name: 'CAGED System Quiz' },
       ],
     },
@@ -123,14 +119,12 @@ const AppContent = () => {
           {activeTab === 'welcome' && <Welcome />}
           {activeTab === 'chord-trainer' && <ChordTrainer />}
           {activeTab === 'intervals-quiz' && <IntervalsQuiz />}
-          {activeTab === 'name-the-interval-quiz' && <NameTheIntervalQuiz />}
           {activeTab === 'note-generator' && <NoteGenerator />}
           {activeTab === 'interval-fretboard-quiz' && <IntervalFretboardQuiz />}
           {activeTab === 'diagram-maker' && <DiagramMaker />}
           {activeTab === 'chord-progression-generator' && <ChordProgressionGenerator />}
           {activeTab === 'interval-generator' && <IntervalGenerator />}
           {activeTab === 'triad-quiz' && <TriadQuiz />}
-          {/* ADDITION 3: Add the line to render the new component */}
           {activeTab === 'caged-system-quiz' && <CAGEDSystemQuiz />}
       </main>
 

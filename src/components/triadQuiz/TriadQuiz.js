@@ -1,10 +1,10 @@
-// src/components/triadQuiz/TriadQuiz.js
 import React, { useState, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
-// UPDATED: Corrected import paths
-import InfoModal from '../InfoModal';
-import InfoButton from '../InfoButton';
+// UPDATED PATHS
+import InfoModal from '../common/InfoModal';
+import InfoButton from '../common/InfoButton';
 import { useTriadQuiz, NOTES_ENHARMONIC, NOTE_LETTERS, ACCIDENTALS } from './useTriadQuiz';
+
 
 const TriadQuiz = () => {
     const { addLogEntry } = useTools();

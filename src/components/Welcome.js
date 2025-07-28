@@ -1,5 +1,7 @@
+
+
 import React from 'react';
-import SectionHeader from './SectionHeader';
+import SectionHeader from './common/SectionHeader'; // UPDATED PATH
 
 const Welcome = () => {
     return (

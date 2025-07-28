@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import { useChordTrainer } from './useChordTrainer';
-// UPDATED: Corrected import paths
-import InfoModal from '../InfoModal';
-import InfoButton from '../InfoButton';
+import InfoModal from '../common/InfoModal'; // UPDATED PATH
+import InfoButton from '../common/InfoButton'; // UPDATED PATH
 
 // --- UI Constants ---
 const keysInFifthsOrder = [

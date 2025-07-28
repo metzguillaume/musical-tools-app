@@ -82,7 +82,7 @@ export const ToolsProvider = ({ children }) => {
     const [isCountdownReady, setIsCountdownReady] = useState(false);
     const metronomePlayer = useRef(null);
     const countdownPlayers = useRef([]);
-    const transportEventRef = useRef({ id: null, phase: 'main', phaseBeat: 0 });
+    const transportEventRef = useRef({ id: null, beatCounter: 0 });
     const scheduledTaskRef = useRef(null); 
 
     const [droneNote, setDroneNote] = useState('C');
@@ -103,6 +103,9 @@ export const ToolsProvider = ({ children }) => {
     const stopwatchIntervalRef = useRef(null);
 
     const intervalSynth = useRef(null);
+    // NEW: Ref and state for fretboard audio
+    const fretboardPlayers = useRef(null);
+    const [areFretboardSoundsReady, setAreFretboardSoundsReady] = useState(false);
 
     useEffect(() => {
         let loadedDronesCount = 0;
@@ -150,12 +153,26 @@ export const ToolsProvider = ({ children }) => {
         });
         dronePlayers.current = players;
 
+        // NEW: Logic to load all 78 fretboard sounds
+        const fretboardSoundUrls = {};
+        for (let s = 1; s <= 6; s++) {
+            for (let f = 0; f <= 12; f++) {
+                fretboardSoundUrls[`${s}-${f}`] = `${process.env.PUBLIC_URL}/sounds/fretboard/${s}-${f}.mp3`;
+            }
+        }
+        fretboardPlayers.current = new Tone.Players(fretboardSoundUrls, () => {
+            setAreFretboardSoundsReady(true);
+            console.log("Fretboard sounds loaded.");
+        }).toDestination();
+
+
         return () => {
             metronomePlayer.current?.dispose();
             timerAlarm.current?.dispose();
             countdownPlayers.current.forEach(player => player.dispose());
             Object.values(dronePlayers.current).forEach(player => player.dispose());
             intervalSynth.current?.dispose();
+            fretboardPlayers.current?.dispose();
         };
     }, []);
 
@@ -187,13 +204,11 @@ export const ToolsProvider = ({ children }) => {
             
             const positionInCycle = transportEventRef.current.beatCounter % cycleLength;
 
-            // THIS IS THE FIX: Generate new content on the first beat of the cycle ("beat 1").
             if (positionInCycle === 0) {
                 task.callback();
             }
 
             if (positionInCycle < countIn) {
-                // Countdown phase
                 const countdownNumber = positionInCycle;
                 if (countdownNumber < countdownPlayers.current.length && countdownPlayers.current[countdownNumber]?.loaded) {
                     countdownPlayers.current[countdownNumber].start(time);
@@ -201,7 +216,6 @@ export const ToolsProvider = ({ children }) => {
                     metronomePlayer.current.start(time);
                 }
             } else {
-                // Main interval phase
                 metronomePlayer.current.start(time);
             }
             
@@ -254,7 +268,6 @@ export const ToolsProvider = ({ children }) => {
         }
     }, [bpm, isMetronomePlaying]);
 
-    // ... (rest of the file is unchanged) ...
     const toggleDrone = useCallback(async () => {
         await unlockAudio();
         if (!areDronesReady) return;
@@ -337,6 +350,25 @@ export const ToolsProvider = ({ children }) => {
 
     }, [unlockAudio]);
 
+    // NEW: Function to play an interval sequence on the fretboard
+    const playFretboardNotes = useCallback(async (notes) => {
+        if (!areFretboardSoundsReady || !notes || notes.length < 2) return;
+        await unlockAudio();
+
+        const rootPlayer = fretboardPlayers.current.player(`${notes[0].string}-${notes[0].fret}`);
+        const targetPlayer = fretboardPlayers.current.player(`${notes[1].string}-${notes[1].fret}`);
+        
+        const now = Tone.now();
+        rootPlayer.start(now);
+        targetPlayer.start(now + 0.5); // Play the second note half a second later
+        
+        // Play them together after a delay
+        rootPlayer.start(now + 1.2);
+        targetPlayer.start(now + 1.2);
+
+    }, [areFretboardSoundsReady, unlockAudio]);
+
+
     const value = {
         unlockAudio, activeTool, toggleActiveTool,
         bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady, setMetronomeSchedule,
@@ -346,6 +378,9 @@ export const ToolsProvider = ({ children }) => {
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,
         practiceLog, addLogEntry, clearLog, importLog,
         playInterval,
+        // NEW: Add the new function and ready state to the context
+        playFretboardNotes,
+        areFretboardSoundsReady,
     };
 
     return (

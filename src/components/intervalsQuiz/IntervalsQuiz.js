@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTools } from '../../context/ToolsContext';
-import InfoModal from '../InfoModal';
-import InfoButton from '../InfoButton';
+import InfoModal from '../common/InfoModal'; // UPDATED PATH
+import InfoButton from '../common/InfoButton'; // UPDATED PATH
 import { useIntervalsQuiz, ACCIDENTALS, NOTE_LETTERS, intervalData } from './useIntervalsQuiz';
 
 // Reusable UI components

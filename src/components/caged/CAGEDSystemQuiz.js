@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useTools } from '../../context/ToolsContext';
-import InfoModal from '../InfoModal';
+import InfoModal from '../common/InfoModal'; // UPDATED PATH
 import { CagedQuizUI, ControlsContent } from './CagedQuizUI';
 import { useCagedQuiz } from './useCagedQuiz';
 

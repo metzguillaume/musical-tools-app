@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-import FretboardDiagram from '../FretboardDiagram';
-import InfoButton from '../InfoButton';
+import FretboardDiagram from '../common/FretboardDiagram'; // UPDATED PATH
+import InfoButton from '../common/InfoButton'; // UPDATED PATH
 import { ROOT_NOTE_OPTIONS, SHAPE_ORDER } from './cagedConstants.js';
 
 const ShowDegreesToggle = ({ isChecked, onChange }) => (

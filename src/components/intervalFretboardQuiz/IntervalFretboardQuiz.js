@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
 import { useTools } from '../../context/ToolsContext';
-import FretboardDiagram from '../FretboardDiagram';
-import InfoModal from '../InfoModal';
-import InfoButton from '../InfoButton';
+// UPDATED: Corrected import paths
+import FretboardDiagram from '../common/FretboardDiagram';
+import InfoModal from '../common/InfoModal';
+import InfoButton from '../common/InfoButton';
 import { useIntervalFretboardQuiz, quizData } from './useIntervalFretboardQuiz';
 
 const IntervalFretboardQuiz = () => {
     const { addLogEntry } = useTools();
     const [autoAdvance, setAutoAdvance] = useState(true);
+    const [playAudio, setPlayAudio] = useState(true);
+    const [labelType, setLabelType] = useState('name');
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
     const {
         score, currentQuestion, feedback, isAnswered, selected, setSelected, history, reviewIndex, setReviewIndex,
-        startNewRound, handleReviewNav, startReview
-    } = useIntervalFretboardQuiz(autoAdvance);
+        startNewRound, handleReviewNav, startReview, replayAudioForHistoryItem
+    } = useIntervalFretboardQuiz(autoAdvance, playAudio);
     
     const isReviewing = reviewIndex !== null;
 
@@ -41,6 +44,8 @@ const IntervalFretboardQuiz = () => {
                 <p>A diagram of a guitar fretboard will be displayed with two notes.</p>
                 <p>The green note marked 'R' is the **root note**.</p>
                 <p>Your goal is to identify the interval between the root note and the second note by its shape.</p>
+                <p className="mt-2">Enable the <b>Play Audio</b> toggle to hear the interval after you answer, reinforcing your ear training.</p>
+                <p className="mt-2">Use the <b>Note / Degree</b> toggle to choose how the note labels are displayed after you answer.</p>
             </InfoModal>
 
             <div className="flex justify-between items-center mb-4">
@@ -58,7 +63,7 @@ const IntervalFretboardQuiz = () => {
                 <span className="font-semibold">Score: {score} / {history.length}</span>
             </div>
             
-            <FretboardDiagram notesToDisplay={itemToDisplay.question.notes} showLabels={isReviewing || isAnswered} startFret={0} fretCount={12} />
+            <FretboardDiagram notesToDisplay={itemToDisplay.question.notes} showLabels={isReviewing || isAnswered} startFret={0} fretCount={12} labelType={labelType} />
             
             <div className={`text-lg font-bold my-4 min-h-[28px] ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
                 {isReviewing ? `The correct answer was ${itemToDisplay.question.answer.number === 'Tritone' ? 'a Tritone' : `a ${itemToDisplay.question.answer.quality} ${itemToDisplay.question.answer.number}`}.` : (feedback.message || <>&nbsp;</>)}
@@ -89,17 +94,33 @@ const IntervalFretboardQuiz = () => {
                 {isReviewing ? (
                     <div className='flex items-center justify-center gap-4 w-full'>
                         <button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 p-3 rounded-lg">Prev</button>
-                        <button onClick={() => setReviewIndex(null)} className="flex-grow max-w-xs bg-purple-600 p-3 rounded-lg text-xl">Return to Quiz</button>
+                        <div className="flex flex-col gap-2 flex-grow max-w-xs">
+                           <button onClick={() => setReviewIndex(null)} className="bg-purple-600 p-3 rounded-lg text-xl">Return to Quiz</button>
+                           <button onClick={() => replayAudioForHistoryItem(reviewIndex)} className="bg-sky-600 text-sm p-2 rounded-lg">Replay Audio</button>
+                        </div>
                         <button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 p-3 rounded-lg">Next</button>
                     </div>
                 ) : isAnswered && !autoAdvance && (
                     <button onClick={startNewRound} className="bg-blue-600 p-3 rounded-lg text-xl animate-pulse">Next Question</button>
                 )}
             </div>
-            <label className="flex items-center justify-center gap-2 cursor-pointer mt-4"><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div><span className="ml-2 font-semibold">Auto-Advance</span></label>
+
+            <div className="w-full border-t border-slate-600 pt-4 mt-6 flex flex-wrap justify-center items-center gap-6">
+                <div className="flex bg-slate-700 rounded-md p-1">
+                    <button onClick={() => setLabelType('name')} className={`px-3 py-1 text-sm rounded-md ${labelType === 'name' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Note Name</button>
+                    <button onClick={() => setLabelType('degree')} className={`px-3 py-1 text-sm rounded-md ${labelType === 'degree' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Scale Degree</button>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer font-semibold">
+                    <span>Play Audio</span>
+                    <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={playAudio} onChange={() => setPlayAudio(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer font-semibold">
+                    <span>Auto-Advance</span>
+                    <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
+                </label>
+            </div>
         </div>
     );
 };
 
-// ADDED: The missing export statement
 export default IntervalFretboardQuiz;

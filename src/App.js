@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { ToolsProvider, useTools } from './context/ToolsContext';
 
-// Import all the components
+// UPDATED PATHS for all components in their new folders
 import Welcome from './components/Welcome';
 import IntervalsQuiz from './components/intervalsQuiz/IntervalsQuiz';
-import NoteGenerator from './components/NoteGenerator';
+import NoteGenerator from './components/noteGenerator/NoteGenerator';
 import ChordTrainer from './components/chordTrainer/ChordTrainer';
-import GlobalTools from './components/GlobalTools';
+import GlobalTools from './components/globalTools/GlobalTools';
 import IntervalFretboardQuiz from './components/intervalFretboardQuiz/IntervalFretboardQuiz';
-import DiagramMaker from './components/DiagramMaker';
-import ChordProgressionGenerator from './components/ChordProgressionGenerator';
-import IntervalGenerator from './components/IntervalGenerator';
+import DiagramMaker from './components/diagramMaker/DiagramMaker';
+import ChordProgressionGenerator from './components/chordProgressionGenerator/ChordProgressionGenerator';
+import IntervalGenerator from './components/intervalGenerator/IntervalGenerator';
 import TriadQuiz from './components/triadQuiz/TriadQuiz';
 import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
 

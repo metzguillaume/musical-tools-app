@@ -17,7 +17,6 @@ const generateFretboardModel = () => {
         { openNote: 'E', midi: 64 }, // String 1 (High E)
     ];
     
-    // UPDATED: Extended the fret count to 24 to cover the entire fretboard.
     const fretCount = 24; 
 
     const fretboard = tuning.map(openString => {
@@ -35,3 +34,15 @@ const generateFretboardModel = () => {
 
 // We generate the model once and export it directly for other components to use.
 export const fretboardModel = generateFretboardModel();
+
+// NEW: Helper function to calculate the degree of a note relative to a root
+const SEMITONE_TO_DEGREE = {
+    0: '1', 1: 'b2', 2: '2', 3: 'b3', 4: '3', 5: '4',
+    6: '#4/b5', 7: '5', 8: 'b6', 9: '6', 10: 'b7', 11: '7'
+};
+
+export const getDegree = (rootMidi, targetMidi) => {
+    const interval = (targetMidi - rootMidi) % 12;
+    const positiveInterval = interval < 0 ? interval + 12 : interval;
+    return SEMITONE_TO_DEGREE[positiveInterval] || '?';
+};

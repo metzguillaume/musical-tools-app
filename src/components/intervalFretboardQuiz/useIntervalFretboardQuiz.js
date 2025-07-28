@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fretboardModel } from '../../utils/fretboardUtils.js';
+import { useTools } from '../../context/ToolsContext';
+import { fretboardModel, getDegree } from '../../utils/fretboardUtils.js';
 
 export const quizData = {
     qualities: ['Diminished', 'Minor', 'Perfect', 'Major', 'Augmented'],
@@ -15,7 +16,9 @@ export const quizData = {
     ]
 };
 
-export const useIntervalFretboardQuiz = (autoAdvance) => {
+export const useIntervalFretboardQuiz = (autoAdvance, playAudio) => {
+    const { playFretboardNotes } = useTools();
+
     const [score, setScore] =useState(0);
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [feedback, setFeedback] = useState({ message: '', type: '' });
@@ -45,15 +48,29 @@ export const useIntervalFretboardQuiz = (autoAdvance) => {
                     fretboardModel[targetStringIndex].forEach((noteOnString, fret) => {
                         const isInRange = Math.abs(fret - rootFret) <= 4;
                         if (noteOnString.midi === targetMidi && fret < 12 && isInRange && (targetStringIndex !== rootStringIndex || fret !== rootFret)) {
-                            possibleTargets.push({ string: 6 - targetStringIndex, fret: fret, label: noteOnString.note });
+                            possibleTargets.push({ string: 6 - targetStringIndex, fret: fret, label: noteOnString.note, midi: noteOnString.midi });
                         }
                     });
                 }
             });
             if (possibleTargets.length > 0) {
                 const targetNote = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
+                const rootNoteForQuestion = { 
+                    string: 6 - rootStringIndex, 
+                    fret: rootFret, 
+                    label: rootNote.note, 
+                    isRoot: true, 
+                    midi: rootNote.midi,
+                    degree: '1' // Root is always '1'
+                };
+                // ADDED: Calculate degree for the target note
+                const targetNoteForQuestion = {
+                    ...targetNote,
+                    degree: getDegree(rootNote.midi, targetNote.midi)
+                };
+
                 newQuestion = {
-                    notes: [{ string: 6 - rootStringIndex, fret: rootFret, label: rootNote.note, isRoot: true }, targetNote],
+                    notes: [rootNoteForQuestion, targetNoteForQuestion],
                     answer: interval.name
                 };
             }
@@ -94,10 +111,14 @@ export const useIntervalFretboardQuiz = (autoAdvance) => {
         setHistory(prev => [...prev, { question: currentQuestion, userAnswer: selected, wasCorrect: isCorrect }]);
         setIsAnswered(true);
 
+        if (playAudio) {
+            playFretboardNotes(currentQuestion.notes);
+        }
+
         if (autoAdvance) {
             timeoutRef.current = setTimeout(startNewRound, 2000);
         }
-    }, [isAnswered, selected, currentQuestion, autoAdvance, startNewRound]);
+    }, [isAnswered, selected, currentQuestion, autoAdvance, startNewRound, playAudio, playFretboardNotes]);
 
     useEffect(() => {
         if (selected.quality && selected.number && !isAnswered) {
@@ -118,9 +139,17 @@ export const useIntervalFretboardQuiz = (autoAdvance) => {
             setReviewIndex(history.length - 1);
         }
     };
+
+    // NEW: Function to replay audio from history
+    const replayAudioForHistoryItem = (index) => {
+        const historyItem = history[index];
+        if (historyItem && historyItem.question.notes) {
+            playFretboardNotes(historyItem.question.notes);
+        }
+    };
     
     return {
         score, currentQuestion, feedback, isAnswered, selected, setSelected, history, reviewIndex, setReviewIndex,
-        checkAnswer, startNewRound, handleReviewNav, startReview
+        checkAnswer, startNewRound, handleReviewNav, startReview, replayAudioForHistoryItem
     };
-}; 
+};

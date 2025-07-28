@@ -5,7 +5,7 @@ import { ROOT_NOTE_OPTIONS, SHAPE_ORDER } from './cagedConstants.js';
 
 const ShowDegreesToggle = ({ isChecked, onChange }) => (
     <label className="flex items-center justify-center gap-2 cursor-pointer p-2 bg-slate-700 rounded-md">
-        <span className="font-semibold text-gray-300 text-sm">Show Degrees</span>
+        <span className="font-semibold text-gray-300 text-sm">Show Scale Degrees</span>
         <div className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={isChecked} onChange={onChange} className="sr-only peer" />
             <div className="w-9 h-5 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
@@ -46,6 +46,22 @@ export const ControlsContent = ({ quizMode, setQuizMode, settings, handleSetting
                     </label>
                 ))}
              </div>
+        </div>
+        {/* UPDATED SECTION */}
+        <div>
+             <h3 className="font-semibold text-lg text-teal-300 mb-2">Display Options</h3>
+            <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
+                <span className="font-semibold">Show Scale Degrees</span>
+                <div className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        checked={settings.showDegrees} 
+                        onChange={() => handleSettingToggle('display', 'showDegrees')} 
+                        className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </div>
+            </label>
         </div>
     </div>
 );
@@ -147,7 +163,7 @@ export const CagedQuizUI = ({
                 <FretboardDiagram 
                     notesToDisplay={notesForDiagram} 
                     onBoardClick={handleFretClick}
-                    showLabels={isAnswered || isReviewing} 
+                    showLabels={settings.showDegrees || isAnswered || isReviewing} 
                 />
             </div>
              <div className={`my-4 min-h-[60px] flex flex-col justify-center`}>

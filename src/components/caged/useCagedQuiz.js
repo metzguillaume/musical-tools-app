@@ -52,12 +52,11 @@ export const useCagedQuiz = (quizMode, activeShapes) => {
         }
 
         setCurrentQuestion(question);
-        if(!isReviewing) setTotalAsked(prev => prev + 1);
         setIsAnswered(false);
         setFeedback({ message: '', type: '' });
         setUserAnswer(currentModeForQuestion === 'identify' ? { root: null, quality: null, shape: null } : { notes: [] });
 
-    }, [activeShapes, quizMode, isReviewing]);
+    }, [activeShapes, quizMode]);
 
      useEffect(() => {
         setScore(0);
@@ -91,6 +90,8 @@ export const useCagedQuiz = (quizMode, activeShapes) => {
         } else {
             setFeedback({ message: `Incorrect! It was ${correctAnswerText}.`, type: 'incorrect' });
         }
+        
+        setTotalAsked(prev => prev + 1);
         
         setHistory(prev => [...prev, { question: currentQuestion, userAnswer, wasCorrect: isCorrect }]);
         setIsAnswered(true);

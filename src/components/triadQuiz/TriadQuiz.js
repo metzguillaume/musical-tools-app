@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
-// UPDATED PATHS
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
-import { useTriadQuiz, NOTES_ENHARMONIC, NOTE_LETTERS, ACCIDENTALS } from './useTriadQuiz';
+import { useTriadQuiz, NOTE_LETTERS, ACCIDENTALS } from './useTriadQuiz';
 
 
 const TriadQuiz = () => {
@@ -39,7 +38,7 @@ const TriadQuiz = () => {
         const remarks = prompt("Enter any remarks for this session:", `Score: ${score} / ${totalAsked}`);
         if (remarks !== null) { addLogEntry({ game: 'Triad & Tetrads Quiz', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); }
     };
-    
+        
     if (!currentQuestion && reviewIndex === null) { return <div>Loading...</div>; }
 
     const item = isReviewing ? history[reviewIndex] : { question: currentQuestion, userAnswer: userAnswer };
@@ -71,15 +70,51 @@ const TriadQuiz = () => {
         if (isReviewing) return null;
         if (questionToDisplay.mode === 'nameTheTriad') {
             return (<>
-                <div><h3 className="text-lg font-semibold text-gray-400 mb-2">Root Note</h3><div className="grid grid-cols-7 gap-1">{NOTE_LETTERS.map(note => <button key={note} onClick={() => handleNameSelect('noteLetter', note)} disabled={isAnswered} className={`py-2 rounded font-semibold ${answerToDisplay.noteLetter === note ? selectedClass : buttonClass}`}>{note}</button>)}</div></div>
-                <div><h3 className="text-lg font-semibold text-gray-400 mb-2">Accidental</h3><div className="grid grid-cols-3 gap-1">{ACCIDENTALS.map(acc => <button key={acc.id} onClick={() => handleNameSelect('accidental', acc.id === 'natural' ? '' : acc.id)} disabled={isAnswered} className={`py-2 rounded font-semibold text-xl ${answerToDisplay.accidental === (acc.id === 'natural' ? '' : acc.id) ? selectedClass : buttonClass}`}>{acc.display}</button>)}</div></div>
+                <div><h3 className="text-lg font-semibold text-gray-400 mb-2">Root Note</h3><div className="grid grid-cols-7 gap-1">{NOTE_LETTERS.map(note => <button key={note} onClick={() => handleNameSelect('noteLetter', note)} disabled={isAnswered} className={`py-3 rounded font-semibold text-lg ${answerToDisplay.noteLetter === note ? selectedClass : buttonClass}`}>{note}</button>)}</div></div>
+                <div><h3 className="text-lg font-semibold text-gray-400 mb-2">Accidental</h3><div className="grid grid-cols-3 gap-1">{ACCIDENTALS.map(acc => <button key={acc.id} onClick={() => handleNameSelect('accidental', acc.id === 'natural' ? '' : acc.id)} disabled={isAnswered} className={`py-3 rounded font-semibold text-2xl ${answerToDisplay.accidental === (acc.id === 'natural' ? '' : acc.id) ? selectedClass : buttonClass}`}>{acc.display || '♮'}</button>)}</div></div>
                 <div>
                     <h3 className="text-lg font-semibold text-gray-400 mb-2">Quality</h3>
-                    <div className="grid grid-cols-4 gap-1">{qualityOptions.map(q => <button key={q} onClick={() => handleNameSelect('quality', q)} disabled={isAnswered} className={`py-2 px-1 rounded font-semibold text-sm ${answerToDisplay.quality === q ? selectedClass : buttonClass}`}>{q}</button>)}</div>
+                    <div className="grid grid-cols-4 gap-1">{qualityOptions.map(q => <button key={q} onClick={() => handleNameSelect('quality', q)} disabled={isAnswered} className={`py-3 px-1 rounded font-semibold ${answerToDisplay.quality === q ? selectedClass : buttonClass}`}>{q}</button>)}</div>
                 </div>
             </>);
         }
-        return (<div><h3 className="text-lg font-semibold text-gray-400 mb-2">Select {requiredNotes} Notes</h3><div className="grid grid-cols-6 gap-1">{NOTES_ENHARMONIC.map(note => <button key={note} onClick={() => handleNoteSelect(note)} disabled={isAnswered} className={`py-2 rounded font-semibold text-sm ${answerToDisplay.notes?.includes(note) ? selectedClass : buttonClass}`}>{note}</button>)}</div></div>);
+        
+        const noteColumns = [
+            { letter: 'A', notes: ['A', 'A#', 'Ab'] },
+            { letter: 'B', notes: ['B', null, 'Bb'] },
+            { letter: 'C', notes: ['C', 'C#', null] },
+            { letter: 'D', notes: ['D', 'D#', 'Db'] },
+            { letter: 'E', notes: ['E', null, 'Eb'] },
+            { letter: 'F', notes: ['F', 'F#', null] },
+            { letter: 'G', notes: ['G', 'G#', 'Gb'] },
+        ];
+
+        return (
+            <div>
+                <h3 className="text-lg font-semibold text-gray-400 mb-2">Select {requiredNotes} Notes</h3>
+                <div className="flex gap-x-1 md:gap-x-2">
+                    {noteColumns.map(column => (
+                        <div key={column.letter} className="flex flex-1 flex-col gap-y-1">
+                            {column.notes.map((note, index) => {
+                                if (note === null) {
+                                    return <div key={index} className="h-14 w-full" />;
+                                }
+                                return (
+                                    <button
+                                        key={note}
+                                        onClick={() => handleNoteSelect(note)}
+                                        disabled={isAnswered}
+                                        className={`h-14 w-full flex items-center justify-center rounded font-semibold text-lg transition-colors ${answerToDisplay.notes?.includes(note) ? selectedClass : buttonClass}`}
+                                    >
+                                        {note}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
     };
 
     const renderReviewFeedback = () => {
@@ -107,15 +142,21 @@ const TriadQuiz = () => {
             <div>
                 <h3 className="font-semibold text-lg text-teal-300 mb-2">Quiz Mode</h3>
                 <div className="space-y-2">
-                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheTriad' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheTriad" checked={quizMode === 'nameTheTriad'} onChange={(e) => setQuizMode(e.target.value)} className="mr-3" />Name the Chord</label>
-                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheNotes' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheNotes" checked={quizMode === 'nameTheNotes'} onChange={(e) => setQuizMode(e.target.value)} className="mr-3" />Name the Notes</label>
-                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'mixed' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="mixed" checked={quizMode === 'mixed'} onChange={(e) => setQuizMode(e.target.value)} className="mr-3" />Mixed Quiz</label>
+                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheTriad' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheTriad" checked={quizMode === 'nameTheTriad'} onChange={(e) => setQuizMode(e.target.value)} className="sr-only" />Name the Chord</label>
+                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheNotes' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheNotes" checked={quizMode === 'nameTheNotes'} onChange={(e) => setQuizMode(e.target.value)} className="sr-only" />Name the Notes</label>
+                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'mixed' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="mixed" checked={quizMode === 'mixed'} onChange={(e) => setQuizMode(e.target.value)} className="sr-only" />Mixed Quiz</label>
                 </div>
             </div>
             <div>
                 <h3 className="font-semibold text-lg text-teal-300 mb-2">Options</h3>
-                <label className="flex items-center gap-2 cursor-pointer p-2"><input type="checkbox" checked={include7ths} onChange={() => setInclude7ths(p => !p)} className="h-5 w-5" />Include 7th Chords</label>
-                <label className="flex items-center gap-2 cursor-pointer p-2"><input type="checkbox" checked={includeInversions} onChange={() => setIncludeInversions(p => !p)} className="h-5 w-5" />Include Inversions</label>
+                <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
+                    <span className="font-semibold">Include 7th Chords</span>
+                    <div className="relative inline-flex items-center"><input type="checkbox" checked={include7ths} onChange={() => setInclude7ths(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div></div>
+                </label>
+                 <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md mt-2">
+                    <span className="font-semibold">Include Inversions</span>
+                    <div className="relative inline-flex items-center"><input type="checkbox" checked={includeInversions} onChange={() => setIncludeInversions(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div></div>
+                </label>
             </div>
         </div>
     );
@@ -137,8 +178,11 @@ const TriadQuiz = () => {
                     </div>
                 </div>
                 <div className="grid grid-cols-3 items-center mb-4"><span className="text-xl justify-self-start">Score: {score}/{totalAsked}</span><div className="justify-self-center">{history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50">Review History</button>}</div><label className="flex items-center gap-2 cursor-pointer font-semibold justify-self-end"><span>Auto-Advance</span><div className="relative"><input type="checkbox" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label></div>
-                <div className="min-h-[6rem] p-4 bg-slate-900/50 rounded-lg flex justify-center items-center mb-4">{currentQuestion && renderQuestion()}</div>
-                <div className={`my-4 min-h-[60px] flex flex-col justify-center ${isReviewing ? '' : (feedback.type === 'correct' ? 'text-green-400' : 'text-red-400')}`}>{isReviewing ? renderReviewFeedback() : <p className="text-lg font-bold text-center">{feedback.message || <>&nbsp;</>}</p>}</div>
+                
+                {/* UPDATED: Vertical margin reduced on mobile */}
+                <div className="min-h-[6rem] p-4 bg-slate-900/50 rounded-lg flex justify-center items-center mb-2 md:mb-4">{currentQuestion && renderQuestion()}</div>
+                <div className={`my-2 md:my-4 min-h-[52px] flex flex-col justify-center ${isReviewing ? '' : (feedback.type === 'correct' ? 'text-green-400' : 'text-red-400')}`}>{isReviewing ? renderReviewFeedback() : <p className="text-lg font-bold text-center">{feedback.message || <>&nbsp;</>}</p>}</div>
+                
                 <div className="space-y-4">{currentQuestion && renderAnswerArea()}</div>
                 <div className="h-20 mt-4 flex justify-center items-center">{isReviewing ? (<div className="flex items-center justify-center gap-4 w-full"><button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button><button onClick={() => setReviewIndex(null)} className="flex-grow max-w-xs bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button><button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button></div>) : !isAnswered ? (<button onClick={checkAnswer} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Submit</button>) : !autoAdvance && (<button onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>)}</div>
             </div>

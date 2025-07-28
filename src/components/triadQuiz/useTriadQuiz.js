@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 // --- Data & Helpers ---
-// Note: These helpers are moved from the original component
 const QUIZ_ROOT_NOTES = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
 export const NOTES_ENHARMONIC = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
 export const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -95,7 +94,6 @@ export const useTriadQuiz = (quizMode, include7ths, includeInversions, autoAdvan
         if (!question) { console.error("Could not generate an answerable question."); return; }
 
         setCurrentQuestion(question);
-        setTotalAsked(prev => prev + 1);
         setIsAnswered(false);
         setFeedback({ message: '', type: '' });
         setUserAnswer({accidental: ''});
@@ -119,6 +117,7 @@ export const useTriadQuiz = (quizMode, include7ths, includeInversions, autoAdvan
         if (isCorrect) { setScore(s => s + 1); setFeedback({ message: 'Correct!', type: 'correct' });
         } else { setFeedback({ message: `Incorrect! The answer was ${correctAnswerText}.`, type: 'incorrect' }); }
         
+        setTotalAsked(prev => prev + 1);
         setHistory(prev => [...prev, { question: currentQuestion, userAnswer, wasCorrect: isCorrect }]);
         setIsAnswered(true);
         if (autoAdvance) { setTimeout(generateNewQuestion, 2000); }

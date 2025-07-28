@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import { useChordTrainer } from './useChordTrainer';
-import InfoModal from '../common/InfoModal'; // UPDATED PATH
-import InfoButton from '../common/InfoButton'; // UPDATED PATH
+import InfoModal from '../common/InfoModal';
+import InfoButton from '../common/InfoButton';
 
 // --- UI Constants ---
 const keysInFifthsOrder = [
     ['C', 'Am'], ['G', 'Em'], ['D', 'Bm'], ['A', 'F#m'], ['E', 'C#m'], ['B', 'G#m'],
     ['F#', 'D#m'], ['Db', 'Bbm'], ['Ab', 'Fm'], ['Eb', 'Cm'], ['Bb', 'Gm'], ['F', 'Dm']
 ];
-// ADDED: Missing constants for key sorting
 const keysSharpOrder = ['C', 'G', 'D', 'A', 'E', 'B', 'F#'];
 const keysFlatOrder = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'];
 const extraEnharmonicKeys = ['Gb'];
@@ -36,6 +35,32 @@ const ChordDisplay = ({ chord }) => {
 };
 
 // --- Sub-Components ---
+const WeightSliders = ({ weights, onWeightChange, use7thChords }) => {
+    const degreeNames = use7thChords ? scaleDegreeNames.sevenths : scaleDegreeNames.triads;
+    return (
+        <div>
+            <h4 className="font-semibold text-lg text-teal-300 mb-2">Chord Weights</h4>
+            {weights.map((weight, index) => (
+                <div key={index} className="flex items-center gap-3 mt-1">
+                    <label className="w-8 font-mono text-right text-sm">{degreeNames[index]}</label>
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="10" 
+                        value={weight} 
+                        onChange={(e) => {
+                            const newWeights = weights.map((w, i) => i === index ? Number(e.target.value) : w);
+                            onWeightChange(newWeights);
+                        }} 
+                        className="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer" 
+                    />
+                    <span className="w-4 text-left text-sm">{weight}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const SetupScreen = ({ onStart }) => {
     const [localSettings, setLocalSettings] = useState({
         selectedKeys: ['C', 'G', 'F'],
@@ -95,7 +120,11 @@ const SetupScreen = ({ onStart }) => {
                     {showAdvanced && (
                         <div className="mt-2 p-3 bg-slate-800/50 rounded-lg space-y-4">
                             <div><h4 className="font-semibold">Generation Method</h4><div className="flex bg-slate-600 rounded-md p-1 mt-1"><button onClick={() => setLocalSettings(p=>({...p, generationMethod: 'weighted'}))} className={`flex-1 text-sm rounded-md py-1 ${localSettings.generationMethod === 'weighted' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Weighted</button><button onClick={() => setLocalSettings(p=>({...p, generationMethod: 'random'}))} className={`flex-1 text-sm rounded-md py-1 ${localSettings.generationMethod === 'random' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Random</button></div></div>
-                            <div><h4 className="font-semibold">Chord Weights</h4>{localSettings.majorWeights.map((weight, index) => (<div key={index} className="flex items-center gap-3 mt-1"><label className="w-8 font-mono text-right text-sm">{scaleDegreeNames.triads[index]}</label><input type="range" min="0" max="10" value={weight} onChange={(e) => setLocalSettings(p => ({...p, majorWeights: p.majorWeights.map((w, i) => i === index ? Number(e.target.value) : w)}))} className="flex-1" /><span className="w-4 text-left text-sm">{weight}</span></div>))}</div>
+                            <WeightSliders 
+                                weights={localSettings.majorWeights}
+                                onWeightChange={(newWeights) => setLocalSettings(p => ({ ...p, majorWeights: newWeights }))}
+                                use7thChords={localSettings.use7thChords}
+                            />
                         </div>
                     )}
                     <div className="mt-auto pt-4"><button onClick={handleStart} className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-xl">Start Practice</button></div>
@@ -135,10 +164,23 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup }) => {
             <div><h4 className="font-semibold text-lg text-teal-300 mb-2">Keys</h4><div className="space-y-2"><div>{keysSharpOrder.map(key => (<button key={key} onClick={() => handleKeySelection(key)} className={`px-3 py-1 mr-1 mb-1 text-sm rounded-full font-semibold ${settings.selectedKeys.includes(key) ? 'bg-blue-600 text-white' : 'bg-slate-600'}`}>{key}</button>))}</div><div>{keysFlatOrder.map(key => (<button key={key} onClick={() => handleKeySelection(key)} className={`px-3 py-1 mr-1 mb-1 text-sm rounded-full font-semibold ${settings.selectedKeys.includes(key) ? 'bg-blue-600 text-white' : 'bg-slate-600'}`}>{key}</button>))}</div></div></div>
             <div><h4 className="font-semibold text-lg text-teal-300 mb-2">Game Modes</h4><div className="grid grid-cols-2 gap-2">{gameModes.map(mode => (<button key={mode.id} onClick={() => handleModeSelection(mode.id)} className={`p-2 text-sm rounded-md font-semibold ${settings.selectedModes.includes(mode.id) ? 'bg-blue-600 text-white' : 'bg-slate-600'}`}>{mode.label}</button>))}</div></div>
             <label className="flex items-center justify-between p-2 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Use 7th Chords</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.use7thChords} onChange={(e) => handleSettingChange('use7thChords', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
-            <div><h4 className="font-semibold text-lg text-teal-300 mb-2">Generation Method</h4><div className="flex bg-slate-600 rounded-md p-1 mt-1"><button onClick={() => handleSettingChange('generationMethod', 'weighted')} className={`flex-1 text-sm rounded-md py-1 ${settings.generationMethod === 'weighted' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Weighted</button><button onClick={() => handleSettingChange('generationMethod', 'random')} className={`flex-1 text-sm rounded-md py-1 ${settings.generationMethod === 'random' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Random</button></div></div>
             <div><h4 className="font-semibold text-lg text-teal-300 mb-2">Scale Degrees</h4><div className="grid grid-cols-4 gap-2">{Object.keys(settings.degreeToggles).map((degree, i) => (<button key={degree} onClick={() => handleDegreeToggle(degree)} className={`p-2 text-sm rounded-md font-mono ${settings.degreeToggles[degree] ? 'bg-blue-600 text-white' : 'bg-slate-600'}`}>{settings.use7thChords ? scaleDegreeNames.sevenths[i] : scaleDegreeNames.triads[i]}</button>))}</div></div>
-            <label className="flex items-center justify-between p-2 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Use Alternate Symbols</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.useAlternateSymbols} onChange={(e) => handleSettingChange('useAlternateSymbols', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
-            <label className="flex items-center justify-between p-2 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Hide Quality (Challenge)</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.hideQuality} onChange={(e) => handleSettingChange('hideQuality', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
+            
+            <div className="border-t border-slate-600 pt-4 mt-4">
+                 <details open>
+                    <summary className="text-lg font-bold text-teal-300 cursor-pointer hover:text-teal-200">Advanced Options</summary>
+                    <div className="mt-2 p-3 bg-slate-800/50 rounded-lg space-y-4">
+                        <div><h4 className="font-semibold text-lg text-teal-300 mb-2">Generation Method</h4><div className="flex bg-slate-600 rounded-md p-1 mt-1"><button onClick={() => handleSettingChange('generationMethod', 'weighted')} className={`flex-1 text-sm rounded-md py-1 ${settings.generationMethod === 'weighted' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Weighted</button><button onClick={() => handleSettingChange('generationMethod', 'random')} className={`flex-1 text-sm rounded-md py-1 ${settings.generationMethod === 'random' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Random</button></div></div>
+                        <WeightSliders
+                            weights={settings.majorWeights}
+                            onWeightChange={(newWeights) => handleSettingChange('majorWeights', newWeights)}
+                            use7thChords={settings.use7thChords}
+                        />
+                        <label className="flex items-center justify-between p-2 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Use Alternate Symbols</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.useAlternateSymbols} onChange={(e) => handleSettingChange('useAlternateSymbols', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
+                        <label className="flex items-center justify-between p-2 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Hide Quality (Challenge)</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.hideQuality} onChange={(e) => handleSettingChange('hideQuality', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
+                    </div>
+                </details>
+            </div>
         </div>
     );
 
@@ -178,26 +220,52 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup }) => {
                 </div>
             </InfoModal>
             <div className="w-full flex-1 bg-slate-800 p-4 rounded-lg">
+                {/* --- UPDATED HEADER AND SUB-HEADER --- */}
                 <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2"><h1 className="text-2xl font-bold text-indigo-300">Chord Trainer</h1><InfoButton onClick={() => setIsInfoModalOpen(true)} /></div>
                     <div className="flex items-center gap-2">
-                        <button onClick={onGoToSetup} className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-lg text-sm">Menu</button>
+                        <h1 className="text-2xl font-bold text-indigo-300">Chord Trainer</h1>
+                        <InfoButton onClick={() => setIsInfoModalOpen(true)} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => onLogSession(score, history)} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log</button>
                         <button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Controls</button>
                     </div>
                 </div>
+                <div className="grid grid-cols-3 items-center mb-4 text-lg">
+                    <span className="font-semibold justify-self-start">Score: {score} / {history.length}</span>
+                    <div className="justify-self-center">
+                        {history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-sm py-1 px-3 rounded-lg">Review History</button>}
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer font-semibold justify-self-end">
+                        <span>Auto-Advance</span>
+                        <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.autoAdvance} onChange={(e) => handleSettingChange('autoAdvance', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
+                    </label>
+                </div>
+                
                 <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
-                    <div className="w-full flex justify-between items-center mb-2 text-lg"><div className="flex gap-2">{history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 text-sm py-1 px-3 rounded-lg">Review</button>}<button onClick={() => onLogSession(score, history)} className="bg-green-600 text-sm py-1 px-3 rounded-lg">Log</button></div><span className="font-semibold">Score: {score} / {history.length}</span></div>
                     <div className="w-full bg-slate-900/50 p-4 rounded-lg text-center min-h-[80px] flex justify-center items-center flex-wrap gap-x-2 mb-2">{renderPrompt()}</div>
                     {isReviewing ? (<div className="my-4 p-3 rounded-lg w-full bg-slate-700"><div className="w-full bg-slate-900/50 p-4 rounded-lg text-center min-h-[80px] flex justify-center items-center flex-wrap gap-x-2 mb-2">{renderPrompt()}</div><div className={`mt-4 text-center p-3 rounded-lg w-full ${itemToDisplay.wasCorrect ? 'bg-green-900/50':'bg-red-900/50'}`}><p className="font-bold">Correct: <span className="text-teal-300">{itemToDisplay.question.answer.split(' ').map((c,i)=><ChordDisplay key={i} chord={c}/>).reduce((p,c)=>[p,' ',c])}</span></p>{!itemToDisplay.wasCorrect && <p className="mt-1"><span className="font-bold">You:</span> <span className="text-red-400">{itemToDisplay.userAnswer}</span></p>}</div></div>) : (<div className={`text-xl my-4 min-h-[28px] ${feedback.startsWith('Correct') ? 'text-green-400' : 'text-red-400'}`}>{feedback || <div className="text-base italic text-gray-400">{currentQuestion && reminders[currentQuestion.mode]}</div>}</div>)}
                     <form onSubmit={(e)=>{e.preventDefault(); checkAnswer(userAnswer, settings.autoAdvance)}} className="w-full max-w-sm flex flex-col items-center">
                         <input ref={inputRef} type="text" value={isReviewing ? '' : userAnswer} onChange={(e) => setUserAnswer(e.target.value)} className="w-full text-center text-xl p-3 rounded-lg bg-slate-700" disabled={!!feedback || isReviewing} autoFocus />
-                        <div className="h-20 mt-3 flex justify-center items-center">
-                            {isReviewing ? (<div className="flex items-center gap-4"><button type="button" onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0}>Prev</button><button type="button" onClick={() => setReviewIndex(null)} className="bg-purple-600 p-3 rounded-lg">Return</button><button type="button" onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1}>Next</button></div>) 
-                            : !feedback ? (<button type="submit" className="bg-blue-600 p-3 rounded-lg">Submit</button>) 
-                            : !settings.autoAdvance && (<button type="button" onClick={generateNewQuestion} className="bg-gray-600 p-3 rounded-lg animate-pulse">Next</button>)}
+                        <div className="h-20 mt-3 flex justify-center items-center gap-4">
+                            {isReviewing ? (
+                                <div className="flex items-center gap-4">
+                                    <button type="button" onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="p-3 rounded-lg bg-slate-600 hover:bg-slate-500">Prev</button>
+                                    <button type="button" onClick={() => setReviewIndex(null)} className="bg-purple-600 p-3 rounded-lg font-bold">Return to Quiz</button>
+                                    <button type="button" onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="p-3 rounded-lg bg-slate-600 hover:bg-slate-500">Next</button>
+                                </div>
+                            ) : (
+                                <>
+                                    <button type="button" onClick={onGoToSetup} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg">Menu</button>
+                                    {!feedback ? (
+                                        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Submit</button>
+                                    ) : !settings.autoAdvance && (
+                                        <button type="button" onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next</button>
+                                    )}
+                                </>
+                            )}
                         </div>
                     </form>
-                    <label className="flex items-center gap-2 cursor-pointer"><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.autoAdvance} onChange={(e) => handleSettingChange('autoAdvance', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div><span className="ml-2 font-semibold">Auto-Advance</span></label>
                 </div>
             </div>
             <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ${isControlsOpen ? 'w-96 p-4' : 'w-0 overflow-hidden'}`}>{isControlsOpen && <ControlsContent />}</div>

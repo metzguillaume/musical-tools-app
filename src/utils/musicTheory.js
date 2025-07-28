@@ -20,12 +20,10 @@ const SCALE_INTERVALS = {
 };
 
 const DIATONIC_CHORD_QUALITIES = {
-    // For Triads: [I, ii, iii, IV, V, vi, vii°]
     'Major_Triads': ['Major', 'Minor', 'Minor', 'Major', 'Major', 'Minor', 'Diminished'],
     'Natural Minor_Triads': ['Minor', 'Diminished', 'Major', 'Minor', 'Minor', 'Major', 'Major'],
     'Harmonic Minor_Triads': ['Minor', 'Diminished', 'Augmented', 'Minor', 'Major', 'Major', 'Diminished'],
     'Melodic Minor_Triads': ['Minor', 'Minor', 'Augmented', 'Major', 'Major', 'Diminished', 'Diminished'],
-    // For 7th Chords: [Imaj7, ii7, iii7, IVmaj7, V7, vi7, viiø7]
     'Major_7ths': ['Major 7th', 'Minor 7th', 'Minor 7th', 'Major 7th', 'Dominant 7th', 'Minor 7th', 'Half-Diminished 7th'],
     'Natural Minor_7ths': ['Minor 7th', 'Half-Diminished 7th', 'Major 7th', 'Minor 7th', 'Minor 7th', 'Major 7th', 'Dominant 7th'],
     'Harmonic Minor_7ths': ['Minor-Major 7th', 'Half-Diminished 7th', 'Augmented Major 7th', 'Minor 7th', 'Dominant 7th', 'Major 7th', 'Diminished 7th'],
@@ -33,19 +31,10 @@ const DIATONIC_CHORD_QUALITIES = {
 };
 
 export const QUALITY_TO_SUFFIX = {
-    'Major': '',
-    'Minor': 'm',
-    'Diminished': 'dim', // Changed from ° to 'dim' for better compatibility with note names
-    'Augmented': '+',
-    'Major 7th': 'maj7',
-    'Minor 7th': 'm7',
-    'Dominant 7th': '7',
-    'Half-Diminished 7th': 'm7b5', // Common alternative to ø7
-    'Diminished 7th': '°7',
-    'Minor-Major 7th': 'm(maj7)',
-    'Augmented Major 7th': '+maj7',
-    'Sus2': 'sus2',
-    'Sus4': 'sus4',
+    'Major': '', 'Minor': 'm', 'Diminished': 'dim', 'Augmented': '+',
+    'Major 7th': 'maj7', 'Minor 7th': 'm7', 'Dominant 7th': '7', 'Half-Diminished 7th': 'm7b5',
+    'Diminished 7th': '°7', 'Minor-Major 7th': 'm(maj7)', 'Augmented Major 7th': '+maj7',
+    'Sus2': 'sus2', 'Sus4': 'sus4',
 };
 
 export const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
@@ -76,13 +65,28 @@ export const CHORDS = {
 export const NOTE_TO_MIDI = {
     'C': 48, 'C#': 49, 'Db': 49, 'D': 50, 'D#': 51, 'Eb': 51, 'E': 52, 'F': 53,
     'F#': 54, 'Gb': 54, 'G': 55, 'G#': 56, 'Ab': 56, 'A': 57, 'A#': 58, 'Bb': 58, 'B': 59,
+    'Cb': 59, 'B#': 60, 'E#': 53, 'Fb': 52, 'Bbb': 57, 'Abb': 55,
+    'C##': 50, 'D##': 52, 'F##': 55, 'G##': 57, 'A##': 59
 };
 
-/**
- * **REWRITTEN FUNCTION**
- * Calculates the correct note names for a scale, respecting diatonic spelling.
- * This ensures keys with flats produce flat notes (e.g., Bb in F Major) instead of sharp equivalents (A#).
- */
+export const ENHARMONIC_MAP = {
+    'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#',
+    'Dbb': 'C', 'Ebb': 'D', 'Gbb': 'F', 'Abb': 'G', 'Bbb': 'A',
+    'Cb': 'B', 'B#': 'C', 'E#': 'F', 'Fb': 'E'
+};
+
+// UPDATED: The note map has been completely rewritten to be more comprehensive and accurate.
+export const CANONICAL_NOTE_MAP = {
+    // Octave 2
+    'E2': { string: 6, fret: 0 }, 'F2': { string: 6, fret: 1 }, 'F#2': { string: 6, fret: 2 }, 'G2': { string: 6, fret: 3 }, 'G#2': { string: 6, fret: 4 }, 'A2': { string: 5, fret: 0 }, 'A#2': { string: 5, fret: 1 }, 'B2': { string: 5, fret: 2 },
+    // Octave 3
+    'C3': { string: 5, fret: 3 }, 'C#3': { string: 5, fret: 4 }, 'D3': { string: 4, fret: 0 }, 'D#3': { string: 4, fret: 1 }, 'E3': { string: 4, fret: 2 }, 'F3': { string: 4, fret: 3 }, 'F#3': { string: 4, fret: 4 }, 'G3': { string: 3, fret: 0 }, 'G#3': { string: 3, fret: 1 }, 'A3': { string: 3, fret: 2 }, 'A#3': { string: 2, fret: 3 }, 'B3': { string: 2, fret: 0 },
+    // Octave 4
+    'C4': { string: 2, fret: 1 }, 'C#4': { string: 2, fret: 2 }, 'D4': { string: 2, fret: 3 }, 'D#4': { string: 2, fret: 4 }, 'E4': { string: 1, fret: 0 }, 'F4': { string: 1, fret: 1 }, 'F#4': { string: 1, fret: 2 }, 'G4': { string: 1, fret: 3 }, 'G#4': { string: 1, fret: 4 }, 'A4': { string: 1, fret: 5 }, 'A#4': { string: 1, fret: 6 }, 'B4': { string: 1, fret: 7 },
+    // Octave 5
+    'C5': { string: 1, fret: 8 }, 'C#5': { string: 1, fret: 9 }, 'D5': { string: 1, fret: 10 }, 'D#5': { string: 1, fret: 11 }, 'E5': { string: 1, fret: 12 }, 'F5': { string: 1, fret: 13 }, 'F#5': { string: 1, fret: 14 }, 'G5': { string: 1, fret: 15 },
+};
+
 export const getScaleNotes = (rootNoteName, scaleName) => {
     const scaleIntervals = SCALE_INTERVALS[scaleName];
     if (!scaleIntervals) return [];
@@ -101,7 +105,6 @@ export const getScaleNotes = (rootNoteName, scaleName) => {
         let octaveOffset = Math.floor(targetMidi / 12) * 12;
         let naturalNoteMidi = naturalNoteMidiInC + octaveOffset;
         
-        // Adjust octave to find the closest natural note
         if (Math.abs(targetMidi - naturalNoteMidi) > 6) {
             if (targetMidi > naturalNoteMidi) naturalNoteMidi += 12;
             else naturalNoteMidi -= 12;

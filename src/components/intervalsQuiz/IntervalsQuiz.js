@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTools } from '../../context/ToolsContext';
-import InfoModal from '../common/InfoModal'; // UPDATED PATH
-import InfoButton from '../common/InfoButton'; // UPDATED PATH
+import InfoModal from '../common/InfoModal';
+import InfoButton from '../common/InfoButton';
 import { useIntervalsQuiz, ACCIDENTALS, NOTE_LETTERS, intervalData } from './useIntervalsQuiz';
 
 // Reusable UI components
@@ -24,10 +24,22 @@ const AnswerButton = ({ value, type, selectedValue, onClick, isDisabled, childre
 };
 
 const IntervalsQuiz = () => {
-    const { addLogEntry } = useTools();
+    const { addLogEntry, fretboardVolume, setFretboardVolume } = useTools();
     const [settings, setSettings] = useState({ quizMode: 'mixed', rootNoteType: 'chromatic', direction: 'both', autoAdvance: true });
+    const [playAudio, setPlayAudio] = useState(true);
+    const [audioDirection, setAudioDirection] = useState('above');
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    
+    // --- START SLIDER FIX ---
+    // Local state to manage the slider's value during dragging
+    const [localVolume, setLocalVolume] = useState(fretboardVolume);
+
+    // Effect to sync the local slider if the global volume changes
+    useEffect(() => {
+        setLocalVolume(fretboardVolume);
+    }, [fretboardVolume]);
+    // --- END SLIDER FIX ---
     
     const allIntervalNames = useMemo(() => intervalData.map(i => i.name), []);
     
@@ -40,8 +52,9 @@ const IntervalsQuiz = () => {
     const { 
         feedback, score, answerChecked, currentQuestion, userAnswer, setUserAnswer, 
         history, reviewIndex, setReviewIndex, handleReviewNav, startReview,
-        checkAnswer, generateNewQuestion 
-    } = useIntervalsQuiz({ ...settings, selectedIntervals });
+        checkAnswer, generateNewQuestion,
+        replayAudioForHistoryItem
+    } = useIntervalsQuiz({ ...settings, selectedIntervals }, playAudio, audioDirection);
     
     const isReviewing = reviewIndex !== null;
     
@@ -65,7 +78,6 @@ const IntervalsQuiz = () => {
         if (remarks !== null) { addLogEntry({ game: 'Interval Practice Quiz', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); }
     };
 
-    // ADDED: These functions were missing, causing the errors.
     const handleSelectionChange = (name) => setSelectedIntervals(prev => ({ ...prev, [name]: !prev[name] }));
     const handleQuickSelect = (quality) => { 
         const newState = { ...selectedIntervals }; 
@@ -80,7 +92,6 @@ const IntervalsQuiz = () => {
         setSelectedIntervals(newState); 
     };
     
-    // --- RENDER LOGIC ---
     const itemToDisplay = isReviewing ? history[reviewIndex] : { question: currentQuestion, userAnswer };
     
     const renderQuestion = () => {
@@ -91,7 +102,9 @@ const IntervalsQuiz = () => {
         if (question.mode === 'nameTheNote') {
             return <>
                 <div className="text-5xl font-bold text-teal-300 mb-4">{question.rootNote}</div>
-                <div className="text-2xl font-semibold text-gray-400">What is the {question.intervalName} {question.direction}?</div>
+                <div className="text-2xl font-semibold text-gray-400">
+                    What is the {question.intervalName}{question.direction && ` ${question.direction}`}?
+                </div>
             </>;
         }
         if (question.mode === 'nameTheInterval') {
@@ -146,13 +159,69 @@ const IntervalsQuiz = () => {
         );
     };
     
-    const ControlsContent = (
+    const ControlsContent = () => (
         <div className="space-y-6">
             <CollapsibleSection title="Quiz Options" isOpen={true}>
                  <div className="space-y-4">
-                    <div><h4 className="font-semibold text-lg">Quiz Mode:</h4><div className="flex bg-slate-600 rounded-md p-1 mt-2"><button onClick={() => handleSettingChange('quizMode', 'nameTheInterval')} className={`flex-1 rounded-md text-sm py-1 ${settings.quizMode === 'nameTheInterval' ? 'bg-blue-600 text-white' : ''}`}>Name Interval</button><button onClick={() => handleSettingChange('quizMode', 'nameTheNote')} className={`flex-1 rounded-md text-sm py-1 ${settings.quizMode === 'nameTheNote' ? 'bg-blue-600 text-white' : ''}`}>Name Note</button><button onClick={() => handleSettingChange('quizMode', 'mixed')} className={`flex-1 rounded-md text-sm py-1 ${settings.quizMode === 'mixed' ? 'bg-blue-600 text-white' : ''}`}>Mixed</button></div></div>
-                    <div><h4 className="font-semibold text-lg">Root Notes (for 'Name the Note'):</h4><div className="flex gap-4 p-2"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="rootType" value="natural" checked={settings.rootNoteType === 'natural'} onChange={() => handleSettingChange('rootNoteType', 'natural')} />Natural</label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="rootType" value="chromatic" checked={settings.rootNoteType === 'chromatic'} onChange={() => handleSettingChange('rootNoteType', 'chromatic')} />Chromatic</label></div></div>
-                    <div><h4 className="font-semibold text-lg">Direction (for 'Name the Note'):</h4><div className="flex bg-slate-600 rounded-md p-1 mt-2"><button onClick={() => handleSettingChange('direction', 'above')} className={`flex-1 rounded-md text-sm py-1 ${settings.direction === 'above' ? 'bg-blue-600 text-white' : ''}`}>Above</button><button onClick={() => handleSettingChange('direction', 'below')} className={`flex-1 rounded-md text-sm py-1 ${settings.direction === 'below' ? 'bg-blue-600 text-white' : ''}`}>Below</button><button onClick={() => handleSettingChange('direction', 'both')} className={`flex-1 rounded-md text-sm py-1 ${settings.direction === 'both' ? 'bg-blue-600 text-white' : ''}`}>Both</button></div></div>
+                    <div>
+                        <h4 className="font-semibold text-lg text-teal-300 mb-2">Quiz Mode</h4>
+                        <div className="flex bg-slate-600 rounded-md p-1">
+                            <button onClick={() => handleSettingChange('quizMode', 'nameTheInterval')} className={`flex-1 rounded-md text-sm py-1 ${settings.quizMode === 'nameTheInterval' ? 'bg-blue-600 text-white' : ''}`}>Name Interval</button>
+                            <button onClick={() => handleSettingChange('quizMode', 'nameTheNote')} className={`flex-1 rounded-md text-sm py-1 ${settings.quizMode === 'nameTheNote' ? 'bg-blue-600 text-white' : ''}`}>Name Note</button>
+                            <button onClick={() => handleSettingChange('quizMode', 'mixed')} className={`flex-1 rounded-md text-sm py-1 ${settings.quizMode === 'mixed' ? 'bg-blue-600 text-white' : ''}`}>Mixed</button>
+                        </div>
+                    </div>
+
+                    {(settings.quizMode === 'nameTheNote' || settings.quizMode === 'mixed') && (
+                        <div className="p-3 bg-slate-900/50 rounded-lg space-y-3">
+                            <h5 className="font-bold text-base text-teal-300 border-b border-slate-600 pb-1">"Name the Note" Settings</h5>
+                            <div>
+                                <h4 className="font-semibold">Root Notes</h4>
+                                <div className="flex gap-4 p-2">
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="rootType" value="natural" checked={settings.rootNoteType === 'natural'} onChange={() => handleSettingChange('rootNoteType', 'natural')} />Natural</label>
+                                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="rootType" value="chromatic" checked={settings.rootNoteType === 'chromatic'} onChange={() => handleSettingChange('rootNoteType', 'chromatic')} />Chromatic</label>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold">Question Direction</h4>
+                                <div className="flex bg-slate-600 rounded-md p-1 mt-1">
+                                    <button onClick={() => handleSettingChange('direction', 'above')} className={`flex-1 rounded-md text-sm py-1 ${settings.direction === 'above' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Ascending</button>
+                                    <button onClick={() => handleSettingChange('direction', 'below')} className={`flex-1 rounded-md text-sm py-1 ${settings.direction === 'below' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Descending</button>
+                                    <button onClick={() => handleSettingChange('direction', 'both')} className={`flex-1 rounded-md text-sm py-1 ${settings.direction === 'both' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Both</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {(settings.quizMode === 'nameTheInterval' || settings.quizMode === 'mixed') && (
+                        <div className="p-3 bg-slate-900/50 rounded-lg space-y-3">
+                            <h5 className="font-bold text-base text-teal-300 border-b border-slate-600 pb-1">"Name the Interval" Settings</h5>
+                            <div>
+                                <h4 className="font-semibold">Audio Playback Direction</h4>
+                                <div className="flex bg-slate-600 rounded-md p-1 mt-1">
+                                    <button onClick={() => setAudioDirection('above')} className={`flex-1 rounded-md text-sm py-1 ${audioDirection === 'above' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Ascending</button>
+                                    <button onClick={() => setAudioDirection('below')} className={`flex-1 rounded-md text-sm py-1 ${audioDirection === 'below' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Descending</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div>
+                        <label htmlFor="interval-audio-volume" className="font-semibold text-lg text-teal-300 mb-2 block">Audio Volume</label>
+                        {/* --- START SLIDER FIX --- */}
+                        <input
+                            type="range"
+                            id="interval-audio-volume"
+                            min="-30"
+                            max="0"
+                            value={localVolume}
+                            onChange={(e) => setLocalVolume(Number(e.target.value))}
+                            onMouseUp={() => setFretboardVolume(localVolume)}
+                            onKeyUp={() => setFretboardVolume(localVolume)}
+                            className="w-full h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                        />
+                        {/* --- END SLIDER FIX --- */}
+                    </div>
                  </div>
             </CollapsibleSection>
             <CollapsibleSection title="Interval Selection" isOpen={true}>
@@ -193,12 +262,13 @@ const IntervalsQuiz = () => {
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Interval Practice Quiz Guide">
                 <p>This module tests your knowledge of intervals in two ways: identifying an interval from two notes, or identifying a note from a root and an interval.</p>
-                <p>Use the "Controls" panel to select the quiz mode and other options.</p>
+                <p className="mt-2">Enable the <b>Play Audio</b> toggle to hear the interval played using natural guitar sounds after you answer.</p>
+                <p>Use the "Controls" panel to select the quiz mode and other options, including audio volume and playback direction for the "Name Interval" mode.</p>
             </InfoModal>
 
             <div className="w-full flex-1 bg-slate-800 p-4 md:p-8 rounded-lg">
                 <div className="flex justify-between items-center mb-4"><div className="flex items-center gap-3"><h1 className="text-3xl font-extrabold text-indigo-300">Intervals Quiz</h1><InfoButton onClick={() => setIsInfoModalOpen(true)} /></div><div className="flex items-center gap-2"><button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log</button><button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Controls</button></div></div>
-                <div className="flex justify-between items-center mb-4 text-lg"><span className="font-semibold text-gray-300">Score: {score} / {history.length}</span><div className="flex items-center gap-4">{history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50">Review History</button>}<label className="flex items-center gap-2 cursor-pointer font-semibold"><span>Auto-Advance</span><div className="relative"><input type="checkbox" checked={settings.autoAdvance} onChange={() => handleSettingChange('autoAdvance', !settings.autoAdvance)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label></div></div>
+                <div className="flex justify-between items-center mb-4 text-lg"><span className="font-semibold text-gray-300">Score: {score} / {history.length}</span><div className="flex items-center gap-4">{history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50">Review</button>}<label className="flex items-center gap-2 cursor-pointer font-semibold"><span>Play Audio</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={playAudio} onChange={() => setPlayAudio(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label><label className="flex items-center gap-2 cursor-pointer font-semibold"><span>Auto-Advance</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.autoAdvance} onChange={() => handleSettingChange('autoAdvance', !settings.autoAdvance)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label></div></div>
                 
                 <div className="text-center w-full max-w-2xl mx-auto my-6 min-h-[120px] flex flex-col items-center justify-center">{renderQuestion()}</div>
                 <div className={`my-4 min-h-[60px] flex flex-col justify-center`}>{isReviewing ? renderReviewFeedback() : <p className={`text-lg font-bold text-center ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>{feedback.message || <>&nbsp;</>}</p>}</div>
@@ -209,7 +279,10 @@ const IntervalsQuiz = () => {
                     {isReviewing ? (
                         <div className="flex items-center justify-center gap-4 w-full">
                             <button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button>
-                            <button onClick={() => setReviewIndex(null)} className="flex-grow max-w-xs bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button>
+                            <div className="flex flex-col gap-2 flex-grow max-w-xs">
+                                <button onClick={() => setReviewIndex(null)} className="bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button>
+                                <button onClick={() => replayAudioForHistoryItem(reviewIndex)} className="bg-sky-600 hover:bg-sky-500 text-sm p-2 rounded-lg font-semibold">Replay Audio</button>
+                            </div>
                             <button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button>
                         </div>
                     ) : !settings.autoAdvance && !answerChecked ? (
@@ -220,8 +293,25 @@ const IntervalsQuiz = () => {
                 </div>
             </div>
             
-            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-96 p-4' : 'w-0 p-0 overflow-hidden'}`}><div className={`${!isControlsOpen && 'hidden'}`}><h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>{ControlsContent}</div></div>
-            {isControlsOpen && (<div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}><div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}><div className="flex-shrink-0 flex justify-between items-center mb-4"><h3 className="text-xl font-bold text-teal-300">Settings & Controls</h3><button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button></div><div className="flex-grow overflow-y-auto pr-2">{ControlsContent}</div></div></div>)}
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-96 p-4' : 'w-0 p-0 overflow-hidden'}`}>
+                <div className={`${!isControlsOpen && 'hidden'}`}>
+                    <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
+                    <ControlsContent />
+                </div>
+            </div>
+            {isControlsOpen && (
+                <div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}>
+                    <div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex-shrink-0 flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-teal-300">Settings & Controls</h3>
+                            <button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+                        </div>
+                        <div className="flex-grow overflow-y-auto pr-2">
+                            <ControlsContent />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

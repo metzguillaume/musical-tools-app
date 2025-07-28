@@ -103,9 +103,11 @@ export const ToolsProvider = ({ children }) => {
     const stopwatchIntervalRef = useRef(null);
 
     const intervalSynth = useRef(null);
-    // NEW: Ref and state for fretboard audio
     const fretboardPlayers = useRef(null);
     const [areFretboardSoundsReady, setAreFretboardSoundsReady] = useState(false);
+    const [fretboardVolume, setFretboardVolume] = useState(-6);
+    const [intervalSynthVolume, setIntervalSynthVolume] = useState(0);
+
 
     useEffect(() => {
         let loadedDronesCount = 0;
@@ -134,8 +136,7 @@ export const ToolsProvider = ({ children }) => {
             oscillator: { type: 'sine' },
             envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 },
         }).toDestination();
-        intervalSynth.current.volume.value = 5;
-
+        
         const players = {};
         notes.forEach(note => {
             players[note.toUpperCase().replace('S', '#')] = new Tone.Player({ 
@@ -153,7 +154,6 @@ export const ToolsProvider = ({ children }) => {
         });
         dronePlayers.current = players;
 
-        // NEW: Logic to load all 78 fretboard sounds
         const fretboardSoundUrls = {};
         for (let s = 1; s <= 6; s++) {
             for (let f = 0; f <= 12; f++) {
@@ -179,7 +179,17 @@ export const ToolsProvider = ({ children }) => {
     useEffect(() => { if (isMetronomeReady) metronomePlayer.current.volume.value = metronomeVolume; }, [metronomeVolume, isMetronomeReady]);
     useEffect(() => { if (isCountdownReady) { countdownPlayers.current.forEach(player => { player.volume.value = metronomeVolume; }); } }, [metronomeVolume, isCountdownReady]);
     useEffect(() => { if (areDronesReady) Object.values(dronePlayers.current).forEach(p => p.volume.value = droneVolume); }, [droneVolume, areDronesReady]);
-    
+    useEffect(() => {
+        if (areFretboardSoundsReady && fretboardPlayers.current) {
+            fretboardPlayers.current.volume.value = fretboardVolume;
+        }
+    }, [fretboardVolume, areFretboardSoundsReady]);
+    useEffect(() => {
+        if (intervalSynth.current) {
+            intervalSynth.current.volume.value = intervalSynthVolume;
+        }
+    }, [intervalSynthVolume]);
+
     const startMetronome = useCallback(() => {
         if (!isMetronomeReady) return;
         const transport = Tone.getTransport();
@@ -340,7 +350,7 @@ export const ToolsProvider = ({ children }) => {
     const addLap = () => setLaps(prevLaps => [...prevLaps, stopwatchTime]);
 
     const playInterval = useCallback(async (notes) => {
-        if (!notes || notes.length < 2) return;
+        if (!notes || notes.length < 2 || !intervalSynth.current) return;
         await unlockAudio();
         
         const now = Tone.now();
@@ -350,23 +360,38 @@ export const ToolsProvider = ({ children }) => {
 
     }, [unlockAudio]);
 
-    // NEW: Function to play an interval sequence on the fretboard
+    // UPDATED: More robust playback logic to prevent audio clicks/failures
     const playFretboardNotes = useCallback(async (notes) => {
         if (!areFretboardSoundsReady || !notes || notes.length < 2) return;
         await unlockAudio();
 
-        const rootPlayer = fretboardPlayers.current.player(`${notes[0].string}-${notes[0].fret}`);
-        const targetPlayer = fretboardPlayers.current.player(`${notes[1].string}-${notes[1].fret}`);
-        
-        const now = Tone.now();
-        rootPlayer.start(now);
-        targetPlayer.start(now + 0.5); // Play the second note half a second later
-        
-        // Play them together after a delay
-        rootPlayer.start(now + 1.2);
-        targetPlayer.start(now + 1.2);
+        const rootNoteId = `${notes[0].string}-${notes[0].fret}`;
+        const targetNoteId = `${notes[1].string}-${notes[1].fret}`;
 
-    }, [areFretboardSoundsReady, unlockAudio]);
+        if (!fretboardPlayers.current.has(rootNoteId) || !fretboardPlayers.current.has(targetNoteId)) {
+            console.error("Audio for notes not found:", rootNoteId, targetNoteId);
+            return;
+        }
+
+        const now = Tone.now();
+        const quarterNoteDuration = 60 / bpm;
+        
+        const playNote = (noteId, time) => {
+            // Create a new Player instance on-the-fly using the pre-loaded buffer for true polyphony
+            const player = new Tone.Player(fretboardPlayers.current.player(noteId).buffer).toDestination();
+            player.volume.value = fretboardVolume;
+            player.start(time);
+        };
+
+        // Beat 1
+        playNote(rootNoteId, now);
+        // Beat 2
+        playNote(targetNoteId, now + quarterNoteDuration);
+        // Beat 3
+        playNote(rootNoteId, now + (2 * quarterNoteDuration));
+        playNote(targetNoteId, now + (2 * quarterNoteDuration));
+
+    }, [areFretboardSoundsReady, unlockAudio, bpm, fretboardVolume]);
 
 
     const value = {
@@ -378,9 +403,10 @@ export const ToolsProvider = ({ children }) => {
         stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap,
         practiceLog, addLogEntry, clearLog, importLog,
         playInterval,
-        // NEW: Add the new function and ready state to the context
         playFretboardNotes,
         areFretboardSoundsReady,
+        fretboardVolume, setFretboardVolume,
+        intervalSynthVolume, setIntervalSynthVolume,
     };
 
     return (

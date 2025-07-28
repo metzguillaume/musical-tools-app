@@ -17,6 +17,7 @@ export const quizData = {
 };
 
 export const useIntervalFretboardQuiz = (autoAdvance, playAudio) => {
+    // UPDATED: No longer needs bpm here, as the context function will access it
     const { playFretboardNotes } = useTools();
 
     const [score, setScore] =useState(0);
@@ -61,9 +62,8 @@ export const useIntervalFretboardQuiz = (autoAdvance, playAudio) => {
                     label: rootNote.note, 
                     isRoot: true, 
                     midi: rootNote.midi,
-                    degree: '1' // Root is always '1'
+                    degree: '1'
                 };
-                // ADDED: Calculate degree for the target note
                 const targetNoteForQuestion = {
                     ...targetNote,
                     degree: getDegree(rootNote.midi, targetNote.midi)
@@ -140,7 +140,6 @@ export const useIntervalFretboardQuiz = (autoAdvance, playAudio) => {
         }
     };
 
-    // NEW: Function to replay audio from history
     const replayAudioForHistoryItem = (index) => {
         const historyItem = history[index];
         if (historyItem && historyItem.question.notes) {

@@ -7,20 +7,25 @@ import { useIntervalFretboardQuiz, quizData } from './useIntervalFretboardQuiz';
 
 const IntervalFretboardQuiz = () => {
     const { addLogEntry, fretboardVolume, setFretboardVolume, savePreset, presetToLoad, clearPresetToLoad } = useTools();
+    
+    // Settings are now grouped into a single state object for presets
     const [settings, setSettings] = useState({
         autoAdvance: true,
         playAudio: true,
         labelType: 'name',
     });
+
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
 
+    // useEffect to listen for a preset to load
     useEffect(() => {
     if (presetToLoad && presetToLoad.gameId === 'interval-fretboard-quiz') {
-        setSettings(presetToLoad.settings);
+        const { fretboardVolume: presetVolume, ...localSettings } = presetToLoad.settings;
+        setSettings(localSettings);
         // Apply the saved volume to the global context
-        if (presetToLoad.settings.fretboardVolume !== undefined) {
-            setFretboardVolume(presetToLoad.settings.fretboardVolume);
+        if (presetVolume !== undefined) {
+            setFretboardVolume(presetVolume);
         }
         clearPresetToLoad();
     }
@@ -123,11 +128,11 @@ const IntervalFretboardQuiz = () => {
                         {history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-sm py-1 px-3 rounded-lg">Review</button>}
                         <label className="flex items-center gap-2 cursor-pointer font-semibold">
                             <span>Play Audio</span>
-                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.playAudio} onChange={(e) => setSettings(s => ({ ...s, playAudio: e.target.checked }))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
+                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.playAudio} onChange={() => setSettings(s => ({ ...s, playAudio: !s.playAudio }))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer font-semibold">
                             <span>Auto-Advance</span>
-                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.autoAdvance} onChange={(e) => setSettings(s => ({ ...s, autoAdvance: e.target.checked }))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
+                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.autoAdvance} onChange={() => setSettings(s => ({ ...s, autoAdvance: !s.autoAdvance }))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
                         </label>
                     </div>
                 </div>
@@ -177,7 +182,6 @@ const IntervalFretboardQuiz = () => {
                 </div>
             </div>
 
-            {/* Controls Panels */}
             <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
                 <div className={`${!isControlsOpen && 'hidden'}`}>
                      <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>

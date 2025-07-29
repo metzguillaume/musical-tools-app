@@ -13,6 +13,7 @@ import ChordProgressionGenerator from './components/chordProgressionGenerator/Ch
 import IntervalGenerator from './components/intervalGenerator/IntervalGenerator';
 import TriadQuiz from './components/triadQuiz/TriadQuiz';
 import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
+import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer'; // 1. IMPORT
 
 
 const AppContent = () => {
@@ -40,10 +41,16 @@ const AppContent = () => {
       ],
     },
     {
-      name: 'Practical Exercises',
+      name: 'Fretboard',
       tools: [
         { id: 'interval-fretboard-quiz', name: 'Fretboard Intervals' },
         { id: 'caged-system-quiz', name: 'CAGED System Quiz' },
+      ],
+    },
+    {
+      name: 'Ear Training',
+      tools: [
+        { id: 'interval-ear-trainer', name: 'Interval Recognition' },
       ],
     },
   ];
@@ -126,6 +133,7 @@ const AppContent = () => {
           {activeTab === 'interval-generator' && <IntervalGenerator />}
           {activeTab === 'triad-quiz' && <TriadQuiz />}
           {activeTab === 'caged-system-quiz' && <CAGEDSystemQuiz />}
+          {activeTab === 'interval-ear-trainer' && <IntervalEarTrainer />}
       </main>
 
       <footer className="w-full max-w-5xl mx-auto text-center mt-8 text-gray-400 text-sm">

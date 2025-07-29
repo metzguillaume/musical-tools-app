@@ -6,6 +6,7 @@ import { useDroneLogic } from './useDroneLogic';
 import { useTimerLogic } from './useTimerLogic';
 import { useStopwatchLogic } from './useStopwatchLogic';
 import { useAudioPlayers } from './useAudioPlayers';
+import { usePresetsLogic } from './usePresetsLogic';
 
 const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
@@ -15,6 +16,9 @@ export const ToolsProvider = ({ children }) => {
     const [activeTool, setActiveTool] = useState(null);
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
     
+    // --- PRESET LOADING STATE ---
+    const [presetToLoad, setPresetToLoad] = useState(null);
+
     const toggleActiveTool = (tool) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
     };
@@ -29,6 +33,16 @@ export const ToolsProvider = ({ children }) => {
             console.error("Could not start Audio Context", e);
         }
     }, [isAudioUnlocked]);
+    
+    // --- PRESET LOADING LOGIC ---
+    const loadPreset = useCallback((preset) => {
+        setPresetToLoad(preset);
+        toggleActiveTool(null); 
+    }, []);
+
+    const clearPresetToLoad = useCallback(() => {
+        setPresetToLoad(null);
+    }, []);
 
     // Custom Hooks for each tool's logic
     const log = usePracticeLogLogic();
@@ -37,6 +51,7 @@ export const ToolsProvider = ({ children }) => {
     const timer = useTimerLogic(unlockAudio);
     const stopwatch = useStopwatchLogic();
     const audioPlayers = useAudioPlayers(unlockAudio, metronome.bpm);
+    const presets = usePresetsLogic();
     
     // Combine all state and functions into a single value object
     const value = {
@@ -49,6 +64,10 @@ export const ToolsProvider = ({ children }) => {
         ...timer,
         ...stopwatch,
         ...audioPlayers,
+        ...presets,
+        presetToLoad,
+        loadPreset,
+        clearPresetToLoad,
     };
 
     return (

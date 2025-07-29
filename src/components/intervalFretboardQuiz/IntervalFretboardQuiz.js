@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import FretboardDiagram from '../common/FretboardDiagram';
 import InfoModal from '../common/InfoModal';
@@ -6,17 +6,30 @@ import InfoButton from '../common/InfoButton';
 import { useIntervalFretboardQuiz, quizData } from './useIntervalFretboardQuiz';
 
 const IntervalFretboardQuiz = () => {
-    const { addLogEntry, fretboardVolume, setFretboardVolume } = useTools();
-    const [autoAdvance, setAutoAdvance] = useState(true);
-    const [playAudio, setPlayAudio] = useState(true);
-    const [labelType, setLabelType] = useState('name');
+    const { addLogEntry, fretboardVolume, setFretboardVolume, savePreset, presetToLoad, clearPresetToLoad } = useTools();
+    const [settings, setSettings] = useState({
+        autoAdvance: true,
+        playAudio: true,
+        labelType: 'name',
+    });
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
+
+    useEffect(() => {
+    if (presetToLoad && presetToLoad.gameId === 'interval-fretboard-quiz') {
+        setSettings(presetToLoad.settings);
+        // Apply the saved volume to the global context
+        if (presetToLoad.settings.fretboardVolume !== undefined) {
+            setFretboardVolume(presetToLoad.settings.fretboardVolume);
+        }
+        clearPresetToLoad();
+    }
+}, [presetToLoad, clearPresetToLoad, setFretboardVolume]);
 
     const {
         score, currentQuestion, feedback, isAnswered, selected, setSelected, history, reviewIndex, setReviewIndex,
         startNewRound, handleReviewNav, startReview, replayAudioForHistoryItem
-    } = useIntervalFretboardQuiz(autoAdvance, playAudio);
+    } = useIntervalFretboardQuiz(settings.autoAdvance, settings.playAudio);
     
     const isReviewing = reviewIndex !== null;
 
@@ -24,6 +37,24 @@ const IntervalFretboardQuiz = () => {
         const remarks = prompt("Enter any remarks for this session:", `Score: ${score}/${history.length}`);
         if (remarks !== null) { addLogEntry({ game: 'Interval Fretboard Quiz', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); }
     };
+
+    const handleSavePreset = () => {
+    const name = prompt("Enter a name for your preset:", `Fretboard Ints - ${settings.labelType}`);
+    if (name && name.trim() !== "") {
+        const newPreset = {
+            id: Date.now().toString(),
+            name: name.trim(),
+            gameId: 'interval-fretboard-quiz',
+            gameName: 'Fretboard Intervals',
+            settings: {
+                ...settings,
+                fretboardVolume: fretboardVolume // Add the current volume to the preset
+            },
+        };
+        savePreset(newPreset);
+        alert(`Preset "${name.trim()}" saved!`);
+    }
+};
 
     const handleSelection = (type, value) => {
         if (isAnswered || isReviewing) return;
@@ -43,8 +74,8 @@ const IntervalFretboardQuiz = () => {
             <div>
                 <h3 className="font-semibold text-lg text-teal-300 mb-2">Note Display</h3>
                 <div className="flex bg-slate-600 rounded-md p-1">
-                    <button onClick={() => setLabelType('name')} className={`flex-1 rounded-md text-sm py-1 ${labelType === 'name' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Note Name</button>
-                    <button onClick={() => setLabelType('degree')} className={`flex-1 rounded-md text-sm py-1 ${labelType === 'degree' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Scale Degree</button>
+                    <button onClick={() => setSettings(s => ({ ...s, labelType: 'name' }))} className={`flex-1 rounded-md text-sm py-1 ${settings.labelType === 'name' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Note Name</button>
+                    <button onClick={() => setSettings(s => ({ ...s, labelType: 'degree' }))} className={`flex-1 rounded-md text-sm py-1 ${settings.labelType === 'degree' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Scale Degree</button>
                 </div>
             </div>
             <div>
@@ -57,11 +88,15 @@ const IntervalFretboardQuiz = () => {
                     className="w-full h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer"
                 />
             </div>
+            <div className="border-t border-slate-600 pt-4 mt-4">
+                <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+                    Save Preset
+                </button>
+            </div>
         </div>
     );
 
     return (
-        // UPDATED: Main layout now matches ChordTrainer for consistency
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="How to Play: Intervals on Fretboard">
                 <p>A diagram of a guitar fretboard will be displayed with two notes.</p>
@@ -72,7 +107,6 @@ const IntervalFretboardQuiz = () => {
             </InfoModal>
 
             <div className="w-full flex-1 bg-slate-800 p-4 rounded-lg">
-                {/* UPDATED: New standardized two-row header */}
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
                         <h1 className="text-2xl font-bold text-indigo-300">Fretboard Intervals</h1>
@@ -89,17 +123,17 @@ const IntervalFretboardQuiz = () => {
                         {history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-sm py-1 px-3 rounded-lg">Review</button>}
                         <label className="flex items-center gap-2 cursor-pointer font-semibold">
                             <span>Play Audio</span>
-                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={playAudio} onChange={() => setPlayAudio(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
+                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.playAudio} onChange={(e) => setSettings(s => ({ ...s, playAudio: e.target.checked }))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer font-semibold">
                             <span>Auto-Advance</span>
-                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
+                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.autoAdvance} onChange={(e) => setSettings(s => ({ ...s, autoAdvance: e.target.checked }))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
                         </label>
                     </div>
                 </div>
                 
                 <div className="max-w-2xl mx-auto">
-                    <FretboardDiagram notesToDisplay={itemToDisplay.question.notes} showLabels={isReviewing || isAnswered} startFret={0} fretCount={12} labelType={labelType} />
+                    <FretboardDiagram notesToDisplay={itemToDisplay.question.notes} showLabels={isReviewing || isAnswered} startFret={0} fretCount={12} labelType={settings.labelType} />
                     
                     <div className={`text-lg font-bold my-4 min-h-[28px] ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
                         {isReviewing ? `The correct answer was ${itemToDisplay.question.answer.number === 'Tritone' ? 'a Tritone' : `a ${itemToDisplay.question.answer.quality} ${itemToDisplay.question.answer.number}`}.` : (feedback.message || <>&nbsp;</>)}
@@ -136,7 +170,7 @@ const IntervalFretboardQuiz = () => {
                                 </div>
                                 <button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 p-3 rounded-lg">Next</button>
                             </div>
-                        ) : isAnswered && !autoAdvance && (
+                        ) : isAnswered && !settings.autoAdvance && (
                             <button onClick={startNewRound} className="bg-blue-600 p-3 rounded-lg text-xl animate-pulse">Next Question</button>
                         )}
                     </div>

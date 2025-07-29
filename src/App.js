@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect
 import { ToolsProvider, useTools } from './context/ToolsContext';
 
-// UPDATED PATHS for all components in their new folders
 import Welcome from './components/Welcome';
 import IntervalsQuiz from './components/intervalsQuiz/IntervalsQuiz';
 import NoteGenerator from './components/noteGenerator/NoteGenerator';
@@ -13,13 +12,20 @@ import ChordProgressionGenerator from './components/chordProgressionGenerator/Ch
 import IntervalGenerator from './components/intervalGenerator/IntervalGenerator';
 import TriadQuiz from './components/triadQuiz/TriadQuiz';
 import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
-import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer'; // 1. IMPORT
+import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer';
 
 
 const AppContent = () => {
   const [activeTab, setActiveTab] = useState('welcome');
   const [openCategory, setOpenCategory] = useState(null);
-  const { activeTool, unlockAudio } = useTools();
+  const { activeTool, unlockAudio, presetToLoad } = useTools(); // Get presetToLoad from context
+
+  // This useEffect watches for a preset and changes the tab accordingly
+  useEffect(() => {
+    if (presetToLoad) {
+      setActiveTab(presetToLoad.gameId);
+    }
+  }, [presetToLoad]);
 
   const toolCategories = [
     {
@@ -29,7 +35,6 @@ const AppContent = () => {
         { id: 'interval-generator', name: 'Interval Generator' },
         { id: 'chord-progression-generator', name: 'Chord Progression Generator' },
         { id: 'diagram-maker', name: 'Diagram Maker' },
-        
       ],
     },
     {
@@ -68,8 +73,7 @@ const AppContent = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-4 pb-32 md:p-6 transition-all duration-300 ${activeTool === 'log' ? 'md:pl-96' : 'md:pl-72'}`}>
-
+    <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-4 pb-32 md:p-6 transition-all duration-300 ${activeTool === 'log' || activeTool === 'presets' ? 'md:pl-96' : 'md:pl-72'}`}>
       <div className="hidden md:block fixed top-5 left-0 z-50">
         <img src={`${process.env.PUBLIC_URL}/logo.png`} alt="Signature Logo" className="h-32 w-auto" />
       </div>

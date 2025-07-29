@@ -1,39 +1,159 @@
-import React from 'react';
-import { useIntervalGenerator } from './useIntervalGenerator';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useTools } from '../../context/ToolsContext';
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
 
 const IntervalGenerator = () => {
-    const {
-        numIntervals, setNumIntervals,
-        generatedIntervals,
-        fontSize, setFontSize,
-        selectedQualities, handleQualitySelection,
-        isAutoGenerateOn, setIsAutoGenerateOn,
-        autoGenerateInterval, setAutoGenerateInterval,
-        isControlsOpen, setIsControlsOpen,
-        isInfoModalOpen, setIsInfoModalOpen,
-        countdownClicks, setCountdownClicks,
-        countdownMode, setCountdownMode,
-        generateIntervals,
-        handleLogSession,
-    } = useIntervalGenerator();
+    const { addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode, savePreset, presetToLoad, clearPresetToLoad } = useTools();
+    
+    const [settings, setSettings] = useState({
+        numIntervals: 1,
+        selectedQualities: {
+            'Perfect': true,
+            'Major': true,
+            'Minor': true,
+            'Augmented': false,
+            'Diminished': false,
+        },
+    });
+
+    // Non-preset state
+    const [generatedIntervals, setGeneratedIntervals] = useState([]);
+    const [fontSize, setFontSize] = useState(4); 
+    const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
+    const [autoGenerateInterval, setAutoGenerateInterval] = useState(1);
+    const [isControlsOpen, setIsControlsOpen] = useState(false);
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'interval-generator') {
+            setSettings(presetToLoad.settings);
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad]);
+
+    const handleSavePreset = () => {
+        const qualities = Object.keys(settings.selectedQualities).filter(q => settings.selectedQualities[q]).join('/');
+        const name = prompt("Enter a name for your preset:", `Intervals - ${qualities}`);
+        if (name && name.trim() !== "") {
+            const newPreset = {
+                id: Date.now().toString(),
+                name: name.trim(),
+                gameId: 'interval-generator',
+                gameName: 'Interval Generator',
+                settings: settings,
+            };
+            savePreset(newPreset);
+            alert(`Preset "${name.trim()}" saved!`);
+        }
+    };
+
+    const intervalData = useMemo(() => ({
+        "Unison/Octave": [{ name: 'Perfect Unison', quality: 'Perfect'}, { name: 'Perfect Octave', quality: 'Perfect'}],
+        "2nd": [{ name: 'Minor 2nd', quality: 'Minor' }, { name: 'Major 2nd', quality: 'Major' }],
+        "3rd": [{ name: 'Minor 3rd', quality: 'Minor' }, { name: 'Major 3rd', quality: 'Major' }],
+        "4th": [{ name: 'Perfect 4th', quality: 'Perfect' }, { name: 'Augmented 4th', quality: 'Augmented' }],
+        "5th": [{ name: 'Diminished 5th', quality: 'Diminished' }, { name: 'Perfect 5th', quality: 'Perfect' }],
+        "6th": [{ name: 'Minor 6th', quality: 'Minor' }, { name: 'Major 6th', quality: 'Major' }],
+        "7th": [{ name: 'Minor 7th', quality: 'Minor' }, { name: 'Major 7th', quality: 'Major' }],
+    }), []);
+
+    const allIntervals = useMemo(() => Object.values(intervalData).flat(), [intervalData]);
+
+    const generateIntervals = useCallback(() => {
+        const activeIntervals = allIntervals.filter(interval => settings.selectedQualities[interval.quality]);
+        if (activeIntervals.length === 0) {
+            setGeneratedIntervals(["Select a quality"]);
+            return;
+        }
+        let newIntervals = [];
+        let lastInterval = null;
+        for (let i = 0; i < settings.numIntervals; i++) {
+            let interval;
+            let attempts = 0;
+            do {
+                interval = activeIntervals[Math.floor(Math.random() * activeIntervals.length)];
+                attempts++;
+            } while (interval.name === lastInterval && activeIntervals.length > 1 && attempts < 20);
+            
+            newIntervals.push(interval.name);
+            lastInterval = interval.name;
+        }
+        setGeneratedIntervals(newIntervals);
+    }, [settings.numIntervals, settings.selectedQualities, allIntervals]);
+    
+    const scheduledGenerate = useCallback(() => {
+        setTimeout(generateIntervals, 0);
+    }, [generateIntervals]);
+
+    useEffect(() => {
+        generateIntervals();
+    }, [generateIntervals]);
+
+    useEffect(() => {
+        setAutoGenerateInterval(settings.numIntervals);
+    }, [settings.numIntervals]);
+
+    useEffect(() => {
+        if (isAutoGenerateOn) {
+            setMetronomeSchedule({
+                callback: scheduledGenerate,
+                interval: autoGenerateInterval,
+            });
+        } else {
+            setMetronomeSchedule(null);
+        }
+    }, [isAutoGenerateOn, autoGenerateInterval, scheduledGenerate, setMetronomeSchedule]);
+
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                generateIntervals();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [generateIntervals]);
+
+    const handleLogSession = () => {
+        const remarks = prompt("Enter any remarks for this session:", "Practiced random intervals.");
+        if (remarks !== null) {
+            addLogEntry({
+                game: 'Interval Generator',
+                bpm: 'N/A',
+                date: new Date().toLocaleDateString(),
+                remarks: remarks || "No remarks."
+            });
+            alert("Session logged!");
+        }
+    };
+    
+    const handleQualitySelection = (quality) => {
+        setSettings(prev => ({
+            ...prev,
+            selectedQualities: {
+                ...prev.selectedQualities,
+                [quality]: !prev.selectedQualities[quality]
+            }
+        }));
+    };
 
     const ControlsContent = (
         <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
                 <label htmlFor="num-intervals" className="font-semibold text-lg">Number of Intervals:</label>
-                <input type="number" id="num-intervals" value={numIntervals} onChange={(e) => setNumIntervals(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
+                <input type="number" id="num-intervals" value={settings.numIntervals} onChange={(e) => setSettings(s => ({ ...s, numIntervals: Math.max(1, parseInt(e.target.value, 10) || 1) }))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
             </div>
             
             <div className="pt-4 border-t border-slate-600">
                 <span className="font-semibold text-lg">Include Qualities:</span>
                 <div className="flex flex-col gap-3 mt-2">
-                    {Object.keys(selectedQualities).map(quality => (
+                    {Object.keys(settings.selectedQualities).map(quality => (
                         <label key={quality} className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
                             <span className="font-semibold">{quality}</span>
                             <div className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked={selectedQualities[quality]} onChange={() => handleQualitySelection(quality)} className="sr-only peer" />
+                                <input type="checkbox" checked={settings.selectedQualities[quality]} onChange={() => handleQualitySelection(quality)} className="sr-only peer" />
                                 <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                             </div>
                         </label>
@@ -70,6 +190,11 @@ const IntervalGenerator = () => {
                         <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('first')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'first' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>First Time Only</button>
                     </div>
                 </div>
+            </div>
+            <div className="border-t border-slate-600 pt-4 mt-4">
+                <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+                    Save Preset
+                </button>
             </div>
         </div>
     );

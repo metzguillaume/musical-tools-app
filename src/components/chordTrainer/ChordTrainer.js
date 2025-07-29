@@ -143,6 +143,15 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup }) => {
 
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    const { savePreset, presetToLoad, clearPresetToLoad } = useTools();
+
+    // This useEffect listens for a preset to be loaded from the context
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'chord-trainer') {
+            setSettings(presetToLoad.settings); // Apply the settings
+            clearPresetToLoad(); // Clear the preset from context
+        }
+    }, [presetToLoad, clearPresetToLoad, setSettings]);
     const inputRef = useRef(null);
     const isReviewing = reviewIndex !== null;
 
@@ -156,7 +165,21 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup }) => {
     const handleKeySelection = (key) => { const newKeys = settings.selectedKeys.includes(key) ? settings.selectedKeys.filter(k => k !== key) : [...settings.selectedKeys, key]; handleSettingChange('selectedKeys', newKeys); };
     const handleModeSelection = (modeId) => { const newModes = settings.selectedModes.includes(modeId) ? settings.selectedModes.filter(m => m !== modeId) : [...settings.selectedModes, modeId]; handleSettingChange('selectedModes', newModes); };
     const handleDegreeToggle = (degree) => handleSettingChange('degreeToggles', {...settings.degreeToggles, [degree]: !settings.degreeToggles[degree]});
-
+    const handleSavePreset = () => {
+        const suggestedName = `CT: ${settings.selectedKeys.join(',')} - ${settings.selectedModes.map(m => gameModes.find(gm => gm.id === m)?.label).join('/')}`;
+        const name = prompt("Enter a name for your preset:", suggestedName);
+        if (name && name.trim() !== "") {
+            const newPreset = {
+                id: Date.now().toString(),
+                name: name.trim(),
+                gameId: 'chord-trainer', // This ID must match the one in App.js
+                gameName: 'Chord Trainer',
+                settings: settings,
+            };
+            savePreset(newPreset);
+            alert(`Preset "${name.trim()}" saved!`);
+        }
+    };
     const itemToDisplay = isReviewing ? history[reviewIndex] : { question: currentQuestion, userAnswer };
     
     const ControlsContent = () => (
@@ -180,6 +203,11 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup }) => {
                         <label className="flex items-center justify-between p-2 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Hide Quality (Challenge)</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.hideQuality} onChange={(e) => handleSettingChange('hideQuality', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
                     </div>
                 </details>
+            </div>
+            <div className="border-t border-slate-600 pt-4 mt-4">
+                 <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+                    Save Current Settings as Preset
+                </button>
             </div>
         </div>
     );

@@ -1,11 +1,11 @@
 import React from 'react';
 import { useTools } from '../../context/ToolsContext';
-// UPDATED PATHS for components now in the same folder
 import Metronome from './Metronome';
 import DronePlayer from './DronePlayer';
 import Timer from './Timer';
 import Stopwatch from './Stopwatch';
 import PracticeLog from './PracticeLog';
+import Presets from './Presets'; // 1. Import Presets
 
 const GlobalTools = () => {
     const { 
@@ -21,6 +21,8 @@ const GlobalTools = () => {
 
     const tools = [
         { name: 'log', label: 'Practice Log', component: <PracticeLog />, hidePlayPause: true },
+        // 2. Add the new Presets tool to the array
+        { name: 'presets', label: 'Presets', component: <Presets />, hidePlayPause: true },
         { name: 'metronome', label: 'Metronome', component: <Metronome />, isPlaying: isMetronomePlaying, toggle: toggleMetronome },
         { name: 'drone', label: 'Drone', component: <DronePlayer />, isPlaying: isDronePlaying, toggle: toggleDrone },
         { name: 'timer', label: 'Timer', component: <Timer />, isPlaying: isTimerRunning, toggle: toggleTimer },
@@ -61,7 +63,7 @@ const GlobalTools = () => {
             <div className={`fixed z-30 bg-slate-900/80 backdrop-blur-sm
                          bottom-0 left-0 right-0 p-2 flex flex-row items-center justify-start gap-2 border-t border-slate-700 overflow-x-auto
                          md:top-1/4 md:left-5 md:right-auto md:bottom-5 md:flex-col md:items-stretch md:p-3 md:gap-2 md:border-t-0 md:rounded-lg md:border
-                         transition-all duration-300 ${activeTool === 'log' ? 'md:w-96' : 'md:w-64'}`}>
+                         transition-all duration-300 ${activeTool === 'log' || activeTool === 'presets' ? 'md:w-96' : 'md:w-64'}`}>
                 {tools.map(tool => (
                     <div key={tool.name} className="bg-slate-800 rounded-lg shadow-lg border border-slate-700 flex-shrink-0 md:flex md:flex-col">
                         <div className="flex items-center flex-shrink-0">

@@ -6,7 +6,7 @@ import InfoButton from '../common/InfoButton';
 import { SEMITONE_TO_DEGREE } from '../../utils/musicTheory';
 
 const IntervalEarTrainer = () => {
-    const { addLogEntry, setDroneNote } = useTools();
+    const { addLogEntry, setDroneNote, savePreset, presetToLoad, clearPresetToLoad } = useTools();
     const [settings, setSettings] = useState({
         autoAdvance: true,
         isTrainingMode: false,
@@ -30,19 +30,26 @@ const IntervalEarTrainer = () => {
     const {
         score, totalAsked, feedback, isAnswered, currentQuestion, history, reviewIndex, setReviewIndex,
         generateNewQuestion, checkAnswer, handleReviewNav, startReview, playQuestionAudio, ALL_INTERVALS,
-        diatonicOptions, newKeyNotification, isKeyChanging
+        diatonicOptions, newKeyNotification
     } = useIntervalEarTrainer(settings);
+
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'interval-ear-trainer') {
+            setSettings(presetToLoad.settings);
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad]);
 
     const isReviewing = reviewIndex !== null;
 
     useEffect(() => {
         if (currentQuestion) setSelectedNotes([]);
         if (currentQuestion && !isAnswered && !isReviewing) {
-            const delay = (isKeyChanging && settings.rootNoteMode === 'Roving' && settings.useDrone) ? 3000 : 500;
+            const delay = (newKeyNotification && settings.rootNoteMode === 'Roving' && settings.useDrone) ? 3000 : 500;
             const timer = setTimeout(() => playQuestionAudio(), delay);
             return () => clearTimeout(timer);
         }
-    }, [currentQuestion, isAnswered, isReviewing, playQuestionAudio, isKeyChanging, settings.rootNoteMode, settings.useDrone]);
+    }, [currentQuestion, isAnswered, isReviewing, playQuestionAudio, newKeyNotification, settings.rootNoteMode, settings.useDrone]);
     
     useEffect(() => {
         if (settings.useDrone) {
@@ -53,6 +60,34 @@ const IntervalEarTrainer = () => {
     const handleLogProgress = () => {
         const remarks = prompt("Enter any remarks for this session:", `Score: ${score}/${totalAsked}`);
         if (remarks !== null) { addLogEntry({ game: 'Interval Ear Trainer', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); }
+    };
+
+    // This helper function generates a suggested name from the current settings
+    const generatePresetName = (currentSettings) => {
+        const parts = [];
+        parts.push(currentSettings.notePool === 'Diatonic' ? `${currentSettings.diatonicMode}` : 'Chromatic');
+        parts.push(currentSettings.rootNoteMode === 'Fixed' ? `${currentSettings.fixedKey}` : 'Roving');
+        parts.push(currentSettings.playbackStyle);
+        if(currentSettings.playbackStyle === 'Melodic') {
+            parts.push(currentSettings.direction.slice(0, 4));
+        }
+        return parts.join(' ');
+    };
+
+    const handleSavePreset = () => {
+        const suggestedName = generatePresetName(settings);
+        const name = prompt("Enter a name for your preset:", suggestedName);
+        if (name && name.trim() !== "") {
+            const newPreset = {
+                id: Date.now().toString(),
+                name: name.trim(),
+                gameId: 'interval-ear-trainer',
+                gameName: 'Interval Recognition',
+                settings: settings,
+            };
+            savePreset(newPreset);
+            alert(`Preset "${name.trim()}" saved!`);
+        }
     };
 
     const itemToDisplay = isReviewing ? history[reviewIndex] : null;
@@ -91,6 +126,11 @@ const IntervalEarTrainer = () => {
             <div className="border-t border-slate-600 pt-4">
                 <h4 className="font-semibold text-lg text-teal-300 mb-2">Answer Mode</h4>
                 <div className="flex bg-slate-600 rounded-md p-1"><button onClick={() => setSettings(s => ({...s, answerMode: 'Interval Name'}))} className={`flex-1 rounded-md py-1 ${settings.answerMode === 'Interval Name' ? 'bg-blue-600' : ''}`}>Interval Name</button><button onClick={() => setSettings(s => ({...s, answerMode: 'Scale Degree'}))} className={`flex-1 rounded-md py-1 ${settings.answerMode === 'Scale Degree' ? 'bg-blue-600' : ''}`}>Scale Degree</button><button onClick={() => setSettings(s => ({...s, answerMode: 'Note Names'}))} className={`flex-1 rounded-md py-1 ${settings.answerMode === 'Note Names' ? 'bg-blue-600' : ''}`}>Note Names</button></div>
+            </div>
+            <div className="border-t border-slate-600 pt-4 mt-4">
+                 <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+                    Save Current Settings as Preset
+                </button>
             </div>
         </div>
     );

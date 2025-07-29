@@ -8,22 +8,32 @@ const COMMON_PATTERNS = {
 };
 
 export const useChordProgressionGenerator = () => {
-    const { setMetronomeSchedule, addLogEntry, bpm, countdownClicks, setCountdownClicks } = useTools();
+    const { setMetronomeSchedule, addLogEntry, bpm, countdownClicks, setCountdownClicks, presetToLoad, clearPresetToLoad } = useTools();
 
-    const [rootNote, setRootNote] = useState('C');
-    const [keyType, setKeyType] = useState('Major');
-    const [numChords, setNumChords] = useState(4);
-    const [numProgressions, setNumProgressions] = useState(1);
-    const [chordComplexity, setChordComplexity] = useState('Triads');
-    const [useCommonPatterns, setUseCommonPatterns] = useState(true);
-    const [includeDiminished, setIncludeDiminished] = useState(false);
-    const [qualityFilter, setQualityFilter] = useState('all');
+    const [settings, setSettings] = useState({
+        rootNote: 'C',
+        keyType: 'Major',
+        numChords: 4,
+        numProgressions: 1,
+        chordComplexity: 'Triads',
+        useCommonPatterns: true,
+        includeDiminished: false,
+        qualityFilter: 'all',
+        displayMode: 'both',
+        fontSize: 3,
+    });
+    
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'chord-progression-generator') {
+            setSettings(presetToLoad.settings);
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad]);
+
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
-    const [autoGenerateInterval, setAutoGenerateInterval] = useState(numChords);
-    const [displayMode, setDisplayMode] = useState('both');
+    const [autoGenerateInterval, setAutoGenerateInterval] = useState(settings.numChords);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-    const [fontSize, setFontSize] = useState(3);
     const [progressions, setProgressions] = useState([]);
     const [openSections, setOpenSections] = useState({
         general: true, options: false, display: false, automation: false
@@ -34,54 +44,38 @@ export const useChordProgressionGenerator = () => {
     };
 
     const handleGenerate = useCallback(() => {
-        const apiComplexity = chordComplexity === 'Tetrads' ? '7ths' : 'Triads';
-        let diatonicChords = getDiatonicChords(rootNote, keyType, apiComplexity);
+        const apiComplexity = settings.chordComplexity === 'Tetrads' ? '7ths' : 'Triads';
+        let diatonicChords = getDiatonicChords(settings.rootNote, settings.keyType, apiComplexity);
         
         let availableChords = [...diatonicChords];
-        if (!includeDiminished) {
+        if (!settings.includeDiminished) {
             availableChords = availableChords.filter(c => !c.quality.includes('Diminished'));
         }
         
-        if (qualityFilter === 'major') {
-            availableChords = availableChords.filter(c => {
-                const q = c.quality;
-                return q.includes('Major') || q.includes('Dominant') || q.includes('Augmented');
-            });
-        } else if (qualityFilter === 'minor') {
-            availableChords = availableChords.filter(c => {
-                const q = c.quality;
-                return q.includes('Minor') || q.includes('Half-Diminished');
-            });
+        if (settings.qualityFilter === 'major') {
+            availableChords = availableChords.filter(c => c.quality.includes('Major') || c.quality.includes('Dominant') || c.quality.includes('Augmented'));
+        } else if (settings.qualityFilter === 'minor') {
+            availableChords = availableChords.filter(c => c.quality.includes('Minor') || c.quality.includes('Half-Diminished'));
         }
         
-        const canUseCommonPatterns = useCommonPatterns && qualityFilter === 'all';
+        const canUseCommonPatterns = settings.useCommonPatterns && settings.qualityFilter === 'all';
         const newProgressions = [];
-        for (let i = 0; i < numProgressions; i++) {
+        for (let i = 0; i < settings.numProgressions; i++) {
             const singleProgression = [];
             if (canUseCommonPatterns && availableChords.length > 0) {
-                const basePatterns = COMMON_PATTERNS[keyType === 'Major' ? 'Major' : 'Minor'] || COMMON_PATTERNS['Major'];
+                const basePatterns = COMMON_PATTERNS[settings.keyType.includes('Major') ? 'Major' : 'Minor'] || COMMON_PATTERNS['Major'];
                 const basePattern = basePatterns[Math.floor(Math.random() * basePatterns.length)];
                 
-                const finalPattern = [];
-                for (let j = 0; j < numChords; j++) {
-                    finalPattern.push(basePattern[j % basePattern.length]);
-                }
+                const finalPattern = Array.from({ length: settings.numChords }, (_, j) => basePattern[j % basePattern.length]);
 
                 for (const roman of finalPattern) {
                     const numeralIndex = ROMAN_NUMERALS.indexOf(roman.toUpperCase());
                     let chord = diatonicChords[numeralIndex];
-                    if (chord) {
-                         if (keyType !== 'Major' && !['i', 'ii°', 'v', 'vii°'].includes(roman)) {
-                            chord.roman = roman.toUpperCase();
-                        } else {
-                            chord.roman = roman;
-                        }
-                        singleProgression.push(chord);
-                    }
+                    if (chord) { singleProgression.push({ ...chord, roman }); }
                 }
             } else if (availableChords.length > 0) { 
                 let lastChord = null;
-                for (let j = 0; j < numChords; j++) {
+                for (let j = 0; j < settings.numChords; j++) {
                     if (availableChords.length === 0) continue;
                     let nextChord;
                     do {
@@ -96,14 +90,15 @@ export const useChordProgressionGenerator = () => {
         
         if (newProgressions.every(prog => prog.length === 0)) return;
         setProgressions(newProgressions);
-    }, [rootNote, keyType, chordComplexity, numChords, numProgressions, useCommonPatterns, includeDiminished, qualityFilter]);
+    }, [settings]);
     
     const scheduledGenerate = useCallback(() => {
         setTimeout(handleGenerate, 0);
     }, [handleGenerate]);
 
     useEffect(() => { handleGenerate(); }, [handleGenerate]);
-    useEffect(() => { setAutoGenerateInterval(numChords); }, [numChords]);
+    useEffect(() => { setAutoGenerateInterval(settings.numChords); }, [settings.numChords]);
+
     useEffect(() => {
         if (isAutoGenerateOn) {
             setMetronomeSchedule({ callback: scheduledGenerate, interval: autoGenerateInterval });
@@ -124,7 +119,7 @@ export const useChordProgressionGenerator = () => {
     }, [handleGenerate]);
 
     const handleLogSession = () => {
-        const remarks = prompt("Enter any remarks for this session:", `Practiced chord progressions in ${rootNote} ${keyType}.`);
+        const remarks = prompt("Enter any remarks for this session:", `Practiced chord progressions in ${settings.rootNote} ${settings.keyType}.`);
         if (remarks !== null) {
             addLogEntry({
                 game: 'Chord Progression Generator', bpm: bpm || 'N/A',
@@ -134,28 +129,12 @@ export const useChordProgressionGenerator = () => {
         }
     };
     
-    const handleQualityFilterChange = (filter) => {
-        setQualityFilter(filter);
-        if (filter !== 'all') {
-            setUseCommonPatterns(false);
-        }
-    };
-
     return {
-        rootNote, setRootNote,
-        keyType, setKeyType,
-        numChords, setNumChords,
-        numProgressions, setNumProgressions,
-        chordComplexity, setChordComplexity,
-        useCommonPatterns, setUseCommonPatterns,
-        includeDiminished, setIncludeDiminished,
-        qualityFilter, handleQualityFilterChange,
+        settings, setSettings,
         isAutoGenerateOn, setIsAutoGenerateOn,
         autoGenerateInterval, setAutoGenerateInterval,
-        displayMode, setDisplayMode,
         isControlsOpen, setIsControlsOpen,
         isInfoModalOpen, setIsInfoModalOpen,
-        fontSize, setFontSize,
         progressions,
         openSections, toggleSection,
         countdownClicks, setCountdownClicks,

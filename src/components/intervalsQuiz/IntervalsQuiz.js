@@ -24,43 +24,61 @@ const AnswerButton = ({ value, type, selectedValue, onClick, isDisabled, childre
 };
 
 const IntervalsQuiz = () => {
-    const { addLogEntry, fretboardVolume, setFretboardVolume } = useTools();
-    const [settings, setSettings] = useState({ quizMode: 'mixed', rootNoteType: 'chromatic', direction: 'both', autoAdvance: true });
-    const [playAudio, setPlayAudio] = useState(true);
-    const [audioDirection, setAudioDirection] = useState('above');
-    const [isControlsOpen, setIsControlsOpen] = useState(false);
-    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-    
-    // --- START SLIDER FIX ---
-    // Local state to manage the slider's value during dragging
-    const [localVolume, setLocalVolume] = useState(fretboardVolume);
+    // Get all necessary functions from the context, including for presets
+    const { addLogEntry, fretboardVolume, setFretboardVolume, savePreset, presetToLoad, clearPresetToLoad } = useTools();
 
-    // Effect to sync the local slider if the global volume changes
-    useEffect(() => {
-        setLocalVolume(fretboardVolume);
-    }, [fretboardVolume]);
-    // --- END SLIDER FIX ---
-    
     const allIntervalNames = useMemo(() => intervalData.map(i => i.name), []);
     
-    const [selectedIntervals, setSelectedIntervals] = useState(() => {
-        const initialState = {};
-        allIntervalNames.forEach(name => { initialState[name] = true; });
-        return initialState;
+    // All configurable options are now in a single 'settings' state object
+    const [settings, setSettings] = useState({
+        quizMode: 'mixed',
+        rootNoteType: 'chromatic',
+        direction: 'both',
+        autoAdvance: true,
+        playAudio: true,
+        audioDirection: 'above',
+        selectedIntervals: allIntervalNames.reduce((acc, name) => ({ ...acc, [name]: true }), {}),
     });
+
+    // Local state for the volume slider UI to prevent lag
+    const [localVolume, setLocalVolume] = useState(fretboardVolume);
+    const [isControlsOpen, setIsControlsOpen] = useState(false);
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    const [openControlSections, setOpenControlSections] = useState({ quiz: true, selection: true, preset: true });
+
+    // This useEffect loads a preset when one is selected from the Presets tool
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'intervals-quiz') {
+            const { fretboardVolume: loadedVolume, ...loadedSettings } = presetToLoad.settings;
+            setSettings(loadedSettings);
+            if (loadedVolume !== undefined) {
+                setFretboardVolume(loadedVolume);
+                setLocalVolume(loadedVolume);
+            }
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad, setFretboardVolume]);
 
     const { 
         feedback, score, answerChecked, currentQuestion, userAnswer, setUserAnswer, 
         history, reviewIndex, setReviewIndex, handleReviewNav, startReview,
         checkAnswer, generateNewQuestion,
         replayAudioForHistoryItem
-    } = useIntervalsQuiz({ ...settings, selectedIntervals }, playAudio, audioDirection);
+    } = useIntervalsQuiz(settings, settings.playAudio, settings.audioDirection);
     
     const isReviewing = reviewIndex !== null;
     
-    const handleSettingChange = (key, value) => setSettings(prev => ({...prev, [key]: value}));
+    // Generic handler to update any setting
+    const handleSettingChange = (key, value) => {
+        setSettings(prev => ({ ...prev, [key]: value }));
+    };
+
     const handleAnswerSelect = (type, value) => !answerChecked && !isReviewing && setUserAnswer(prev => ({ ...prev, [type]: value }));
     
+    useEffect(() => {
+        setLocalVolume(fretboardVolume);
+    }, [fretboardVolume]);
+
     useEffect(() => {
         const handleKeyDown = (event) => { 
             if (isReviewing) return;
@@ -77,19 +95,45 @@ const IntervalsQuiz = () => {
         const remarks = prompt("Enter any remarks for this session:", `Score: ${score}/${history.length}`);
         if (remarks !== null) { addLogEntry({ game: 'Interval Practice Quiz', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); }
     };
-
-    const handleSelectionChange = (name) => setSelectedIntervals(prev => ({ ...prev, [name]: !prev[name] }));
-    const handleQuickSelect = (quality) => { 
-        const newState = { ...selectedIntervals }; 
-        intervalData.forEach(i => { 
-            if (i.quality === quality) newState[i.name] = !newState[i.name]; 
-        }); 
-        setSelectedIntervals(newState); 
+    
+    // This function creates and saves the preset object
+    const handleSavePreset = () => {
+        const name = prompt("Enter a name for your preset:", "Intervals Quiz Setting");
+        if (name && name.trim() !== "") {
+            const newPreset = {
+                id: Date.now().toString(),
+                name: name.trim(),
+                gameId: 'intervals-quiz',
+                gameName: 'Interval Practice',
+                settings: {
+                    ...settings,
+                    fretboardVolume: fretboardVolume // Save the current global volume
+                },
+            };
+            savePreset(newPreset);
+            alert(`Preset "${name.trim()}" saved!`);
+        }
     };
-    const handleSelectAll = (select) => { 
-        const newState = {}; 
-        allIntervalNames.forEach(name => { newState[name] = select; }); 
-        setSelectedIntervals(newState); 
+
+    const handleIntervalSelection = (name) => {
+        setSettings(prev => ({
+            ...prev,
+            selectedIntervals: { ...prev.selectedIntervals, [name]: !prev.selectedIntervals[name] }
+        }));
+    };
+
+    const handleQuickSelect = (quality) => {
+        const newSelection = { ...settings.selectedIntervals };
+        intervalData.forEach(i => {
+            if (i.quality === quality) newSelection[i.name] = !newSelection[i.name];
+        });
+        handleSettingChange('selectedIntervals', newSelection);
+    };
+
+    const handleSelectAll = (select) => {
+        const newSelection = {};
+        allIntervalNames.forEach(name => { newSelection[name] = select; });
+        handleSettingChange('selectedIntervals', newSelection);
     };
     
     const itemToDisplay = isReviewing ? history[reviewIndex] : { question: currentQuestion, userAnswer };
@@ -161,7 +205,7 @@ const IntervalsQuiz = () => {
     
     const ControlsContent = () => (
         <div className="space-y-6">
-            <CollapsibleSection title="Quiz Options" isOpen={true}>
+            <CollapsibleSection title="Quiz Options" isOpen={openControlSections.quiz} onToggle={() => setOpenControlSections(s => ({...s, quiz: !s.quiz}))}>
                  <div className="space-y-4">
                     <div>
                         <h4 className="font-semibold text-lg text-teal-300 mb-2">Quiz Mode</h4>
@@ -199,8 +243,8 @@ const IntervalsQuiz = () => {
                             <div>
                                 <h4 className="font-semibold">Audio Playback Direction</h4>
                                 <div className="flex bg-slate-600 rounded-md p-1 mt-1">
-                                    <button onClick={() => setAudioDirection('above')} className={`flex-1 rounded-md text-sm py-1 ${audioDirection === 'above' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Ascending</button>
-                                    <button onClick={() => setAudioDirection('below')} className={`flex-1 rounded-md text-sm py-1 ${audioDirection === 'below' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Descending</button>
+                                    <button onClick={() => handleSettingChange('audioDirection', 'above')} className={`flex-1 rounded-md text-sm py-1 ${settings.audioDirection === 'above' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Ascending</button>
+                                    <button onClick={() => handleSettingChange('audioDirection', 'below')} className={`flex-1 rounded-md text-sm py-1 ${settings.audioDirection === 'below' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Descending</button>
                                 </div>
                             </div>
                         </div>
@@ -208,7 +252,6 @@ const IntervalsQuiz = () => {
 
                     <div>
                         <label htmlFor="interval-audio-volume" className="font-semibold text-lg text-teal-300 mb-2 block">Audio Volume</label>
-                        {/* --- START SLIDER FIX --- */}
                         <input
                             type="range"
                             id="interval-audio-volume"
@@ -220,11 +263,10 @@ const IntervalsQuiz = () => {
                             onKeyUp={() => setFretboardVolume(localVolume)}
                             className="w-full h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer"
                         />
-                        {/* --- END SLIDER FIX --- */}
                     </div>
                  </div>
             </CollapsibleSection>
-            <CollapsibleSection title="Interval Selection" isOpen={true}>
+            <CollapsibleSection title="Interval Selection" isOpen={openControlSections.selection} onToggle={() => setOpenControlSections(s => ({...s, selection: !s.selection}))}>
                 <div className="flex flex-wrap justify-start gap-2 mb-4">
                     <h4 className="text-lg font-semibold text-blue-200 w-full">Quick Select</h4>
                     <button onClick={() => handleQuickSelect('Major')} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-3 text-sm rounded-lg">Toggle Major</button>
@@ -246,7 +288,7 @@ const IntervalsQuiz = () => {
                                 <label key={interval.name} className="flex items-center justify-between text-gray-200 cursor-pointer">
                                     <span className="text-sm">{interval.name}</span>
                                     <div className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" checked={!!selectedIntervals[interval.name]} onChange={() => handleSelectionChange(interval.name)} className="sr-only peer" />
+                                        <input type="checkbox" checked={!!settings.selectedIntervals[interval.name]} onChange={() => handleIntervalSelection(interval.name)} className="sr-only peer" />
                                         <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                     </div>
                                 </label>
@@ -255,6 +297,12 @@ const IntervalsQuiz = () => {
                     ))}
                 </div>
             </CollapsibleSection>
+            {/* The new "Save Preset" button is added here */}
+            <div className="border-t border-slate-600 pt-4 mt-4">
+                <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+                    Save Preset
+                </button>
+            </div>
         </div>
     );
     
@@ -268,7 +316,20 @@ const IntervalsQuiz = () => {
 
             <div className="w-full flex-1 bg-slate-800 p-4 md:p-8 rounded-lg">
                 <div className="flex justify-between items-center mb-4"><div className="flex items-center gap-3"><h1 className="text-3xl font-extrabold text-indigo-300">Intervals Quiz</h1><InfoButton onClick={() => setIsInfoModalOpen(true)} /></div><div className="flex items-center gap-2"><button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log</button><button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Controls</button></div></div>
-                <div className="flex justify-between items-center mb-4 text-lg"><span className="font-semibold text-gray-300">Score: {score} / {history.length}</span><div className="flex items-center gap-4">{history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50">Review</button>}<label className="flex items-center gap-2 cursor-pointer font-semibold"><span>Play Audio</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={playAudio} onChange={() => setPlayAudio(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label><label className="flex items-center gap-2 cursor-pointer font-semibold"><span>Auto-Advance</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.autoAdvance} onChange={() => handleSettingChange('autoAdvance', !settings.autoAdvance)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label></div></div>
+                <div className="flex justify-between items-center mb-4 text-lg">
+                    <span className="font-semibold text-gray-300">Score: {score} / {history.length}</span>
+                    <div className="flex items-center gap-4">
+                        {history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50">Review</button>}
+                        <label className="flex items-center gap-2 cursor-pointer font-semibold">
+                            <span>Play Audio</span>
+                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.playAudio} onChange={() => handleSettingChange('playAudio', !settings.playAudio)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer font-semibold">
+                            <span>Auto-Advance</span>
+                            <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.autoAdvance} onChange={() => handleSettingChange('autoAdvance', !settings.autoAdvance)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
+                        </label>
+                    </div>
+                </div>
                 
                 <div className="text-center w-full max-w-2xl mx-auto my-6 min-h-[120px] flex flex-col items-center justify-center">{renderQuestion()}</div>
                 <div className={`my-4 min-h-[60px] flex flex-col justify-center`}>{isReviewing ? renderReviewFeedback() : <p className={`text-lg font-bold text-center ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>{feedback.message || <>&nbsp;</>}</p>}</div>

@@ -12,7 +12,7 @@ const ALL_INTERVALS = [
     { name: 'Major 6th', semitones: 9 }, { name: 'Minor 7th', semitones: 10 },
     { name: 'Major 7th', semitones: 11 }, { name: 'Octave', semitones: 12 },
 ];
-const PLAYABLE_MIDI_RANGE = { min: 40, max: 76 };
+
 
 const findPlayableNote = (midi) => {
     for (let s = fretboardModel.length - 1; s >= 0; s--) {

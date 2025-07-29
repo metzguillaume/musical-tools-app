@@ -21,7 +21,7 @@ export const useNoteGenerator = () => {
     }, [presetToLoad, clearPresetToLoad]);
 
     // Non-preset state
-    const [fontSize, setFontSize] = useState(4);
+
     const [generatedNotes, setGeneratedNotes] = useState([]);
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
     const [autoGenerateInterval, setAutoGenerateInterval] = useState(settings.numNotes);

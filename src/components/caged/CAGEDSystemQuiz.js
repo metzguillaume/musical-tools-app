@@ -1,13 +1,12 @@
-// src/components/caged/CAGEDSystemQuiz.js
-
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react'; // Add useEffect
 import { useTools } from '../../context/ToolsContext';
-import InfoModal from '../common/InfoModal'; // UPDATED PATH
+import InfoModal from '../common/InfoModal';
 import { CagedQuizUI, ControlsContent } from './CagedQuizUI';
 import { useCagedQuiz } from './useCagedQuiz';
 
 const CAGEDSystemQuiz = () => {
-    const { addLogEntry } = useTools();
+    // Get preset functions from the context
+    const { addLogEntry, savePreset, presetToLoad, clearPresetToLoad } = useTools(); 
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     
@@ -18,6 +17,36 @@ const CAGEDSystemQuiz = () => {
         shapes: { E: true, A: true, G: true, C: true, D: true },
         showDegrees: false,
     });
+    
+    // Add this useEffect to handle loading a preset
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'caged-system-quiz') {
+            const { quizMode: presetQuizMode, ...presetSettings } = presetToLoad.settings;
+            setSettings(presetSettings);
+            setQuizMode(presetQuizMode);
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad]);
+
+    // Add this function to save the current settings as a preset
+    const handleSavePreset = () => {
+        const shapeNames = Object.keys(settings.shapes).filter(s => settings.shapes[s]).join(',');
+        const name = prompt("Enter a name for your preset:", `CAGED - ${shapeNames}`);
+        if (name && name.trim() !== "") {
+            const newPreset = {
+                id: Date.now().toString(),
+                name: name.trim(),
+                gameId: 'caged-system-quiz',
+                gameName: 'CAGED System Quiz',
+                settings: {
+                    ...settings,
+                    quizMode: quizMode // Also save the quizMode
+                },
+            };
+            savePreset(newPreset);
+            alert(`Preset "${name.trim()}" saved!`);
+        }
+    };
     
     const handleSettingToggle = useCallback((type, key) => {
         setSettings(prev => {
@@ -49,6 +78,8 @@ const CAGEDSystemQuiz = () => {
             setQuizMode={setQuizMode}
             settings={settings}
             handleSettingToggle={handleSettingToggle}
+            // Pass the new function to the controls
+            handleSavePreset={handleSavePreset} 
         />
     );
 

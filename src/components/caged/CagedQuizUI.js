@@ -13,7 +13,7 @@ const ShowDegreesToggle = ({ isChecked, onChange }) => (
     </label>
 );
 
-export const ControlsContent = ({ quizMode, setQuizMode, settings, handleSettingToggle }) => (
+export const ControlsContent = ({ quizMode, setQuizMode, settings, handleSettingToggle, handleSavePreset }) => (
     <div className="space-y-4">
         <div>
             <h3 className="font-semibold text-lg text-teal-300 mb-2">Game Mode</h3>
@@ -62,6 +62,11 @@ export const ControlsContent = ({ quizMode, setQuizMode, settings, handleSetting
                     <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </div>
             </label>
+        </div>
+        <div className="border-t border-slate-600 pt-4 mt-4">
+            <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+                Save Preset
+            </button>
         </div>
     </div>
 );

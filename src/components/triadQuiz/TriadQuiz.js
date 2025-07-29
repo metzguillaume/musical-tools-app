@@ -6,19 +6,35 @@ import { useTriadQuiz, NOTE_LETTERS, ACCIDENTALS } from './useTriadQuiz';
 
 
 const TriadQuiz = () => {
-    const { addLogEntry } = useTools();
-    const [quizMode, setQuizMode] = useState('mixed');
-    const [include7ths, setInclude7ths] = useState(false);
-    const [includeInversions, setIncludeInversions] = useState(false);
-    const [autoAdvance, setAutoAdvance] = useState(true);
+    // Get preset functions from the context, in addition to addLogEntry
+    const { addLogEntry, savePreset, presetToLoad, clearPresetToLoad } = useTools();
+
+    // Consolidate settings into a single state object for presets
+    const [settings, setSettings] = useState({
+        quizMode: 'mixed',
+        include7ths: false,
+        includeInversions: false,
+        autoAdvance: true,
+    });
+    
+    // State that isn't part of presets
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
 
+    // useEffect to load a preset when it's selected
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'triad-quiz') {
+            setSettings(presetToLoad.settings);
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad]);
+    
     const {
         score, totalAsked, feedback, isAnswered, currentQuestion, userAnswer, setUserAnswer,
         history, reviewIndex, setReviewIndex, questionTypes,
         checkAnswer, generateNewQuestion, handleReviewNav, startReview
-    } = useTriadQuiz(quizMode, include7ths, includeInversions, autoAdvance);
+        // Pass the settings object to the hook
+    } = useTriadQuiz(settings.quizMode, settings.include7ths, settings.includeInversions, settings.autoAdvance);
 
     const isReviewing = reviewIndex !== null;
 
@@ -26,17 +42,34 @@ const TriadQuiz = () => {
         const handleKeyDown = (event) => {
             if (event.key === 'Enter') {
                 if (isReviewing) return;
-                if (isAnswered && !autoAdvance) { generateNewQuestion(); } 
+                // Use settings.autoAdvance
+                if (isAnswered && !settings.autoAdvance) { generateNewQuestion(); } 
                 else if (!isAnswered) { checkAnswer(); }
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isAnswered, autoAdvance, isReviewing, checkAnswer, generateNewQuestion]);
+    }, [isAnswered, settings.autoAdvance, isReviewing, checkAnswer, generateNewQuestion]);
 
     const handleLogProgress = () => {
         const remarks = prompt("Enter any remarks for this session:", `Score: ${score} / ${totalAsked}`);
         if (remarks !== null) { addLogEntry({ game: 'Triad & Tetrads Quiz', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); }
+    };
+    
+    // Function to create and save the preset object
+    const handleSavePreset = () => {
+        const name = prompt("Enter a name for your preset:", "Triads Quiz Setting");
+        if (name && name.trim() !== "") {
+            const newPreset = {
+                id: Date.now().toString(),
+                name: name.trim(),
+                gameId: 'triad-quiz',
+                gameName: 'Triad & Tetrads Quiz',
+                settings: settings, // The settings object contains everything needed
+            };
+            savePreset(newPreset);
+            alert(`Preset "${name.trim()}" saved!`);
+        }
     };
         
     if (!currentQuestion && reviewIndex === null) { return <div>Loading...</div>; }
@@ -137,26 +170,33 @@ const TriadQuiz = () => {
         )
     };
     
-    const ControlsContent = (
+    // THE FIX IS HERE: Changed const ControlsContent = ( to const ControlsContent = () => (
+    const ControlsContent = () => (
         <div className="space-y-4">
             <div>
                 <h3 className="font-semibold text-lg text-teal-300 mb-2">Quiz Mode</h3>
                 <div className="space-y-2">
-                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheTriad' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheTriad" checked={quizMode === 'nameTheTriad'} onChange={(e) => setQuizMode(e.target.value)} className="sr-only" />Name the Chord</label>
-                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'nameTheNotes' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheNotes" checked={quizMode === 'nameTheNotes'} onChange={(e) => setQuizMode(e.target.value)} className="sr-only" />Name the Notes</label>
-                    <label className={`block p-3 rounded-md cursor-pointer ${quizMode === 'mixed' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="mixed" checked={quizMode === 'mixed'} onChange={(e) => setQuizMode(e.target.value)} className="sr-only" />Mixed Quiz</label>
+                    <label className={`block p-3 rounded-md cursor-pointer ${settings.quizMode === 'nameTheTriad' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheTriad" checked={settings.quizMode === 'nameTheTriad'} onChange={(e) => setSettings(s => ({...s, quizMode: e.target.value}))} className="sr-only" />Name the Chord</label>
+                    <label className={`block p-3 rounded-md cursor-pointer ${settings.quizMode === 'nameTheNotes' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="nameTheNotes" checked={settings.quizMode === 'nameTheNotes'} onChange={(e) => setSettings(s => ({...s, quizMode: e.target.value}))} className="sr-only" />Name the Notes</label>
+                    <label className={`block p-3 rounded-md cursor-pointer ${settings.quizMode === 'mixed' ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}><input type="radio" name="quizMode" value="mixed" checked={settings.quizMode === 'mixed'} onChange={(e) => setSettings(s => ({...s, quizMode: e.target.value}))} className="sr-only" />Mixed Quiz</label>
                 </div>
             </div>
             <div>
                 <h3 className="font-semibold text-lg text-teal-300 mb-2">Options</h3>
                 <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
                     <span className="font-semibold">Include 7th Chords</span>
-                    <div className="relative inline-flex items-center"><input type="checkbox" checked={include7ths} onChange={() => setInclude7ths(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div></div>
+                    <div className="relative inline-flex items-center"><input type="checkbox" checked={settings.include7ths} onChange={() => setSettings(s => ({...s, include7ths: !s.include7ths}))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-blue-600"></div></div>
                 </label>
                  <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md mt-2">
                     <span className="font-semibold">Include Inversions</span>
-                    <div className="relative inline-flex items-center"><input type="checkbox" checked={includeInversions} onChange={() => setIncludeInversions(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div></div>
+                    <div className="relative inline-flex items-center"><input type="checkbox" checked={settings.includeInversions} onChange={() => setSettings(s => ({...s, includeInversions: !s.includeInversions}))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-blue-600"></div></div>
                 </label>
+            </div>
+            {/* Add the Save Preset button here */}
+            <div className="border-t border-slate-600 pt-4 mt-4">
+                <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+                    Save Preset
+                </button>
             </div>
         </div>
     );
@@ -177,20 +217,33 @@ const TriadQuiz = () => {
                         <button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Controls</button>
                     </div>
                 </div>
-                <div className="grid grid-cols-3 items-center mb-4"><span className="text-xl justify-self-start">Score: {score}/{totalAsked}</span><div className="justify-self-center">{history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50">Review History</button>}</div><label className="flex items-center gap-2 cursor-pointer font-semibold justify-self-end"><span>Auto-Advance</span><div className="relative"><input type="checkbox" checked={autoAdvance} onChange={() => setAutoAdvance(p => !p)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label></div>
+                <div className="grid grid-cols-3 items-center mb-4">
+                    <span className="text-xl justify-self-start">Score: {score}/{totalAsked}</span>
+                    <div className="justify-self-center">{history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-1 px-3 rounded-lg text-sm disabled:opacity-50">Review History</button>}</div>
+                    <label className="flex items-center gap-2 cursor-pointer font-semibold justify-self-end">
+                        <span>Auto-Advance</span>
+                        <div className="relative">
+                            <input type="checkbox" checked={settings.autoAdvance} onChange={() => setSettings(s => ({...s, autoAdvance: !s.autoAdvance}))} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </div>
+                    </label>
+                </div>
                 
-                {/* UPDATED: Vertical margin reduced on mobile */}
                 <div className="min-h-[6rem] p-4 bg-slate-900/50 rounded-lg flex justify-center items-center mb-2 md:mb-4">{currentQuestion && renderQuestion()}</div>
                 <div className={`my-2 md:my-4 min-h-[52px] flex flex-col justify-center ${isReviewing ? '' : (feedback.type === 'correct' ? 'text-green-400' : 'text-red-400')}`}>{isReviewing ? renderReviewFeedback() : <p className="text-lg font-bold text-center">{feedback.message || <>&nbsp;</>}</p>}</div>
                 
                 <div className="space-y-4">{currentQuestion && renderAnswerArea()}</div>
-                <div className="h-20 mt-4 flex justify-center items-center">{isReviewing ? (<div className="flex items-center justify-center gap-4 w-full"><button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button><button onClick={() => setReviewIndex(null)} className="flex-grow max-w-xs bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button><button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button></div>) : !isAnswered ? (<button onClick={checkAnswer} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Submit</button>) : !autoAdvance && (<button onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>)}</div>
+                <div className="h-20 mt-4 flex justify-center items-center">
+                    {isReviewing ? (<div className="flex items-center justify-center gap-4 w-full"><button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button><button onClick={() => setReviewIndex(null)} className="flex-grow max-w-xs bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button><button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button></div>) 
+                    : !isAnswered ? (<button onClick={checkAnswer} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Submit</button>) 
+                    : !settings.autoAdvance && (<button onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>)}
+                </div>
             </div>
             
             <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
                 <div className={`${!isControlsOpen && 'hidden'}`}>
                     <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
-                    {ControlsContent}
+                    <ControlsContent />
                 </div>
             </div>
 
@@ -202,7 +255,7 @@ const TriadQuiz = () => {
                             <button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
                         </div>
                         <div className="flex-grow overflow-y-auto pr-2">
-                            {ControlsContent}
+                            <ControlsContent />
                         </div>
                     </div>
                 </div>

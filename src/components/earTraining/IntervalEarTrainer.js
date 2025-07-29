@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import { useIntervalEarTrainer } from './useIntervalEarTrainer';
 import InfoModal from '../common/InfoModal';
-import InfoButton from '../common/InfoButton';
+import QuizLayout from '../common/QuizLayout';
+import { IntervalEarTrainerControls } from './IntervalEarTrainerControls';
 import { SEMITONE_TO_DEGREE } from '../../utils/musicTheory';
 
 const IntervalEarTrainer = () => {
@@ -57,12 +58,15 @@ const IntervalEarTrainer = () => {
         }
     }, [settings.useDrone, settings.fixedKey, setDroneNote]);
 
+    const handleSettingChange = (key, value) => {
+        setSettings(prev => ({...prev, [key]: value}));
+    };
+
     const handleLogProgress = () => {
         const remarks = prompt("Enter any remarks for this session:", `Score: ${score}/${totalAsked}`);
         if (remarks !== null) { addLogEntry({ game: 'Interval Ear Trainer', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); }
     };
 
-    // This helper function generates a suggested name from the current settings
     const generatePresetName = (currentSettings) => {
         const parts = [];
         parts.push(currentSettings.notePool === 'Diatonic' ? `${currentSettings.diatonicMode}` : 'Chromatic');
@@ -78,14 +82,13 @@ const IntervalEarTrainer = () => {
         const suggestedName = generatePresetName(settings);
         const name = prompt("Enter a name for your preset:", suggestedName);
         if (name && name.trim() !== "") {
-            const newPreset = {
+            savePreset({
                 id: Date.now().toString(),
                 name: name.trim(),
                 gameId: 'interval-ear-trainer',
                 gameName: 'Interval Recognition',
                 settings: settings,
-            };
-            savePreset(newPreset);
+            });
             alert(`Preset "${name.trim()}" saved!`);
         }
     };
@@ -93,47 +96,6 @@ const IntervalEarTrainer = () => {
     const itemToDisplay = isReviewing ? history[reviewIndex] : null;
     const questionForDisplay = isReviewing ? itemToDisplay?.question : currentQuestion;
     const buttonsDisabled = isAnswered || isReviewing;
-    const keyOptions = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'F', 'Bb', 'Eb', 'Ab', 'Db'];
-    const noteNameOptions = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-
-    const ControlsContent = () => (
-        <div className="space-y-4 text-sm">
-            <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
-                <span className="font-semibold text-green-300">Training Mode</span>
-                <div className="relative inline-flex items-center"><input type="checkbox" checked={settings.isTrainingMode} onChange={(e) => setSettings(s => ({...s, isTrainingMode: e.target.checked}))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div></div>
-            </label>
-            <div className="border-t border-slate-600 pt-4">
-                <h4 className="font-semibold text-lg text-teal-300 mb-2">Playback Options</h4>
-                <div className="flex bg-slate-600 rounded-md p-1"><button onClick={() => setSettings(s => ({...s, playbackStyle: 'Melodic'}))} className={`flex-1 rounded-md py-1 ${settings.playbackStyle === 'Melodic' ? 'bg-blue-600' : ''}`}>Melodic</button><button onClick={() => setSettings(s => ({...s, playbackStyle: 'Harmonic'}))} className={`flex-1 rounded-md py-1 ${settings.playbackStyle === 'Harmonic' ? 'bg-blue-600' : ''}`}>Harmonic</button></div>
-                <div className="flex bg-slate-600 rounded-md p-1 mt-2"><button onClick={() => setSettings(s => ({...s, direction: 'Ascending'}))} className={`flex-1 rounded-md py-1 ${settings.direction === 'Ascending' ? 'bg-blue-600' : ''}`}>Ascending</button><button onClick={() => setSettings(s => ({...s, direction: 'Descending'}))} className={`flex-1 rounded-md py-1 ${settings.direction === 'Descending' ? 'bg-blue-600' : ''}`}>Descending</button><button onClick={() => setSettings(s => ({...s, direction: 'Both'}))} className={`flex-1 rounded-md py-1 ${settings.direction === 'Both' ? 'bg-blue-600' : ''}`}>Both</button></div>
-                <label className="flex items-center justify-between gap-2 cursor-pointer p-2 mt-2 bg-slate-700 rounded-md"><span className="font-semibold">Use Drone</span><div className="relative inline-flex items-center"><input type="checkbox" checked={settings.useDrone} onChange={(e) => setSettings(s => ({...s, useDrone: e.target.checked}))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
-                {settings.playbackStyle === 'Melodic' && settings.useDrone && <label className="flex items-center justify-between gap-2 cursor-pointer p-2 mt-2 bg-slate-700 rounded-md"><span className="font-semibold">Play First Note</span><div className="relative inline-flex items-center"><input type="checkbox" checked={settings.playRootNote} onChange={(e) => setSettings(s => ({...s, playRootNote: e.target.checked}))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>}
-            </div>
-            <div className="border-t border-slate-600 pt-4">
-                <h4 className="font-semibold text-lg text-teal-300 mb-2">Question Options</h4>
-                <div className="flex bg-slate-600 rounded-md p-1"><button onClick={() => setSettings(s => ({...s, notePool: 'Chromatic'}))} className={`flex-1 rounded-md py-1 ${settings.notePool === 'Chromatic' ? 'bg-blue-600' : ''}`}>Chromatic</button><button onClick={() => setSettings(s => ({...s, notePool: 'Diatonic'}))} className={`flex-1 rounded-md py-1 ${settings.notePool === 'Diatonic' ? 'bg-blue-600' : ''}`}>Diatonic</button></div>
-                {settings.notePool === 'Diatonic' && <div className="flex bg-slate-600 rounded-md p-1 mt-2"><button onClick={() => setSettings(s => ({...s, diatonicMode: 'Major'}))} className={`flex-1 rounded-md py-1 ${settings.diatonicMode === 'Major' ? 'bg-blue-600' : ''}`}>Major</button><button onClick={() => setSettings(s => ({...s, diatonicMode: 'Minor'}))} className={`flex-1 rounded-md py-1 ${settings.diatonicMode === 'Minor' ? 'bg-blue-600' : ''}`}>Minor</button></div>}
-                <div className="flex items-center justify-between mt-2"><span className="font-semibold">Key/Root:</span><div className="flex bg-slate-600 rounded-md p-1"><button onClick={() => setSettings(s => ({...s, rootNoteMode: 'Fixed'}))} className={`px-2 rounded-md py-1 ${settings.rootNoteMode === 'Fixed' ? 'bg-blue-600' : ''}`}>Fixed</button><button onClick={() => setSettings(s => ({...s, rootNoteMode: 'Roving'}))} className={`px-2 rounded-md py-1 ${settings.rootNoteMode === 'Roving' ? 'bg-blue-600' : ''}`}>Roving</button></div></div>
-                {settings.rootNoteMode === 'Fixed' && <select value={settings.fixedKey} onChange={(e) => setSettings(s=>({...s, fixedKey: e.target.value}))} className="w-full p-2 mt-2 bg-slate-600 rounded-md"> {keyOptions.map(n => <option key={n} value={n}>{n}</option>)} </select>}
-                {settings.rootNoteMode === 'Roving' && 
-                    <>
-                        <div className="flex items-center gap-2 mt-2"><label htmlFor="qpr">Questions per Key:</label><input type="number" id="qpr" min="1" max="20" value={settings.questionsPerRoot} onChange={e => setSettings(s=>({...s, questionsPerRoot: Number(e.target.value)}))} className="w-16 p-1 bg-slate-600 rounded-md text-center"/></div>
-                        <label className="flex items-center justify-between gap-2 cursor-pointer p-2 mt-2 bg-slate-700 rounded-md"><span className="font-semibold">Show Key Change Alert</span><div className="relative inline-flex items-center"><input type="checkbox" checked={settings.showKeyChange} onChange={(e) => setSettings(s => ({...s, showKeyChange: e.target.checked}))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
-                    </>
-                }
-                <div className="mt-2"><label htmlFor="octave-range" className="font-semibold">Octave Range: {settings.octaveRange}</label><input type="range" id="octave-range" min="1" max="3" step="1" value={settings.octaveRange} onChange={e => setSettings(s=>({...s, octaveRange: Number(e.target.value)}))} className="w-full h-2 mt-1 bg-slate-600 rounded-lg appearance-none cursor-pointer" /></div>
-            </div>
-            <div className="border-t border-slate-600 pt-4">
-                <h4 className="font-semibold text-lg text-teal-300 mb-2">Answer Mode</h4>
-                <div className="flex bg-slate-600 rounded-md p-1"><button onClick={() => setSettings(s => ({...s, answerMode: 'Interval Name'}))} className={`flex-1 rounded-md py-1 ${settings.answerMode === 'Interval Name' ? 'bg-blue-600' : ''}`}>Interval Name</button><button onClick={() => setSettings(s => ({...s, answerMode: 'Scale Degree'}))} className={`flex-1 rounded-md py-1 ${settings.answerMode === 'Scale Degree' ? 'bg-blue-600' : ''}`}>Scale Degree</button><button onClick={() => setSettings(s => ({...s, answerMode: 'Note Names'}))} className={`flex-1 rounded-md py-1 ${settings.answerMode === 'Note Names' ? 'bg-blue-600' : ''}`}>Note Names</button></div>
-            </div>
-            <div className="border-t border-slate-600 pt-4 mt-4">
-                 <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
-                    Save Current Settings as Preset
-                </button>
-            </div>
-        </div>
-    );
     
     const AnswerButtons = () => {
         const isDiatonic = settings.notePool === 'Diatonic';
@@ -149,6 +111,7 @@ const IntervalEarTrainer = () => {
             );
         }
         if (settings.answerMode === 'Note Names') {
+            const noteNameOptions = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
             const handleNoteNameSelect = (note) => {
                 if (buttonsDisabled) return;
                 setSelectedNotes(prev => prev.includes(note) ? prev.filter(n => n !== note) : [...prev, note].slice(0, 2));
@@ -183,6 +146,26 @@ const IntervalEarTrainer = () => {
         }
     };
 
+    const topControlsContent = (
+        <label className="flex items-center gap-2 cursor-pointer font-semibold">
+            <span>Auto-Advance</span>
+            <div className="relative inline-flex items-center">
+                <input type="checkbox" checked={settings.autoAdvance} onChange={(e) => handleSettingChange('autoAdvance', e.target.checked)} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </div>
+        </label>
+    );
+
+    const footerContent = isReviewing ? (
+        <div className="flex items-center gap-4">
+            <button type="button" onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="p-3 rounded-lg bg-slate-600 hover:bg-slate-500">Prev</button>
+            <button type="button" onClick={() => setReviewIndex(null)} className="bg-purple-600 p-3 rounded-lg font-bold">Return to Quiz</button>
+            <button type="button" onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="p-3 rounded-lg bg-slate-600 hover:bg-slate-500">Next</button>
+        </div>
+    ) : (isAnswered && !settings.autoAdvance && settings.answerMode !== 'Note Names') ? (
+        <button onClick={generateNewQuestion} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>
+    ) : null;
+
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Interval Recognition Guide">
@@ -199,23 +182,27 @@ const IntervalEarTrainer = () => {
                 </div>
             </InfoModal>
 
-            <div className="w-full flex-1 bg-slate-800 p-4 rounded-lg relative">
-                {newKeyNotification && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white text-2xl font-bold p-6 rounded-lg z-20 animate-pulse-once">{newKeyNotification}</div>}
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2"><h1 className="text-2xl font-bold text-indigo-300">Interval Recognition</h1><InfoButton onClick={() => setIsInfoModalOpen(true)} /></div>
-                    <div className="flex items-center gap-2"><button onClick={handleLogProgress} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log</button><button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Controls</button></div>
-                </div>
-                <div className="grid grid-cols-3 items-center mb-4 text-lg">
-                    <span className="font-semibold justify-self-start">Score: {score} / {totalAsked}</span>
-                    <div className="justify-self-center">{history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-sm py-1 px-3 rounded-lg">Review History</button>}</div>
-                    <label className="flex items-center gap-2 cursor-pointer font-semibold justify-self-end"><span>Auto-Advance</span><div className="relative inline-flex items-center"><input type="checkbox" checked={settings.autoAdvance} onChange={(e) => setSettings(s => ({...s, autoAdvance: e.target.checked}))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
-                </div>
-                
-                <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
+            <QuizLayout
+                title="Interval Recognition"
+                score={score}
+                totalAsked={totalAsked}
+                history={history}
+                isReviewing={isReviewing}
+                onStartReview={startReview}
+                topControls={topControlsContent}
+                footerContent={footerContent}
+                onLogProgress={handleLogProgress}
+                onToggleControls={() => setIsControlsOpen(p => !p)}
+                onShowInfo={() => setIsInfoModalOpen(true)}
+            >
+                <div className="w-full max-w-2xl mx-auto flex flex-col items-center relative">
+                    {newKeyNotification && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white text-2xl font-bold p-6 rounded-lg z-20 animate-pulse-once">{newKeyNotification}</div>}
+                    
                     <div className="w-full bg-slate-900/50 p-4 rounded-lg text-center min-h-[80px] flex justify-center items-center flex-wrap gap-x-2 mb-4">
                         <button onClick={() => playQuestionAudio(questionForDisplay)} disabled={isAnswered} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg text-xl disabled:opacity-50 disabled:cursor-not-allowed">Replay Sound</button>
                     </div>
-                    <div className={`text-xl my-4 min-h-[28px]`}>
+
+                    <div className="text-xl my-4 min-h-[28px]">
                         {isReviewing ? (
                             itemToDisplay.wasCorrect ? 
                             <span className="text-green-400 font-semibold">Correct: {renderCorrectAnswerForReview(itemToDisplay)}</span> :
@@ -224,16 +211,23 @@ const IntervalEarTrainer = () => {
                             <span className={feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}>{feedback.message || <>&nbsp;</>}</span>
                         )}
                     </div>
+                    
                     <AnswerButtons />
-                    <div className="h-20 mt-4 flex justify-center items-center">
-                        {isReviewing ? (<div className="flex items-center gap-4"><button type="button" onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="p-3 rounded-lg bg-slate-600 hover:bg-slate-500">Prev</button><button type="button" onClick={() => setReviewIndex(null)} className="bg-purple-600 p-3 rounded-lg font-bold">Return to Quiz</button><button type="button" onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="p-3 rounded-lg bg-slate-600 hover:bg-slate-500">Next</button></div>) 
-                        : (isAnswered && !settings.autoAdvance && settings.answerMode !== 'Note Names') && (<button onClick={generateNewQuestion} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>)}
+                </div>
+            </QuizLayout>
+
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ${isControlsOpen ? 'w-80 p-4' : 'w-0 overflow-hidden'}`}>
+                {isControlsOpen && <IntervalEarTrainerControls settings={settings} onSettingChange={handleSettingChange} onSavePreset={handleSavePreset} />}
+            </div>
+            
+            {isControlsOpen && (
+                <div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}>
+                    <div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
+                        <IntervalEarTrainerControls settings={settings} onSettingChange={handleSettingChange} onSavePreset={handleSavePreset} />
                     </div>
                 </div>
-            </div>
-
-            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ${isControlsOpen ? 'w-80 p-4' : 'w-0 overflow-hidden'}`}>{isControlsOpen && <ControlsContent />}</div>
-            {isControlsOpen && (<div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}><div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 overflow-y-auto" onClick={e => e.stopPropagation()}><ControlsContent /></div></div>)}
+            )}
         </div>
     );
 };

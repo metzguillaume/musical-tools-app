@@ -2,30 +2,44 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTools } from '../../context/ToolsContext';
 
 export const useNoteGenerator = () => {
-    const { bpm, addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode } = useTools();
-    const [numNotes, setNumNotes] = useState(12);
-    const [noteType, setNoteType] = useState('chromatic');
+    const { bpm, addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode, presetToLoad, clearPresetToLoad } = useTools();
+    
+    // Core settings are now grouped for presets
+    const [settings, setSettings] = useState({
+    numNotes: 12,
+    noteType: 'chromatic',
+    showBarlines: true,
+    fontSize: 4, // fontSize is now part of settings
+});
+
+    // Effect to listen for a preset to be loaded
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'note-generator') {
+            setSettings(presetToLoad.settings);
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad]);
+
+    // Non-preset state
     const [fontSize, setFontSize] = useState(4);
     const [generatedNotes, setGeneratedNotes] = useState([]);
-    const [showBarlines, setShowBarlines] = useState(true);
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
-    const [autoGenerateInterval, setAutoGenerateInterval] = useState(numNotes);
+    const [autoGenerateInterval, setAutoGenerateInterval] = useState(settings.numNotes);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
     const generateNotes = useCallback(() => {
         const naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
         const chromaticNotes = ['C', { sharp: 'C#', flat: 'Db' }, 'D', { sharp: 'D#', flat: 'Eb' }, 'E', 'F', { sharp: 'F#', flat: 'Gb' }, 'G', { sharp: 'G#', flat: 'Ab' }, 'A', { sharp: 'A#', flat: 'Bb' }, 'B'];
-        const sourceArray = noteType === 'natural' ? naturalNotes : chromaticNotes;
+        const sourceArray = settings.noteType === 'natural' ? naturalNotes : chromaticNotes;
         
         const newNotes = [];
         let currentSectionNotes = [];
 
-        for (let i = 0; i < numNotes; i++) {
+        for (let i = 0; i < settings.numNotes; i++) {
             if (i > 0 && i % 4 === 0) {
                 currentSectionNotes = [];
             }
-
             let note;
             let attempts = 0;
             do {
@@ -41,7 +55,7 @@ export const useNoteGenerator = () => {
             currentSectionNotes.push(note);
         }
         setGeneratedNotes(newNotes);
-    }, [numNotes, noteType]);
+    }, [settings.numNotes, settings.noteType]);
 
     const scheduledGenerate = useCallback(() => {
         setTimeout(generateNotes, 0);
@@ -52,15 +66,12 @@ export const useNoteGenerator = () => {
     }, [generateNotes]);
 
     useEffect(() => {
-        setAutoGenerateInterval(numNotes);
-    }, [numNotes]);
+        setAutoGenerateInterval(settings.numNotes);
+    }, [settings.numNotes]);
 
     useEffect(() => {
         if (isAutoGenerateOn) {
-            setMetronomeSchedule({
-                callback: scheduledGenerate,
-                interval: autoGenerateInterval,
-            });
+            setMetronomeSchedule({ callback: scheduledGenerate, interval: autoGenerateInterval });
         } else {
             setMetronomeSchedule(null);
         }
@@ -78,32 +89,25 @@ export const useNoteGenerator = () => {
     }, [generateNotes]);
 
     const handleLogProgress = () => {
-        const remarks = prompt("Enter any remarks for this session:", `Practiced ${noteType} notes.`);
+        const remarks = prompt("Enter any remarks for this session:", `Practiced ${settings.noteType} notes.`);
         if (remarks !== null) {
-            const newEntry = {
-                game: 'Note Generator',
-                bpm: bpm,
-                date: new Date().toLocaleDateString(),
-                remarks: remarks || "No remarks."
-            };
+            const newEntry = { game: 'Note Generator', bpm: bpm, date: new Date().toLocaleDateString(), remarks: remarks || "No remarks." };
             addLogEntry(newEntry);
             alert("Session logged!");
         }
     };
 
     return {
-        numNotes, setNumNotes,
-        noteType, setNoteType,
-        fontSize, setFontSize,
-        generatedNotes,
-        showBarlines, setShowBarlines,
-        isAutoGenerateOn, setIsAutoGenerateOn,
-        autoGenerateInterval, setAutoGenerateInterval,
-        isControlsOpen, setIsControlsOpen,
-        isInfoModalOpen, setIsInfoModalOpen,
-        countdownClicks, setCountdownClicks,
-        countdownMode, setCountdownMode,
-        handleLogProgress,
-        generateNotes
+    settings, setSettings,
+    // fontSize and setFontSize are now accessed via the settings object
+    generatedNotes,
+    isAutoGenerateOn, setIsAutoGenerateOn,
+    autoGenerateInterval, setAutoGenerateInterval,
+    isControlsOpen, setIsControlsOpen,
+    isInfoModalOpen, setIsInfoModalOpen,
+    countdownClicks, setCountdownClicks,
+    countdownMode, setCountdownMode,
+    handleLogProgress,
+    generateNotes
     };
 };

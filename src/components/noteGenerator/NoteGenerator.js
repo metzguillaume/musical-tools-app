@@ -1,42 +1,58 @@
 import React from 'react';
+import { useTools } from '../../context/ToolsContext';
 import { useNoteGenerator } from './useNoteGenerator';
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
 
 const NoteGenerator = () => {
+    const { savePreset } = useTools();
     const {
-        numNotes, setNumNotes,
-        noteType, setNoteType,
-        fontSize, setFontSize,
-        generatedNotes,
-        showBarlines, setShowBarlines,
-        isAutoGenerateOn, setIsAutoGenerateOn,
-        autoGenerateInterval, setAutoGenerateInterval,
-        isControlsOpen, setIsControlsOpen,
-        isInfoModalOpen, setIsInfoModalOpen,
-        countdownClicks, setCountdownClicks,
-        countdownMode, setCountdownMode,
-        handleLogProgress,
-        generateNotes
-    } = useNoteGenerator();
+    settings, setSettings,
+    // fontSize and setFontSize are no longer destructured here
+    generatedNotes,
+    isAutoGenerateOn, setIsAutoGenerateOn,
+    autoGenerateInterval, setAutoGenerateInterval,
+    isControlsOpen, setIsControlsOpen,
+    isInfoModalOpen, setIsInfoModalOpen,
+    countdownClicks, setCountdownClicks,
+    countdownMode, setCountdownMode,
+    handleLogProgress,
+    generateNotes
+} = useNoteGenerator();
 
-    const ControlsContent = (
+    const handleSavePreset = () => {
+        const name = prompt("Enter a name for your preset:", `Notes - ${settings.numNotes} ${settings.noteType}`);
+        if (name && name.trim() !== "") {
+            const newPreset = {
+                id: Date.now().toString(),
+                name: name.trim(),
+                gameId: 'note-generator',
+                gameName: 'Note Generator',
+                settings: settings,
+            };
+            savePreset(newPreset);
+            alert(`Preset "${name.trim()}" saved!`);
+        }
+    };
+
+    // UPDATED: ControlsContent is now a function component
+    const ControlsContent = () => (
         <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
                 <label htmlFor="num-notes" className="font-semibold text-lg">Number of Notes:</label>
-                <input type="number" id="num-notes" value={numNotes} onChange={(e) => setNumNotes(Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
+                <input type="number" id="num-notes" value={settings.numNotes} onChange={(e) => setSettings(s => ({...s, numNotes: Math.max(1, parseInt(e.target.value, 10) || 1)}))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
             </div>
             <div className="flex items-center justify-between">
                 <span className="font-semibold text-lg">Note Type:</span>
                 <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="noteType" value="natural" checked={noteType === 'natural'} onChange={() => setNoteType('natural')} />Natural</label>
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="noteType" value="chromatic" checked={noteType === 'chromatic'} onChange={() => setNoteType('chromatic')} />Chromatic</label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="noteType" value="natural" checked={settings.noteType === 'natural'} onChange={() => setSettings(s => ({...s, noteType: 'natural'}))} />Natural</label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="noteType" value="chromatic" checked={settings.noteType === 'chromatic'} onChange={() => setSettings(s => ({...s, noteType: 'chromatic'}))} />Chromatic</label>
                 </div>
             </div>
             <div className="flex items-center justify-between">
                 <label htmlFor="show-barlines" className="font-semibold text-lg">Show Barlines:</label>
                 <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="show-barlines" checked={showBarlines} onChange={() => setShowBarlines(p => !p)} className="sr-only peer" />
+                    <input type="checkbox" id="show-barlines" checked={settings.showBarlines} onChange={() => setSettings(s => ({...s, showBarlines: !s.showBarlines}))} className="sr-only peer" />
                     <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
             </div>
@@ -70,6 +86,11 @@ const NoteGenerator = () => {
                         <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('first')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'first' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>First Time Only</button>
                     </div>
                 </div>
+            </div>
+            <div className="border-t border-slate-600 pt-4 mt-4">
+                <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+                    Save Preset
+                </button>
             </div>
         </div>
     );
@@ -112,15 +133,15 @@ const NoteGenerator = () => {
                             <React.Fragment key={index}>
                                 <span
                                     className="font-bold text-teal-300"
-                                    style={{ fontSize: `${fontSize}rem`, lineHeight: '1' }}
+                                    style={{ fontSize: `${settings.fontSize}rem`, lineHeight: '1' }}
                                 >
                                     {noteName}
-                                    <sup style={{ fontSize: `${fontSize * 0.6}rem`, verticalAlign: 'super', marginLeft: '0.1em' }}>
+                                    <sup style={{ fontSize: `${settings.fontSize * 0.6}rem`, verticalAlign: 'super', marginLeft: '0.1em' }}>
                                         {accidental}
                                     </sup>
                                 </span>
-                                {showBarlines && (index + 1) % 4 === 0 && index < generatedNotes.length - 1 && (
-                                    <div className="h-16 w-1 bg-slate-600 rounded-full mx-2" style={{height: `${fontSize*1.2}rem`}}></div>
+                                {settings.showBarlines && (index + 1) % 4 === 0 && index < generatedNotes.length - 1 && (
+                                    <div className="h-16 w-1 bg-slate-600 rounded-full mx-2" style={{height: `${settings.fontSize*1.2}rem`}}></div>
                                 )}
                             </React.Fragment>
                         );
@@ -129,7 +150,7 @@ const NoteGenerator = () => {
 
                 <div className="flex items-center justify-center gap-4 mt-6 mb-8">
                     <label htmlFor="font-size-main" className="font-semibold text-lg">Font Size:</label>
-                    <input type="range" id="font-size-main" min="2" max="8" step="0.5" value={fontSize} onChange={(e) => setFontSize(e.target.value)} className="w-1/2 max-w-xs" />
+                    <input type="range" id="font-size-main" min="2" max="8" step="0.5" value={settings.fontSize} onChange={(e) => setSettings(s => ({ ...s, fontSize: e.target.value }))} className="w-1/2 max-w-xs" />
                 </div>
 
                 <div className="w-full flex justify-center">
@@ -142,7 +163,7 @@ const NoteGenerator = () => {
             <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
                 <div className={`${!isControlsOpen && 'hidden'}`}>
                      <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
-                    {ControlsContent}
+                    <ControlsContent />
                 </div>
             </div>
 
@@ -154,7 +175,7 @@ const NoteGenerator = () => {
                             <button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
                         </div>
                         <div className="flex-grow overflow-y-auto pr-2">
-                            {ControlsContent}
+                            <ControlsContent />
                         </div>
                     </div>
                 </div>

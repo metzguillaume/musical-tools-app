@@ -2,10 +2,21 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
+import { IntervalGeneratorControls } from './IntervalGeneratorControls';
+
+// A mapping for the new shorthand feature
+const INTERVAL_SHORTHAND = {
+    'Perfect Unison': 'P1', 'Minor 2nd': 'm2', 'Major 2nd': 'M2',
+    'Minor 3rd': 'm3', 'Major 3rd': 'M3', 'Perfect 4th': 'P4',
+    'Augmented 4th': 'A4', 'Diminished 5th': 'd5', 'Perfect 5th': 'P5',
+    'Minor 6th': 'm6', 'Major 6th': 'M6', 'Minor 7th': 'm7',
+    'Major 7th': 'M7', 'Perfect Octave': 'P8'
+};
 
 const IntervalGenerator = () => {
     const { addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode, savePreset, presetToLoad, clearPresetToLoad } = useTools();
     
+    // Add new display options to the settings state
     const [settings, setSettings] = useState({
         numIntervals: 1,
         selectedQualities: {
@@ -15,6 +26,8 @@ const IntervalGenerator = () => {
             'Augmented': false,
             'Diminished': false,
         },
+        useShorthand: false,
+        displayMode: 'stacked',
     });
 
     // Non-preset state
@@ -129,75 +142,9 @@ const IntervalGenerator = () => {
         }
     };
     
-    const handleQualitySelection = (quality) => {
-        setSettings(prev => ({
-            ...prev,
-            selectedQualities: {
-                ...prev.selectedQualities,
-                [quality]: !prev.selectedQualities[quality]
-            }
-        }));
+    const handleSettingChange = (key, value) => {
+        setSettings(prev => ({ ...prev, [key]: value }));
     };
-
-    const ControlsContent = (
-        <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-                <label htmlFor="num-intervals" className="font-semibold text-lg">Number of Intervals:</label>
-                <input type="number" id="num-intervals" value={settings.numIntervals} onChange={(e) => setSettings(s => ({ ...s, numIntervals: Math.max(1, parseInt(e.target.value, 10) || 1) }))} className="w-24 p-2 rounded-md bg-slate-600 text-white text-center" min="1" />
-            </div>
-            
-            <div className="pt-4 border-t border-slate-600">
-                <span className="font-semibold text-lg">Include Qualities:</span>
-                <div className="flex flex-col gap-3 mt-2">
-                    {Object.keys(settings.selectedQualities).map(quality => (
-                        <label key={quality} className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
-                            <span className="font-semibold">{quality}</span>
-                            <div className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked={settings.selectedQualities[quality]} onChange={() => handleQualitySelection(quality)} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            </div>
-                        </label>
-                    ))}
-                </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-600 space-y-4">
-                <div className="flex items-center justify-between">
-                    <label htmlFor="auto-generate-int" className="font-semibold text-lg text-teal-300">Auto-Generate:</label>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="auto-generate-int" checked={isAutoGenerateOn} onChange={() => setIsAutoGenerateOn(p => !p)} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                    </label>
-                </div>
-                <div className="flex items-center justify-between">
-                    <label htmlFor="auto-generate-interval-int" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Generate every:</label>
-                    <div className="flex items-center gap-2">
-                        <input type="number" id="auto-generate-interval-int" value={autoGenerateInterval} onChange={(e) => setAutoGenerateInterval(Math.max(1, parseInt(e.target.value, 10) || 1))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} />
-                        <span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
-                    </div>
-                </div>
-                 <div className="flex items-center justify-between">
-                    <label htmlFor="countdown-clicks-int" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown:</label>
-                    <div className="flex items-center gap-2">
-                        <input type="number" id="countdown-clicks-int" value={countdownClicks} onChange={(e) => setCountdownClicks(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="0" max="7" disabled={!isAutoGenerateOn} />
-                         <span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
-                    </div>
-                </div>
-                <div>
-                    <label className={`font-semibold block mb-2 text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown Mode:</label>
-                    <div className="flex bg-slate-600 rounded-md p-1">
-                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('every')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'every' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Every Time</button>
-                        <button disabled={!isAutoGenerateOn} onClick={() => setCountdownMode('first')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'first' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>First Time Only</button>
-                    </div>
-                </div>
-            </div>
-            <div className="border-t border-slate-600 pt-4 mt-4">
-                <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
-                    Save Preset
-                </button>
-            </div>
-        </div>
-    );
 
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
@@ -207,7 +154,8 @@ const IntervalGenerator = () => {
                     <div><h4 className="font-bold text-indigo-300 mb-1">How It Works</h4><p>Use the "Generate" button or press the Enter/Space key to get a new interval. You can select which interval qualities (Major, Minor, etc.) you want to include in the randomization from the controls panel.</p></div>
                     <div><h4 className="font-bold text-indigo-300 mb-1">Features</h4>
                         <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
-                            <li><strong className="text-teal-300">Multiple Intervals:</strong> Choose to generate more than one interval at a time for a longer practice sequence. They will appear stacked vertically.</li>
+                            <li><strong className="text-teal-300">Multiple Intervals:</strong> Choose to generate more than one interval at a time for a longer practice sequence.</li>
+                            <li><strong className="text-teal-300">Display Options:</strong> Use the controls to switch between full names and shorthand (e.g., P4, M3), and display them stacked or in a single line.</li>
                             <li><strong className="text-teal-300">Auto-Generate:</strong> For continuous practice, enable this feature to get a new interval automatically in time with the metronome.</li>
                         </ul>
                     </div>
@@ -227,14 +175,18 @@ const IntervalGenerator = () => {
                     </div>
                 </div>
 
-                <div className="w-full p-6 rounded-lg text-center min-h-[150px] flex flex-col justify-center items-center gap-y-4">
+                <div className={`w-full p-6 rounded-lg text-center min-h-[150px] flex justify-center items-center gap-y-4 ${
+                    settings.useShorthand && settings.displayMode === 'single-line' 
+                    ? 'flex-row flex-wrap gap-x-8' 
+                    : 'flex-col'
+                }`}>
                     {generatedIntervals.map((interval, index) => (
                         <span
                             key={index}
                             className="font-bold text-teal-300"
                             style={{ fontSize: `${fontSize}rem`, lineHeight: '1.2' }}
                         >
-                            {interval}
+                            {settings.useShorthand ? INTERVAL_SHORTHAND[interval] || interval : interval}
                         </span>
                     ))}
                 </div>
@@ -254,7 +206,19 @@ const IntervalGenerator = () => {
             <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
                 <div className={`${!isControlsOpen && 'hidden'}`}>
                     <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
-                     {ControlsContent}
+                     <IntervalGeneratorControls
+                        settings={settings}
+                        onSettingChange={handleSettingChange}
+                        isAutoGenerateOn={isAutoGenerateOn}
+                        onAutoGenerateToggle={() => setIsAutoGenerateOn(p => !p)}
+                        autoGenerateInterval={autoGenerateInterval}
+                        onIntervalChange={setAutoGenerateInterval}
+                        countdownClicks={countdownClicks}
+                        onCountdownChange={setCountdownClicks}
+                        countdownMode={countdownMode}
+                        onCountdownModeChange={setCountdownMode}
+                        onSavePreset={handleSavePreset}
+                     />
                 </div>
             </div>
 
@@ -266,7 +230,19 @@ const IntervalGenerator = () => {
                             <button onClick={() => setIsControlsOpen(false)} className="text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
                         </div>
                         <div className="flex-grow overflow-y-auto pr-2">
-                            {ControlsContent}
+                           <IntervalGeneratorControls
+                                settings={settings}
+                                onSettingChange={handleSettingChange}
+                                isAutoGenerateOn={isAutoGenerateOn}
+                                onAutoGenerateToggle={() => setIsAutoGenerateOn(p => !p)}
+                                autoGenerateInterval={autoGenerateInterval}
+                                onIntervalChange={setAutoGenerateInterval}
+                                countdownClicks={countdownClicks}
+                                onCountdownChange={setCountdownClicks}
+                                countdownMode={countdownMode}
+                                onCountdownModeChange={setCountdownMode}
+                                onSavePreset={handleSavePreset}
+                            />
                         </div>
                     </div>
                 </div>

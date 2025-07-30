@@ -7,6 +7,7 @@ import { useTimerLogic } from './useTimerLogic';
 import { useStopwatchLogic } from './useStopwatchLogic';
 import { useAudioPlayers } from './useAudioPlayers';
 import { usePresetsLogic } from './usePresetsLogic';
+import { useChallengesLogic } from './useChallengesLogic';
 
 const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
@@ -16,8 +17,13 @@ export const ToolsProvider = ({ children }) => {
     const [activeTool, setActiveTool] = useState(null);
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
     
-    // --- PRESET LOADING STATE ---
+    // Preset loading state
     const [presetToLoad, setPresetToLoad] = useState(null);
+
+    // --- Challenge Runner State ---
+    const [activeChallenge, setActiveChallenge] = useState(null);
+    const [challengeStepIndex, setChallengeStepIndex] = useState(0);
+    const [challengeProgress, setChallengeProgress] = useState(null);
 
     const toggleActiveTool = (tool) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
@@ -34,7 +40,7 @@ export const ToolsProvider = ({ children }) => {
         }
     }, [isAudioUnlocked]);
     
-    // --- PRESET LOADING LOGIC ---
+    // Preset loading logic
     const loadPreset = useCallback((preset) => {
         setPresetToLoad(preset);
         toggleActiveTool(null); 
@@ -44,7 +50,33 @@ export const ToolsProvider = ({ children }) => {
         setPresetToLoad(null);
     }, []);
 
-    // Custom Hooks for each tool's logic
+    // --- Challenge Runner Functions ---
+    const startChallenge = useCallback((challenge) => {
+        setActiveChallenge(challenge);
+        setChallengeStepIndex(0);
+        setChallengeProgress({
+            score: 0,
+            totalAsked: 0,
+            streak: 0,
+            time: 0,
+        });
+    }, []);
+
+    const nextChallengeStep = useCallback(() => {
+        setChallengeStepIndex(prevIndex => prevIndex + 1);
+    }, []);
+
+    const endChallenge = useCallback(() => {
+        setActiveChallenge(null);
+        setChallengeStepIndex(0);
+        setChallengeProgress(null);
+    }, []);
+
+    const updateChallengeProgress = useCallback((newProgress) => {
+        setChallengeProgress(prev => ({ ...prev, ...newProgress }));
+    }, []);
+
+    // --- Custom Hooks for each tool's logic ---
     const log = usePracticeLogLogic();
     const metronome = useMetronomeLogic(unlockAudio);
     const drone = useDroneLogic(unlockAudio);
@@ -52,6 +84,9 @@ export const ToolsProvider = ({ children }) => {
     const stopwatch = useStopwatchLogic();
     const audioPlayers = useAudioPlayers(unlockAudio, metronome.bpm);
     const presets = usePresetsLogic();
+    
+    // **FIX:** Renamed 'challenges' to 'challengesLogic' to avoid naming collision
+    const challengesLogic = useChallengesLogic(presets.presets, presets.savePreset);
     
     // Combine all state and functions into a single value object
     const value = {
@@ -65,9 +100,17 @@ export const ToolsProvider = ({ children }) => {
         ...stopwatch,
         ...audioPlayers,
         ...presets,
+        ...challengesLogic, // **FIX:** Spread the correctly named object
         presetToLoad,
         loadPreset,
         clearPresetToLoad,
+        activeChallenge,
+        challengeStepIndex,
+        challengeProgress,
+        startChallenge,
+        nextChallengeStep,
+        endChallenge,
+        updateChallengeProgress,
     };
 
     return (

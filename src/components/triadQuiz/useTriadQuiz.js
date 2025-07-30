@@ -1,4 +1,3 @@
-// src/components/triadQuiz/useTriadQuiz.js
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 // --- Data & Helpers ---
@@ -46,7 +45,8 @@ const getCorrectEnharmonicNotes = (rootNote, intervals) => {
 };
 
 
-export const useTriadQuiz = (quizMode, include7ths, includeInversions, autoAdvance) => {
+// 1. ADD `onProgressUpdate` to the hook's arguments
+export const useTriadQuiz = (quizMode, include7ths, includeInversions, autoAdvance, onProgressUpdate) => {
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [userAnswer, setUserAnswer] = useState({});
     const [feedback, setFeedback] = useState({ message: '', type: '' });
@@ -114,21 +114,39 @@ export const useTriadQuiz = (quizMode, include7ths, includeInversions, autoAdvan
                 isCorrect = sortedUserNotes.every((note, index) => note === currentQuestion.sortedNotes[index]);
             }
         }
-        if (isCorrect) { setScore(s => s + 1); setFeedback({ message: 'Correct!', type: 'correct' });
-        } else { setFeedback({ message: `Incorrect! The answer was ${correctAnswerText}.`, type: 'incorrect' }); }
+
+        const newScore = isCorrect ? score + 1 : score;
+        const newTotalAsked = totalAsked + 1;
+
+        if (isCorrect) { 
+            setScore(newScore); 
+            setFeedback({ message: 'Correct!', type: 'correct' });
+        } else { 
+            setFeedback({ message: `Incorrect! The answer was ${correctAnswerText}.`, type: 'incorrect' }); 
+        }
         
-        setTotalAsked(prev => prev + 1);
+        setTotalAsked(newTotalAsked);
         setHistory(prev => [...prev, { question: currentQuestion, userAnswer, wasCorrect: isCorrect }]);
         setIsAnswered(true);
-        if (autoAdvance) { setTimeout(generateNewQuestion, 2000); }
-    }, [isAnswered, userAnswer, currentQuestion, autoAdvance, generateNewQuestion]);
+
+        // 2. If the callback exists, call it with the results
+        if (onProgressUpdate) {
+            onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
+        }
+
+        if (autoAdvance) { 
+            setTimeout(generateNewQuestion, 2000); 
+        }
+    }, [isAnswered, userAnswer, currentQuestion, autoAdvance, generateNewQuestion, score, totalAsked, onProgressUpdate]);
 
     useEffect(() => {
         setScore(0);
         setTotalAsked(0);
         setHistory([]);
         setReviewIndex(null);
-        if (questionTypes && Object.keys(questionTypes).length > 0) { generateNewQuestion(); }
+        if (questionTypes && Object.keys(questionTypes).length > 0) { 
+            generateNewQuestion(); 
+        }
     }, [generateNewQuestion, questionTypes]);
     
     const handleReviewNav = (direction) => { 

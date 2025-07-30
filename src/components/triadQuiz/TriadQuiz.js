@@ -5,7 +5,8 @@ import QuizLayout from '../common/QuizLayout';
 import { useTriadQuiz, NOTE_LETTERS, ACCIDENTALS } from './useTriadQuiz';
 import { TriadQuizControls } from './TriadQuizControls';
 
-const TriadQuiz = () => {
+// 1. ADD `onProgressUpdate` to the component's props
+const TriadQuiz = ({ onProgressUpdate }) => {
     const { addLogEntry, savePreset, presetToLoad, clearPresetToLoad } = useTools();
 
     const [settings, setSettings] = useState({
@@ -29,7 +30,8 @@ const TriadQuiz = () => {
         score, totalAsked, feedback, isAnswered, currentQuestion, userAnswer, setUserAnswer,
         history, reviewIndex, setReviewIndex, questionTypes,
         checkAnswer, generateNewQuestion, handleReviewNav, startReview
-    } = useTriadQuiz(settings.quizMode, settings.include7ths, settings.includeInversions, settings.autoAdvance);
+    // 2. PASS `onProgressUpdate` to the hook
+    } = useTriadQuiz(settings.quizMode, settings.include7ths, settings.includeInversions, settings.autoAdvance, onProgressUpdate);
 
     const isReviewing = reviewIndex !== null;
 

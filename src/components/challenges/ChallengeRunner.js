@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useTools } from '../../context/ToolsContext';
 
 // Import all the possible quiz/tool components the runner might need to render
@@ -13,50 +13,42 @@ import IntervalsQuiz from '../intervalsQuiz/IntervalsQuiz';
 import NoteGenerator from '../noteGenerator/NoteGenerator';
 import TriadQuiz from '../triadQuiz/TriadQuiz';
 
-/**
- * A helper function to map a preset's gameId to the actual component.
- * This is crucial for dynamically rendering the correct exercise.
- */
-const getComponentForPreset = (preset) => {
+// **FIX:** This is now the single source for rendering a component. It now accepts props.
+const getComponentForPreset = (preset, props) => {
     if (!preset || !preset.gameId) return null;
 
     switch (preset.gameId) {
-        case 'caged-system-quiz':
-            return <CAGEDSystemQuiz />;
-        case 'chord-progression-generator':
-            return <ChordProgressionGenerator />;
-        case 'chord-trainer':
-            return <ChordTrainer />;
-        case 'interval-ear-trainer':
-            return <IntervalEarTrainer />;
-        case 'melodic-ear-trainer':
-            return <MelodicEarTrainer />;
-        case 'interval-fretboard-quiz':
-            return <IntervalFretboardQuiz />;
-        case 'interval-generator':
-            return <IntervalGenerator />;
-        case 'intervals-quiz':
-            return <IntervalsQuiz />;
-        case 'note-generator':
-            return <NoteGenerator />;
-        case 'triad-quiz':
-            return <TriadQuiz />;
-        default:
-            return <p>Error: Unknown game ID "{preset.gameId}"</p>;
+        case 'caged-system-quiz': return <CAGEDSystemQuiz {...props} />;
+        case 'chord-trainer': return <ChordTrainer {...props} />;
+        case 'interval-ear-trainer': return <IntervalEarTrainer {...props} />;
+        case 'melodic-ear-trainer': return <MelodicEarTrainer {...props} />;
+        case 'interval-fretboard-quiz': return <IntervalFretboardQuiz {...props} />;
+        case 'intervals-quiz': return <IntervalsQuiz {...props} />;
+        case 'triad-quiz': return <TriadQuiz {...props} />;
+        // Generators don't have progress, so they don't need the prop
+        case 'chord-progression-generator': return <ChordProgressionGenerator />;
+        case 'interval-generator': return <IntervalGenerator />;
+        case 'note-generator': return <NoteGenerator />;
+        default: return <p>Error: Unknown game ID "{preset.gameId}"</p>;
     }
 };
 
 /**
  * The Challenge HUD component displays the current status of the challenge.
  */
-const ChallengeHUD = ({ challenge, stepIndex, timeLeft, stopwatchTime }) => {
+const ChallengeHUD = ({ challenge, stepIndex, progress, timeLeft }) => {
+    const currentStep = challenge.steps[stepIndex];
     let goalDisplay = '';
+
     if (challenge.type === 'PracticeRoutine') {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
-        goalDisplay = `Time Remaining: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        goalDisplay = `Time Left: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    } else if (challenge.type === 'Gauntlet') {
+        goalDisplay = `Answered: ${progress.totalAsked} / ${currentStep.goalValue}`;
+    } else if (challenge.type === 'Streak') {
+        goalDisplay = `Current Streak: ${progress.streak}`;
     }
-    // Future logic for other types will go here
 
     return (
         <div className="w-full bg-slate-900 border-b-4 border-indigo-500 p-4 mb-8 rounded-lg text-center shadow-lg">
@@ -75,64 +67,89 @@ const ChallengeHUD = ({ challenge, stepIndex, timeLeft, stopwatchTime }) => {
  */
 const ChallengeRunner = () => {
     const {
-        activeChallenge, challengeStepIndex, presets, loadPreset, nextChallengeStep, endChallenge,
+        activeChallenge, challengeStepIndex, challengeProgress, presets, loadPreset, nextChallengeStep, endChallenge, updateChallengeProgress,
         timeLeft, isTimerRunning, toggleTimer, resetTimer,
-        stopwatchTime
-        // Removed unused stopwatch variables for now
+        isStopwatchRunning, toggleStopwatch, resetStopwatch
     } = useTools();
 
-    // Find the current step and its corresponding preset from the user's library
+    const [isFinished, setIsFinished] = useState(false);
+
     const currentStep = activeChallenge?.steps[challengeStepIndex];
     const currentPreset = presets.find(p => p.id === currentStep?.presetId);
 
-    // This effect is the core of the runner. It runs when the step changes.
+    // This effect runs when the step changes, setting everything up.
     useEffect(() => {
         if (!activeChallenge || !currentStep || !currentPreset) {
-            if (activeChallenge) endChallenge();
+            if (activeChallenge && !isFinished) endChallenge();
             return;
         }
-        
+
         loadPreset(currentPreset);
 
-        if (activeChallenge.type === 'PracticeRoutine' && currentStep.goalType === 'time') {
+        if (activeChallenge.type === 'PracticeRoutine') {
             const durationInMinutes = currentStep.goalValue / 60;
             resetTimer(durationInMinutes);
-            if (!isTimerRunning) {
-                // Use a timeout to ensure the state update from resetTimer has propagated
-                setTimeout(() => toggleTimer(), 50);
-            }
+            if (!isTimerRunning) setTimeout(() => toggleTimer(), 50);
+        } else if (activeChallenge.type === 'Gauntlet') {
+            resetStopwatch();
+            if (!isStopwatchRunning) toggleStopwatch();
         }
-        
-        // This cleanup function now properly handles stopping the timer
-        return () => {
-            if (isTimerRunning) {
-                toggleTimer();
-            }
-        };
-    // Correctly added all dependencies for this effect
-    }, [activeChallenge, challengeStepIndex, currentPreset, currentStep, endChallenge, isTimerRunning, loadPreset, resetTimer, toggleTimer]);
 
-    
-    // This effect checks the completion condition for time-based challenges.
+        return () => {
+            if (isTimerRunning) toggleTimer();
+        };
+    }, [activeChallenge, challengeStepIndex, currentPreset, currentStep, endChallenge, isFinished, isStopwatchRunning, isTimerRunning, loadPreset, resetStopwatch, resetTimer, toggleStopwatch, toggleTimer]);
+
+    // This effect checks for completion of time-based challenges.
     useEffect(() => {
         if (activeChallenge?.type === 'PracticeRoutine' && timeLeft <= 0 && isTimerRunning) {
-             toggleTimer();
-             
-             if (challengeStepIndex >= activeChallenge.steps.length - 1) {
-                 endChallenge();
-             } else {
-                 nextChallengeStep();
-             }
+            if (isTimerRunning) toggleTimer();
+            
+            if (challengeStepIndex >= activeChallenge.steps.length - 1) {
+                setIsFinished(true);
+                endChallenge();
+            } else {
+                nextChallengeStep();
+            }
         }
-    // Correctly added all dependencies for this effect
-    }, [timeLeft, activeChallenge, challengeStepIndex, isTimerRunning, endChallenge, nextChallengeStep, toggleTimer]);
+    }, [timeLeft, isTimerRunning, activeChallenge, challengeStepIndex, nextChallengeStep, endChallenge, toggleTimer]);
 
+    // This is the new callback function that quizzes will call.
+    const handleProgressUpdate = useCallback((progress) => {
+        if (!activeChallenge || !currentStep) return;
 
-    if (!activeChallenge || !currentPreset) {
+        updateChallengeProgress({
+            totalAsked: progress.totalAsked,
+            score: progress.score,
+            streak: progress.wasCorrect ? (challengeProgress?.streak || 0) + 1 : 0
+        });
+
+        if (activeChallenge.type === 'Gauntlet' && progress.totalAsked >= currentStep.goalValue) {
+            if (isStopwatchRunning) toggleStopwatch();
+            setIsFinished(true);
+            endChallenge();
+        } else if (activeChallenge.type === 'Streak' && !progress.wasCorrect) {
+            setIsFinished(true);
+            endChallenge();
+        }
+    }, [activeChallenge, currentStep, challengeProgress, updateChallengeProgress, endChallenge, isStopwatchRunning, toggleStopwatch]);
+    
+
+    if (isFinished) {
         return (
             <div className="text-center p-8">
-                <h2 className="text-2xl font-bold text-gray-400">No Active Challenge.</h2>
-                <p className="text-gray-500">Go to the Challenge Hub to start a new challenge.</p>
+                <h2 className="text-4xl font-bold text-green-400">Challenge Complete!</h2>
+                <button onClick={() => setIsFinished(false)} className="mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">
+                    Return to Hub
+                </button>
+            </div>
+        );
+    }
+    
+    if (!activeChallenge || !currentPreset) {
+        return (
+             <div className="text-center p-8">
+                <h2 className="text-2xl font-bold text-gray-400">Loading Challenge...</h2>
             </div>
         );
     }
@@ -142,16 +159,17 @@ const ChallengeRunner = () => {
             <ChallengeHUD 
                 challenge={activeChallenge} 
                 stepIndex={challengeStepIndex}
+                progress={challengeProgress || { totalAsked: 0, streak: 0 }}
                 timeLeft={timeLeft}
-                stopwatchTime={stopwatchTime}
             />
             
             <div className="w-full p-4 bg-slate-900/50 rounded-lg">
-                {getComponentForPreset(currentPreset)}
+                {/* **FIX:** Directly call the single helper function and pass the props object. */}
+                {getComponentForPreset(currentPreset, { onProgressUpdate: handleProgressUpdate })}
             </div>
 
             <div className="mt-8 flex justify-center">
-                 <button onClick={endChallenge} className="bg-red-700 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg">
+                 <button onClick={() => { setIsFinished(true); endChallenge(); }} className="bg-red-700 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg">
                     End Challenge Manually
                 </button>
             </div>

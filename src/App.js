@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Added useEffect
+import React, { useState, useEffect } from 'react';
 import { ToolsProvider, useTools } from './context/ToolsContext';
 
 import Welcome from './components/Welcome';
@@ -14,14 +14,15 @@ import TriadQuiz from './components/triadQuiz/TriadQuiz';
 import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
 import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer';
 import MelodicEarTrainer from './components/earTraining/MelodicEarTrainer';
-
+import ChallengesPage from './components/challenges/ChallengesPage';
+import ChallengeRunner from './components/challenges/ChallengeRunner'; // 1. Import the new ChallengeRunner
 
 const AppContent = () => {
   const [activeTab, setActiveTab] = useState('welcome');
   const [openCategory, setOpenCategory] = useState(null);
-  const { activeTool, unlockAudio, presetToLoad } = useTools(); // Get presetToLoad from context
+  // 2. Get activeChallenge from the context
+  const { activeTool, unlockAudio, presetToLoad, activeChallenge } = useTools();
 
-  // This useEffect watches for a preset and changes the tab accordingly
   useEffect(() => {
     if (presetToLoad) {
       setActiveTab(presetToLoad.gameId);
@@ -58,6 +59,12 @@ const AppContent = () => {
       tools: [
         { id: 'interval-ear-trainer', name: 'Interval Recognition' },
         { id: 'melodic-ear-trainer', name: 'Melodic Recognition' },
+      ],
+    },
+    {
+      name: 'Challenges',
+      tools: [
+        { id: 'challenges-hub', name: 'Challenge Hub' },
       ],
     },
   ];
@@ -129,18 +136,26 @@ const AppContent = () => {
       </nav>
 
       <main className="w-full max-w-5xl mx-auto bg-slate-800 shadow-2xl rounded-xl p-4 md:p-8 transform transition-transform duration-500 ease-out flex-grow">
-          {activeTab === 'welcome' && <Welcome />}
-          {activeTab === 'chord-trainer' && <ChordTrainer />}
-          {activeTab === 'intervals-quiz' && <IntervalsQuiz />}
-          {activeTab === 'note-generator' && <NoteGenerator />}
-          {activeTab === 'interval-fretboard-quiz' && <IntervalFretboardQuiz />}
-          {activeTab === 'diagram-maker' && <DiagramMaker />}
-          {activeTab === 'chord-progression-generator' && <ChordProgressionGenerator />}
-          {activeTab === 'interval-generator' && <IntervalGenerator />}
-          {activeTab === 'triad-quiz' && <TriadQuiz />}
-          {activeTab === 'caged-system-quiz' && <CAGEDSystemQuiz />}
-          {activeTab === 'interval-ear-trainer' && <IntervalEarTrainer />}
-          {activeTab === 'melodic-ear-trainer' && <MelodicEarTrainer />}
+          {/* 3. Conditionally render ChallengeRunner or the normal tab view */}
+          {activeChallenge ? (
+              <ChallengeRunner />
+          ) : (
+              <>
+                  {activeTab === 'welcome' && <Welcome />}
+                  {activeTab === 'chord-trainer' && <ChordTrainer />}
+                  {activeTab === 'intervals-quiz' && <IntervalsQuiz />}
+                  {activeTab === 'note-generator' && <NoteGenerator />}
+                  {activeTab === 'interval-fretboard-quiz' && <IntervalFretboardQuiz />}
+                  {activeTab === 'diagram-maker' && <DiagramMaker />}
+                  {activeTab === 'chord-progression-generator' && <ChordProgressionGenerator />}
+                  {activeTab === 'interval-generator' && <IntervalGenerator />}
+                  {activeTab === 'triad-quiz' && <TriadQuiz />}
+                  {activeTab === 'caged-system-quiz' && <CAGEDSystemQuiz />}
+                  {activeTab === 'interval-ear-trainer' && <IntervalEarTrainer />}
+                  {activeTab === 'melodic-ear-trainer' && <MelodicEarTrainer />}
+                  {activeTab === 'challenges-hub' && <ChallengesPage />}
+              </>
+          )}
       </main>
 
       <footer className="w-full max-w-5xl mx-auto text-center mt-8 text-gray-400 text-sm">

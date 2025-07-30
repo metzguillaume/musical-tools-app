@@ -32,14 +32,17 @@ export const MelodicEarTrainerControls = ({ settings, onSettingChange, onRandomK
 
         <div className="border-t border-slate-600 pt-4 space-y-3">
             <h4 className="font-semibold text-lg text-teal-300">Reference Note Options</h4>
+            {!settings.startOnRoot && (
+                <label className="flex items-center justify-between p-2 bg-slate-700 rounded-md cursor-pointer">
+                    <span className="font-semibold">Play Root Note First</span>
+                    <div className="relative inline-flex items-center">
+                        <input type="checkbox" checked={settings.playRootFirst} onChange={(e) => onSettingChange('playRootFirst', e.target.checked)} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </div>
+                </label>
+            )}
             <label className="flex items-center justify-between p-2 bg-slate-700 rounded-md cursor-pointer">
-                <span className="font-semibold">Play Root Note First</span>
-                <div className="relative inline-flex items-center">
-                    <input type="checkbox" checked={settings.playRootFirst} onChange={(e) => onSettingChange('playRootFirst', e.target.checked)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </div>
-            </label>
-            <label className="flex items-center justify-between p-2 bg-slate-700 rounded-md cursor-pointer">
+
                 <span className="font-semibold">Use Drone</span>
                 <div className="relative inline-flex items-center">
                     <input type="checkbox" checked={settings.useDrone} onChange={(e) => onSettingChange('useDrone', e.target.checked)} className="sr-only peer" />

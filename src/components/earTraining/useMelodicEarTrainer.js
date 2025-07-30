@@ -131,13 +131,31 @@ export const useMelodicEarTrainer = (settings) => {
         fretboardPlayers.current.stopAll();
 
         const noteInterval = 120 / bpm;
-
         let initialDelay = 0;
+
         if (settings.playRootFirst && !settings.startOnRoot) {
-            const rootNoteId = findPlayableNote(NOTE_TO_MIDI[question.key]);
-            if (rootNoteId) {
-                fretboardPlayers.current.player(rootNoteId).start(Tone.now());
-                initialDelay = noteInterval;
+            const rootMidi = NOTE_TO_MIDI[question.key];
+            if (rootMidi !== undefined) {
+                let lowMidi = rootMidi - 12;
+                let highMidi = rootMidi;
+
+                // Adjust octaves to fit within playable range
+                if (lowMidi < PLAYABLE_MIDI_RANGE.min) {
+                    lowMidi = rootMidi;
+                    highMidi = rootMidi + 12 > PLAYABLE_MIDI_RANGE.max ? PLAYABLE_MIDI_RANGE.max : rootMidi + 12;
+                }
+                if (highMidi > PLAYABLE_MIDI_RANGE.max) {
+                    highMidi = rootMidi;
+                    lowMidi = rootMidi - 12 < PLAYABLE_MIDI_RANGE.min ? PLAYABLE_MIDI_RANGE.min : rootMidi - 12;
+                }
+
+                const lowNoteId = findPlayableNote(lowMidi);
+                const highNoteId = findPlayableNote(highMidi);
+                
+                if (lowNoteId) fretboardPlayers.current.player(lowNoteId).start(Tone.now());
+                if (highNoteId && highNoteId !== lowNoteId) fretboardPlayers.current.player(highNoteId).start(Tone.now() + 0.4);
+                
+                initialDelay = 2.2; // Increased delay for a clear pause
             }
         }
 

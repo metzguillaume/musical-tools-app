@@ -1,21 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react'; // Added useMemo and useCallback
 import { useTools } from '../../context/ToolsContext';
 import { useMelodicEarTrainer } from './useMelodicEarTrainer';
 import InfoModal from '../common/InfoModal';
 import QuizLayout from '../common/QuizLayout';
 import { MelodicEarTrainerControls } from './MelodicEarTrainerControls';
 
-const AnswerInput = ({ settings, userAnswer, setUserAnswer, isAnswered, currentQuestion, checkAnswer }) => {
-    const [currentInput, setCurrentInput] = useState('');
-
+const AnswerInput = ({ settings, userAnswer, setUserAnswer, isAnswered, currentInput, setCurrentInput }) => {
+    
     const degreeKeys = ['1', '2', '3', '4', '5', '6', '7'];
     const noteKeys = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
     const modifierKeys = [{ id: 'b', display: '♭'}, { id: 'natural', display: '♮'}, { id: '#', display: '♯'}];
     const mainKeys = settings.answerMode === 'Scale Degrees' ? degreeKeys : noteKeys;
-
-    useEffect(() => {
-        setCurrentInput('');
-    }, [currentQuestion]);
 
     const commitInput = (inputToCommit) => {
         if (isAnswered || userAnswer.length >= settings.melodyLength || !inputToCommit) return;
@@ -24,10 +19,6 @@ const AnswerInput = ({ settings, userAnswer, setUserAnswer, isAnswered, currentQ
         const newAnswer = [...userAnswer, finalInput];
         setUserAnswer(newAnswer);
         setCurrentInput('');
-
-        if (newAnswer.length === settings.melodyLength && settings.autoAdvance) {
-            setTimeout(() => checkAnswer(newAnswer), 300);
-        }
     };
 
     const handleMainKeyPress = (key) => {
@@ -107,6 +98,7 @@ const MelodicEarTrainer = () => {
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [userAnswer, setUserAnswer] = useState([]);
+    const [currentInput, setCurrentInput] = useState('');
 
     const {
         score, totalAsked, feedback, isAnswered, currentQuestion, history, reviewIndex, setReviewIndex,
@@ -122,6 +114,7 @@ const MelodicEarTrainer = () => {
 
     useEffect(() => {
         setUserAnswer([]);
+        setCurrentInput('');
     }, [currentQuestion]);
 
     const isReviewing = reviewIndex !== null;
@@ -133,16 +126,35 @@ const MelodicEarTrainer = () => {
             return () => clearTimeout(timer);
         }
     }, [currentQuestion, isAnswered, isReviewing, playMelody]);
+    
+    // FIX: Wrapped in useMemo to fix exhaustive-deps warning and improve performance
+    const fullUserAnswer = useMemo(() => {
+        return currentInput ? [...userAnswer, currentInput.replace('natural', '')] : userAnswer;
+    }, [userAnswer, currentInput]);
+
+    // FIX: Wrapped in useCallback to fix exhaustive-deps warning and improve performance
+    const handleSubmit = useCallback(() => {
+        if (isAnswered) return;
+        checkAnswer(fullUserAnswer);
+    }, [isAnswered, checkAnswer, fullUserAnswer]);
+
+    // FIX: Auto-advance delay increased to 1000ms (1 second) to allow for accidentals
+    useEffect(() => {
+        if (settings.autoAdvance && !isAnswered && fullUserAnswer.length === settings.melodyLength) {
+            const timer = setTimeout(() => handleSubmit(), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [settings.autoAdvance, isAnswered, fullUserAnswer, settings.melodyLength, handleSubmit]);
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (event.key === 'Enter' && !isAnswered && userAnswer.length === settings.melodyLength) {
-                checkAnswer(userAnswer);
+            if (event.key === 'Enter' && !isAnswered && fullUserAnswer.length === settings.melodyLength) {
+                handleSubmit();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [userAnswer, isAnswered, checkAnswer, settings.melodyLength]);
+    }, [isAnswered, fullUserAnswer, settings.melodyLength, handleSubmit]);
 
     const handleSettingChange = (key, value) => {
         setSettings(prev => ({ ...prev, [key]: value }));
@@ -189,7 +201,7 @@ const MelodicEarTrainer = () => {
         </div>
     ) : (
         <>
-            <button onClick={() => checkAnswer(userAnswer)} disabled={isAnswered || userAnswer.length !== settings.melodyLength} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg disabled:bg-gray-500">Submit (Enter)</button>
+            <button onClick={handleSubmit} disabled={isAnswered || fullUserAnswer.length !== settings.melodyLength} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg disabled:bg-gray-500">Submit (Enter)</button>
             {!settings.autoAdvance && isAnswered && <button onClick={() => { setUserAnswer([]); generateNewQuestion(); }} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next</button>}
         </>
     );
@@ -227,6 +239,17 @@ const MelodicEarTrainer = () => {
                              <button onClick={() => playUserAnswer(history[reviewIndex].userAnswer, history[reviewIndex])} className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-8 rounded-lg">Replay Your Answer</button>
                         )}
                     </div>
+                    
+                    {/* FIX: Key display has been re-added */}
+                    {
+                        ((!isReviewing && settings.answerMode === 'Note Names') || (isReviewing && history[reviewIndex]?.answerMode === 'Note Names')) &&
+                        <div className="text-center p-2 rounded-lg bg-slate-900/40 mb-4">
+                            <p className="font-semibold text-gray-200 text-lg">
+                                Key: <span className="text-teal-300 font-bold">{isReviewing ? history[reviewIndex].question.key : currentQuestion?.key}</span>
+                            </p>
+                        </div>
+                    }
+
                     <div className={`text-xl my-4 min-h-[28px] ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>{feedback.message || <>&nbsp;</>}</div>
                     
                     {!isReviewing ? 
@@ -236,7 +259,8 @@ const MelodicEarTrainer = () => {
                             setUserAnswer={setUserAnswer}
                             isAnswered={isAnswered}
                             currentQuestion={currentQuestion}
-                            checkAnswer={checkAnswer}
+                            currentInput={currentInput}
+                            setCurrentInput={setCurrentInput}
                         />
                     :
                         <div className="text-center p-3 rounded-lg bg-slate-900/50 space-y-2">

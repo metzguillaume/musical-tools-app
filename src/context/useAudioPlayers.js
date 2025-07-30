@@ -20,9 +20,13 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
                 fretboardSoundUrls[`${s}-${f}`] = `${process.env.PUBLIC_URL}/sounds/fretboard/${s}-${f}.mp3`;
             }
         }
-        fretboardPlayers.current = new Tone.Players(fretboardSoundUrls, () => {
-            setAreFretboardSoundsReady(true);
-            console.log("Fretboard sounds loaded.");
+        fretboardPlayers.current = new Tone.Players(fretboardSoundUrls, {
+            onload: () => {
+                setAreFretboardSoundsReady(true);
+                console.log("Fretboard sounds loaded.");
+            },
+            fadeIn: 0.05,
+            fadeOut: 0.1
         }).toDestination();
 
         return () => {
@@ -55,7 +59,11 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
         const now = Tone.now();
         const quarterNoteDuration = 60 / bpm;
         const playNote = (noteId, time) => {
-            const player = new Tone.Player(fretboardPlayers.current.player(noteId).buffer).toDestination();
+            const player = new Tone.Player({
+                buffer: fretboardPlayers.current.player(noteId).buffer,
+                fadeIn: 0.05,
+                fadeOut: 0.1
+            }).toDestination();
             player.volume.value = fretboardVolume;
             player.start(time);
         };

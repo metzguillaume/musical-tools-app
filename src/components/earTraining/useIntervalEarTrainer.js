@@ -104,7 +104,10 @@ export const useIntervalEarTrainer = (settings) => {
                 const scaleMidiMod12 = scaleNotes.map(n => NOTE_TO_MIDI[n] % 12);
                 
                 const intervalsFromTonic = ALL_INTERVALS.filter(interval => scaleMidiMod12.includes((keyTonicMidiMod12 + interval.semitones) % 12));
-                const degreesFromTonic = intervalsFromTonic.map(i => SEMITONE_TO_DEGREE[(keyTonicMidiMod12 + i.semitones) % 12]);
+                
+                // This line now correctly handles the octave (12 semitones) by mapping it to degree '1'.
+                const degreesFromTonic = intervalsFromTonic.map(i => SEMITONE_TO_DEGREE[i.semitones % 12]);
+                
                 setDiatonicOptions({ intervals: intervalsFromTonic.map(i => i.name), degrees: [...new Set(degreesFromTonic)] });
                 
                 availableIntervals = availableIntervals.filter(i => intervalsFromTonic.some(tonicI => tonicI.name === i.name));
@@ -223,6 +226,6 @@ export const useIntervalEarTrainer = (settings) => {
     return {
         score, totalAsked, feedback, isAnswered, currentQuestion, history, reviewIndex, setReviewIndex,
         generateNewQuestion, checkAnswer, handleReviewNav, startReview, playQuestionAudio, ALL_INTERVALS,
-        diatonicOptions, newKeyNotification, isKeyChanging
+        diatonicOptions, newKeyNotification, isKeyChanging, currentKey: currentKey.current
     };
 };

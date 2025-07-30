@@ -6,8 +6,20 @@ import QuizLayout from '../common/QuizLayout';
 import { IntervalEarTrainerControls } from './IntervalEarTrainerControls';
 import { SEMITONE_TO_DEGREE } from '../../utils/musicTheory';
 
+// Determines whether to show sharp or flat notes based on the musical key.
+const getNoteNamesForKey = (key) => {
+    const sharpKeys = ['G', 'D', 'A', 'E', 'B', 'F#', 'C'];
+    const useSharps = sharpKeys.includes(key);
+
+    if (useSharps) {
+        return ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
+    } else {
+        return ['A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab'];
+    }
+};
+
 const IntervalEarTrainer = () => {
-    const { addLogEntry, setDroneNote, savePreset, presetToLoad, clearPresetToLoad } = useTools();
+    const { addLogEntry, savePreset, presetToLoad, clearPresetToLoad } = useTools();
     const [settings, setSettings] = useState({
         autoAdvance: true,
         isTrainingMode: false,
@@ -31,7 +43,7 @@ const IntervalEarTrainer = () => {
     const {
         score, totalAsked, feedback, isAnswered, currentQuestion, history, reviewIndex, setReviewIndex,
         generateNewQuestion, checkAnswer, handleReviewNav, startReview, playQuestionAudio, ALL_INTERVALS,
-        diatonicOptions, newKeyNotification
+        diatonicOptions, newKeyNotification, currentKey
     } = useIntervalEarTrainer(settings);
 
     useEffect(() => {
@@ -52,11 +64,8 @@ const IntervalEarTrainer = () => {
         }
     }, [currentQuestion, isAnswered, isReviewing, playQuestionAudio, newKeyNotification, settings.rootNoteMode, settings.useDrone]);
     
-    useEffect(() => {
-        if (settings.useDrone) {
-            setDroneNote(settings.fixedKey);
-        }
-    }, [settings.useDrone, settings.fixedKey, setDroneNote]);
+    // THIS REDUNDANT useEffect WAS THE SOURCE OF THE DRONE BUG AND HAS BEEN REMOVED.
+    // The useIntervalEarTrainer hook now correctly handles all drone note updates.
 
     const handleSettingChange = (key, value) => {
         setSettings(prev => ({...prev, [key]: value}));
@@ -111,7 +120,7 @@ const IntervalEarTrainer = () => {
             );
         }
         if (settings.answerMode === 'Note Names') {
-            const noteNameOptions = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+            const noteNameOptions = getNoteNamesForKey(currentKey);
             const handleNoteNameSelect = (note) => {
                 if (buttonsDisabled) return;
                 setSelectedNotes(prev => prev.includes(note) ? prev.filter(n => n !== note) : [...prev, note].slice(0, 2));
@@ -120,7 +129,7 @@ const IntervalEarTrainer = () => {
                 <div className="w-full flex flex-col items-center gap-2">
                     <p className="text-sm text-gray-400">Select the two notes you heard. (Octaves are excluded in this mode)</p>
                     <div className="grid grid-cols-6 gap-1 w-full">
-                        {noteNameOptions.map(note => <button key={note} onClick={() => handleNoteNameSelect(note)} disabled={buttonsDisabled} className={`py-3 rounded-md font-semibold ${selectedNotes.includes(note) ? 'bg-indigo-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}>{note.replace('b','♭')}</button>)}
+                        {noteNameOptions.map(note => <button key={note} onClick={() => handleNoteNameSelect(note)} disabled={buttonsDisabled} className={`py-3 rounded-md font-semibold ${selectedNotes.includes(note) ? 'bg-indigo-600 text-white' : 'bg-teal-600 hover:bg-teal-500'}`}>{note.replace('b','♭').replace('#','♯')}</button>)}
                     </div>
                     <div className="flex gap-2 mt-2">
                         <button onClick={() => setSelectedNotes([])} disabled={buttonsDisabled} className="py-2 px-4 rounded-md bg-gray-600 hover:bg-gray-500">Clear</button>
@@ -199,7 +208,7 @@ const IntervalEarTrainer = () => {
                     {newKeyNotification && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white text-2xl font-bold p-6 rounded-lg z-20 animate-pulse-once">{newKeyNotification}</div>}
                     
                     <div className="w-full bg-slate-900/50 p-4 rounded-lg text-center min-h-[80px] flex justify-center items-center flex-wrap gap-x-2 mb-4">
-                        <button onClick={() => playQuestionAudio(questionForDisplay)} disabled={isAnswered} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg text-xl disabled:opacity-50 disabled:cursor-not-allowed">Replay Sound</button>
+                        <button onClick={() => playQuestionAudio(questionForDisplay)} disabled={!isReviewing && isAnswered} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg text-xl disabled:opacity-50 disabled:cursor-not-allowed">Replay Sound</button>
                     </div>
 
                     <div className="text-xl my-4 min-h-[28px]">

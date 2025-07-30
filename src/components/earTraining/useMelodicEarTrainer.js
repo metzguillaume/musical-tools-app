@@ -6,8 +6,11 @@ import * as Tone from 'tone';
 
 const CHROMATIC_SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const PLAYABLE_MIDI_RANGE = { min: 40, max: 76 }; // E2 to E5 (12th fret high E)
-
 const KEY_TO_DRONE_NOTE = { 'Db':'C#', 'Eb':'D#', 'Gb':'F#', 'Ab':'G#', 'Bb':'A#' };
+
+const DEGREE_TO_SEMITONE = {
+    '1': 0, 'b2': 1, '2': 2, 'b3': 3, '3': 4, '4': 5, '#4': 6, 'b5': 6, '5': 7, 'b6': 8, '6': 9, 'b7': 10, '7': 11
+};
 
 const findPlayableNote = (midi) => {
     for (let s = fretboardModel.length - 1; s >= 0; s--) {
@@ -50,10 +53,10 @@ export const useMelodicEarTrainer = (settings) => {
         }
     }, [settings.useDrone, currentQuestion, reviewIndex, history, setDroneNote]);
 
-
     const generateNewQuestion = useCallback(() => {
         clearTimeout(timeoutRef.current);
         setReviewIndex(null);
+        let keyDidChange = false;
 
         const { melodyLength, notePool, diatonicMode, octaveRange, startOnRoot, rootNoteMode, fixedKey, questionsPerRoot } = settings;
 
@@ -62,6 +65,7 @@ export const useMelodicEarTrainer = (settings) => {
             let nextKey = currentKey.current;
             while (nextKey === currentKey.current) { nextKey = possibleKeys[Math.floor(Math.random() * possibleKeys.length)]; }
             currentKey.current = nextKey;
+            keyDidChange = true;
         } else if (rootNoteMode === 'Fixed') {
             currentKey.current = fixedKey;
         } else if (rootNoteMode === 'Random') {
@@ -85,7 +89,7 @@ export const useMelodicEarTrainer = (settings) => {
         }
 
         const availableNotes = potentialNotes.filter(note => note.midi >= PLAYABLE_MIDI_RANGE.min && note.midi <= PLAYABLE_MIDI_RANGE.max);
-        if (availableNotes.length < melodyLength) {
+        if (availableNotes.length === 0 || (startOnRoot && availableNotes.length < melodyLength -1)) {
             console.error("Not enough playable notes with current settings. Try a lower octave range.");
             return;
         }
@@ -107,7 +111,8 @@ export const useMelodicEarTrainer = (settings) => {
         const question = {
             key: currentKey.current, melody,
             answerDegrees: melody.map(n => n.degree),
-            answerNotes: melody.map(n => n.name)
+            answerNotes: melody.map(n => n.name),
+            keyChanged: keyDidChange
         };
         
         setCurrentQuestion(question);
@@ -159,7 +164,7 @@ export const useMelodicEarTrainer = (settings) => {
         }
         
         setTotalAsked(t => t + 1);
-        setHistory(h => [...h, { question: currentQuestion, userAnswer: userAnswerArray, wasCorrect: isCorrect }]);
+        setHistory(h => [...h, { question: currentQuestion, userAnswer: userAnswerArray, wasCorrect: isCorrect, answerMode }]);
         setIsAnswered(true);
 
         if (autoAdvance) {
@@ -167,32 +172,37 @@ export const useMelodicEarTrainer = (settings) => {
         }
     }, [isAnswered, currentQuestion, settings, generateNewQuestion]);
     
-    const playUserAnswer = useCallback(async (userAnswerArray) => {
-        if (!userAnswerArray || userAnswerArray.length === 0 || !areFretboardSoundsReady || !fretboardPlayers.current) return;
+    const playUserAnswer = useCallback(async (userAnswerArray, historyItem) => {
+        if (!userAnswerArray || userAnswerArray.length === 0 || !historyItem || !areFretboardSoundsReady) return;
         await unlockAudio();
 
         Tone.Transport.cancel();
         fretboardPlayers.current.stopAll();
         
         const noteInterval = 120 / bpm;
+        const rootMidi = NOTE_TO_MIDI[historyItem.question.key];
+        if (rootMidi === undefined) return;
 
-        const rootNote = (reviewIndex !== null && history[reviewIndex]) ? history[reviewIndex].question.key : currentQuestion.key;
-        let rootMidi = NOTE_TO_MIDI[rootNote] || 60;
-
-        userAnswerArray.forEach((noteName, index) => {
-            const midiVal = NOTE_TO_MIDI[noteName];
+        userAnswerArray.forEach((answerItem, index) => {
+            let midiVal;
+            if (historyItem.answerMode === 'Scale Degrees') {
+                const semitone = DEGREE_TO_SEMITONE[answerItem];
+                if (semitone !== undefined) midiVal = rootMidi + semitone;
+            } else { // Note Names
+                midiVal = NOTE_TO_MIDI[answerItem];
+            }
+            
             if (midiVal === undefined) return;
 
-            let finalMidi = midiVal + Math.floor(rootMidi / 12) * 12;
-            if (finalMidi < PLAYABLE_MIDI_RANGE.min) finalMidi += 12;
-            if (finalMidi > PLAYABLE_MIDI_RANGE.max) finalMidi -= 12;
+            if (midiVal < PLAYABLE_MIDI_RANGE.min) midiVal += 12;
+            if (midiVal > PLAYABLE_MIDI_RANGE.max) midiVal -= 12;
 
-            const noteId = findPlayableNote(finalMidi);
+            const noteId = findPlayableNote(midiVal);
             if (noteId && fretboardPlayers.current.has(noteId)) {
                 fretboardPlayers.current.player(noteId).start(Tone.now() + (index * noteInterval));
             }
         });
-    }, [reviewIndex, history, currentQuestion, areFretboardSoundsReady, unlockAudio, bpm, fretboardPlayers]);
+    }, [areFretboardSoundsReady, unlockAudio, bpm, fretboardPlayers]);
     
     useEffect(() => {
         generateNewQuestion();

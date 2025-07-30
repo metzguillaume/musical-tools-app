@@ -5,7 +5,6 @@ import InfoModal from '../common/InfoModal';
 import QuizLayout from '../common/QuizLayout';
 import { MelodicEarTrainerControls } from './MelodicEarTrainerControls';
 
-// Redesigned Answer Input component with new logic and layout
 const AnswerInput = ({ settings, userAnswer, setUserAnswer, isAnswered, currentQuestion, checkAnswer }) => {
     const [currentInput, setCurrentInput] = useState('');
 
@@ -32,27 +31,25 @@ const AnswerInput = ({ settings, userAnswer, setUserAnswer, isAnswered, currentQ
     };
 
     const handleMainKeyPress = (key) => {
-        let finalInput = '';
         if (settings.answerMode === 'Scale Degrees') {
-            finalInput = currentInput + key;
-        } else { // Note Names mode
-            if (currentInput) { // If there's a pending modifier, commit the old one
+            commitInput(currentInput + key);
+        } else {
+            if (currentInput) {
                 commitInput(currentInput);
             }
-            setCurrentInput(key); // Set the new note as the current input
+            setCurrentInput(key);
         }
-        if (finalInput) commitInput(finalInput);
     };
 
     const handleModifierPress = (mod) => {
         if (isAnswered) return;
         if (mod === 'natural') {
-            if(currentInput) commitInput(currentInput); // Commit the natural note
+            if(currentInput) commitInput(currentInput);
         } else if (settings.answerMode === 'Scale Degrees') {
-            setCurrentInput(mod); // Set modifier for next degree
-        } else { // Note Names mode
-            if (currentInput && currentInput.length === 1) { // If there's a note waiting
-                commitInput(currentInput + mod); // Commit note + modifier
+            setCurrentInput(mod);
+        } else {
+            if (currentInput && currentInput.length === 1) {
+                commitInput(currentInput + mod);
             }
         }
     };
@@ -103,9 +100,9 @@ const MelodicEarTrainer = () => {
         useDrone: true,
         notePool: 'Diatonic',
         diatonicMode: 'Major',
-        rootNoteMode: 'Random',
+        rootNoteMode: 'Roving',
         fixedKey: 'C',
-        questionsPerRoot: 3,
+        questionsPerRoot: 5,
     });
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
@@ -131,7 +128,8 @@ const MelodicEarTrainer = () => {
 
     useEffect(() => {
         if (currentQuestion && !isAnswered && !isReviewing) {
-            const timer = setTimeout(() => playMelody(), 500); // Reduced delay for better flow
+            const delay = currentQuestion.keyChanged ? 3000 : 500;
+            const timer = setTimeout(() => playMelody(), delay);
             return () => clearTimeout(timer);
         }
     }, [currentQuestion, isAnswered, isReviewing, playMelody]);
@@ -226,7 +224,7 @@ const MelodicEarTrainer = () => {
                     <div className="flex items-center gap-4 mb-4">
                         <button onClick={() => playMelody(isReviewing ? history[reviewIndex].question : currentQuestion)} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Replay Melody</button>
                         {isReviewing && !history[reviewIndex].wasCorrect && (
-                             <button onClick={() => playUserAnswer(history[reviewIndex].userAnswer)} className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-8 rounded-lg">Replay Your Answer</button>
+                             <button onClick={() => playUserAnswer(history[reviewIndex].userAnswer, history[reviewIndex])} className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-8 rounded-lg">Replay Your Answer</button>
                         )}
                     </div>
                     <div className={`text-xl my-4 min-h-[28px] ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>{feedback.message || <>&nbsp;</>}</div>
@@ -242,7 +240,7 @@ const MelodicEarTrainer = () => {
                         />
                     :
                         <div className="text-center p-3 rounded-lg bg-slate-900/50 space-y-2">
-                             <p className="font-bold text-gray-200">Correct Answer: <span className="text-teal-300 font-semibold">{(settings.answerMode === 'Scale Degrees' ? history[reviewIndex].question.answerDegrees : history[reviewIndex].question.answerNotes).join(' - ')}</span></p>
+                             <p className="font-bold text-gray-200">Correct Answer: <span className="text-teal-300 font-semibold">{(history[reviewIndex].answerMode === 'Scale Degrees' ? history[reviewIndex].question.answerDegrees : history[reviewIndex].question.answerNotes).join(' - ')}</span></p>
                             {!history[reviewIndex].wasCorrect && (
                                 <p className="font-bold text-gray-400">Your Answer: <span className="text-red-400 font-semibold">{history[reviewIndex].userAnswer.join(' - ')}</span></p>
                             )}

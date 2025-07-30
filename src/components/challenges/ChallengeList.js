@@ -1,7 +1,8 @@
 import React from 'react';
 
-const ChallengeList = ({ challenges, onStart, onEdit, onDelete, onExport, onShowCreator }) => {
-    if (challenges.length === 0) {
+const ChallengeList = ({ challenges = [], onStart, onEdit, onDelete, onExport, onShowCreator }) => {
+    if (!challenges || challenges.length === 0) {
+
         return (
             <div className="text-center p-8 bg-slate-700/50 rounded-lg">
                 <h3 className="text-xl font-semibold text-gray-300">No Challenges Found</h3>

@@ -40,7 +40,7 @@ const AppContent = () => {
       ],
     },
     {
-      name: 'Music Theory',
+      name: 'Theory',
       tools: [
         { id: 'intervals-quiz', name: 'Interval Practice' },
         { id: 'triad-quiz', name: 'Triad & Tetrads Quiz' },

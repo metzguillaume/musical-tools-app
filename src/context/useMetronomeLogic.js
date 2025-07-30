@@ -50,7 +50,11 @@ export const useMetronomeLogic = (unlockAudio) => {
         transport.bpm.value = bpm;
         if (transportEventRef.current.id) transport.clear(transportEventRef.current.id);
         
-        transportEventRef.current.beatCounter = 0;
+        // This check is important if stop() wasn't called properly
+        if (transport.state === 'stopped') {
+            transportEventRef.current.beatCounter = 0;
+        }
+
         transportEventRef.current.id = transport.scheduleRepeat(time => {
             const task = scheduledTaskRef.current;
             if (!task || !task.callback || task.interval <= 0) {
@@ -81,25 +85,22 @@ export const useMetronomeLogic = (unlockAudio) => {
 
     const stopMetronome = useCallback(() => {
         const transport = Tone.getTransport();
-        transport.pause();
-        transport.cancel(); 
+        transport.stop();
         transportEventRef.current.id = null;
+        transportEventRef.current.beatCounter = 0; // Reset the counter
         setIsMetronomePlaying(false);
     }, []);
 
     const setMetronomeSchedule = useCallback((task) => {
-        const transport = Tone.getTransport();
-        const wasPlaying = transport.state === 'started';
+        const wasPlaying = Tone.getTransport().state === 'started';
         if (wasPlaying) {
-            transport.pause();
-            transport.cancel();
-            transportEventRef.current.id = null;
+            stopMetronome(); // Use the unified stop function
         }
         scheduledTaskRef.current = task;
         if (wasPlaying) {
              setTimeout(() => { startMetronome(); }, 50);
         }
-    }, [startMetronome]);
+    }, [startMetronome, stopMetronome]);
 
     const toggleMetronome = useCallback(async () => {
         await unlockAudio();

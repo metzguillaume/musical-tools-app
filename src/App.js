@@ -13,6 +13,7 @@ import IntervalGenerator from './components/intervalGenerator/IntervalGenerator'
 import TriadQuiz from './components/triadQuiz/TriadQuiz';
 import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
 import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer';
+import MelodicEarTrainer from './components/earTraining/MelodicEarTrainer';
 
 
 const AppContent = () => {
@@ -56,6 +57,7 @@ const AppContent = () => {
       name: 'Ear Training',
       tools: [
         { id: 'interval-ear-trainer', name: 'Interval Recognition' },
+        { id: 'melodic-ear-trainer', name: 'Melodic Recognition' },
       ],
     },
   ];
@@ -138,6 +140,7 @@ const AppContent = () => {
           {activeTab === 'triad-quiz' && <TriadQuiz />}
           {activeTab === 'caged-system-quiz' && <CAGEDSystemQuiz />}
           {activeTab === 'interval-ear-trainer' && <IntervalEarTrainer />}
+          {activeTab === 'melodic-ear-trainer' && <MelodicEarTrainer />}
       </main>
 
       <footer className="w-full max-w-5xl mx-auto text-center mt-8 text-gray-400 text-sm">

@@ -42,9 +42,10 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
         if (!notes || notes.length < 2 || !intervalSynth.current) return;
         await unlockAudio();
         const now = Tone.now();
-        intervalSynth.current.triggerAttackRelease(notes[0], "8n", now);
-        intervalSynth.current.triggerAttackRelease(notes[1], "8n", now + 0.5);
-        intervalSynth.current.triggerAttackRelease(notes, "4n", now + 1.2);
+        // Use fixed second values instead of "8n" or "4n"
+        intervalSynth.current.triggerAttackRelease(notes[0], 0.4, now);
+        intervalSynth.current.triggerAttackRelease(notes[1], 0.4, now + 0.5);
+        intervalSynth.current.triggerAttackRelease(notes, 0.8, now + 1.2);
     }, [unlockAudio]);
 
     const playFretboardNotes = useCallback(async (notes) => {
@@ -57,20 +58,16 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
             return;
         }
         const now = Tone.now();
-        const quarterNoteDuration = 60 / bpm;
         const playNote = (noteId, time) => {
-            const player = new Tone.Player({
-                buffer: fretboardPlayers.current.player(noteId).buffer,
-                fadeIn: 0.05,
-                fadeOut: 0.1
-            }).toDestination();
-            player.volume.value = fretboardVolume;
+            const player = fretboardPlayers.current.player(noteId);
             player.start(time);
         };
+        // Play notes with fixed timing, not based on BPM
         playNote(rootNoteId, now);
-        playNote(targetNoteId, now + quarterNoteDuration);
-        playNote(rootNoteId, now + (2 * quarterNoteDuration));
-        playNote(targetNoteId, now + (2 * quarterNoteDuration));
+        playNote(targetNoteId, now + 0.4);
+        // Play them together as a chord
+        playNote(rootNoteId, now + 0.9);
+        playNote(targetNoteId, now + 0.9);
     }, [areFretboardSoundsReady, unlockAudio, bpm, fretboardVolume]);
 
     return { playInterval, playFretboardNotes, areFretboardSoundsReady, fretboardVolume, setFretboardVolume, intervalSynthVolume, setIntervalSynthVolume, fretboardPlayers };

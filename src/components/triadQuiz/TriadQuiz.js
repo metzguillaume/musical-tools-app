@@ -112,13 +112,13 @@ const TriadQuiz = ({ onProgressUpdate }) => {
         }
         
         const noteColumns = [
-            { letter: 'A', notes: ['A', 'A#', 'Ab'] },
-            { letter: 'B', notes: ['B', null, 'Bb'] },
-            { letter: 'C', notes: ['C', 'C#', null] },
-            { letter: 'D', notes: ['D', 'D#', 'Db'] },
-            { letter: 'E', notes: ['E', null, 'Eb'] },
-            { letter: 'F', notes: ['F', 'F#', null] },
-            { letter: 'G', notes: ['G', 'G#', 'Gb'] },
+            { letter: 'A', notes: ['A#', 'A', 'Ab'] },
+            { letter: 'B', notes: [null, 'B', 'Bb'] },
+            { letter: 'C', notes: ['C#', 'C', null] },
+            { letter: 'D', notes: ['D#', 'D', 'Db'] },
+            { letter: 'E', notes: [null, 'E', 'Eb'] },
+            { letter: 'F', notes: ['F#', 'F', null] },
+            { letter: 'G', notes: ['G#', 'G', 'Gb'] },
         ];
 
         return (

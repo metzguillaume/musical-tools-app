@@ -68,7 +68,7 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
         // Play them together as a chord
         playNote(rootNoteId, now + 0.9);
         playNote(targetNoteId, now + 0.9);
-    }, [areFretboardSoundsReady, unlockAudio, bpm, fretboardVolume]);
+    }, [areFretboardSoundsReady, unlockAudio]);
 
     return { playInterval, playFretboardNotes, areFretboardSoundsReady, fretboardVolume, setFretboardVolume, intervalSynthVolume, setIntervalSynthVolume, fretboardPlayers };
 };

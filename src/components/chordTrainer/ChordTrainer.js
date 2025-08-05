@@ -134,12 +134,12 @@ const SetupScreen = ({ onStart }) => {
     );
 };
 
-const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup }) => {
+const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup, onProgressUpdate, isChallengeMode }) => {
     const [settings, setSettings] = useState(initialSettings);
     const {
         currentQuestion, userAnswer, setUserAnswer, feedback, score, history,
         reviewIndex, setReviewIndex, checkAnswer, generateNewQuestion, startReview, handleReviewNav
-    } = useChordTrainer(settings);
+    } = useChordTrainer(settings, onProgressUpdate);
 
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
@@ -284,7 +284,7 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup }) => {
                                 </div>
                             ) : (
                                 <>
-                                    <button type="button" onClick={onGoToSetup} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg">Menu</button>
+                                    {!isChallengeMode && <button type="button" onClick={onGoToSetup} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg">Menu</button>}
                                     {!feedback ? (
                                         <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Submit</button>
                                     ) : !settings.autoAdvance && (
@@ -302,10 +302,12 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup }) => {
     );
 };
 
-const ChordTrainer = () => {
+const ChordTrainer = ({ onProgressUpdate, challengeSettings }) => {
     const { addLogEntry } = useTools();
-    const [screen, setScreen] = useState('setup');
-    const [initialSettings, setInitialSettings] = useState(null);
+
+    // If challengeSettings are passed, start in 'quiz' mode. Otherwise, start in 'setup'.
+    const [screen, setScreen] = useState(challengeSettings ? 'quiz' : 'setup');
+    const [initialSettings, setInitialSettings] = useState(challengeSettings || null);
 
     const handleStart = (settingsFromSetup) => {
         setInitialSettings({
@@ -340,6 +342,8 @@ const ChordTrainer = () => {
             initialSettings={initialSettings} 
             onLogSession={handleLogSession} 
             onGoToSetup={handleGoToSetup}
+            onProgressUpdate={onProgressUpdate}
+            isChallengeMode={!!challengeSettings}
         />;
     }
 

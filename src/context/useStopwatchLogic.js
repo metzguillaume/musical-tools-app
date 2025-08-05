@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 export const useStopwatchLogic = () => {
     const [stopwatchTime, setStopwatchTime] = useState(0);
@@ -17,9 +17,21 @@ export const useStopwatchLogic = () => {
         return () => clearInterval(stopwatchIntervalRef.current);
     }, [isStopwatchRunning]);
 
-    const toggleStopwatch = () => setIsStopwatchRunning(p => !p);
-    const resetStopwatch = () => { setIsStopwatchRunning(false); setStopwatchTime(0); setLaps([]); };
-    const addLap = () => setLaps(prevLaps => [...prevLaps, stopwatchTime]);
+    // FIX: Wrap all returned functions in useCallback to make them stable
+    const toggleStopwatch = useCallback(() => {
+        setIsStopwatchRunning(p => !p);
+    }, []);
+
+    const resetStopwatch = useCallback(() => {
+        setIsStopwatchRunning(false);
+        setStopwatchTime(0);
+        setLaps([]);
+    }, []);
+
+    const addLap = useCallback(() => {
+        // Use a function update to avoid depending on stopwatchTime directly
+        setLaps(prevLaps => [...prevLaps, stopwatchTime]);
+    }, [stopwatchTime]); // stopwatchTime is needed here as it's the value we are capturing
 
     return { stopwatchTime, isStopwatchRunning, laps, toggleStopwatch, resetStopwatch, addLap };
 };

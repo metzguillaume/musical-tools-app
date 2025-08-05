@@ -1,7 +1,7 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useTools } from '../../context/ToolsContext';
 
-// Import all the possible quiz/tool components the runner might need to render
+// Import all the possible quiz/tool components
 import CAGEDSystemQuiz from '../caged/CAGEDSystemQuiz';
 import ChordProgressionGenerator from '../chordProgressionGenerator/ChordProgressionGenerator';
 import ChordTrainer from '../chordTrainer/ChordTrainer';
@@ -13,19 +13,16 @@ import IntervalsQuiz from '../intervalsQuiz/IntervalsQuiz';
 import NoteGenerator from '../noteGenerator/NoteGenerator';
 import TriadQuiz from '../triadQuiz/TriadQuiz';
 
-// **FIX:** This is now the single source for rendering a component. It now accepts props.
 const getComponentForPreset = (preset, props) => {
     if (!preset || !preset.gameId) return null;
-
     switch (preset.gameId) {
         case 'caged-system-quiz': return <CAGEDSystemQuiz {...props} />;
-        case 'chord-trainer': return <ChordTrainer {...props} />;
+        case 'chord-trainer': return <ChordTrainer {...props} challengeSettings={preset.settings} />;
         case 'interval-ear-trainer': return <IntervalEarTrainer {...props} />;
         case 'melodic-ear-trainer': return <MelodicEarTrainer {...props} />;
         case 'interval-fretboard-quiz': return <IntervalFretboardQuiz {...props} />;
         case 'intervals-quiz': return <IntervalsQuiz {...props} />;
         case 'triad-quiz': return <TriadQuiz {...props} />;
-        // Generators don't have progress, so they don't need the prop
         case 'chord-progression-generator': return <ChordProgressionGenerator />;
         case 'interval-generator': return <IntervalGenerator />;
         case 'note-generator': return <NoteGenerator />;
@@ -33,21 +30,22 @@ const getComponentForPreset = (preset, props) => {
     }
 };
 
-/**
- * The Challenge HUD component displays the current status of the challenge.
- */
 const ChallengeHUD = ({ challenge, stepIndex, progress, timeLeft }) => {
     const currentStep = challenge.steps[stepIndex];
     let goalDisplay = '';
+    
+    // Safety check for progress object
+    const currentProgress = progress || {};
 
-    if (challenge.type === 'PracticeRoutine') {
+    if (challenge.type === 'PracticeRoutine' && currentStep.goalType === 'time') {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
         goalDisplay = `Time Left: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    } else if (challenge.type === 'Gauntlet') {
-        goalDisplay = `Answered: ${progress.totalAsked} / ${currentStep.goalValue}`;
+    } else if ((challenge.type === 'PracticeRoutine' && currentStep.goalType === 'questions') || challenge.type === 'Gauntlet') {
+        const stepProgress = currentProgress.stepResults ? currentProgress.stepResults[stepIndex] : { asked: 0 };
+        goalDisplay = `Answered: ${stepProgress?.asked || 0} / ${currentStep.goalValue}`;
     } else if (challenge.type === 'Streak') {
-        goalDisplay = `Current Streak: ${progress.streak}`;
+        goalDisplay = `Current Streak: ${currentProgress.streak || 0}`;
     }
 
     return (
@@ -62,144 +60,113 @@ const ChallengeHUD = ({ challenge, stepIndex, progress, timeLeft }) => {
 };
 
 
-/**
- * The main ChallengeRunner component.
- */
 const ChallengeRunner = () => {
     const {
         activeChallenge, challengeStepIndex, challengeProgress, presets, loadPreset, nextChallengeStep, endChallenge, updateChallengeProgress,
-        timeLeft, isTimerRunning, toggleTimer, resetTimer,
-        isStopwatchRunning, toggleStopwatch, resetStopwatch
+        isStopwatchRunning, toggleStopwatch, resetStopwatch, stopwatchTime,
+        saveChallengeResult, setLastChallengeResultId
     } = useTools();
 
-    const [isFinished, setIsFinished] = useState(false);
+    const [stepTimeLeft, setStepTimeLeft] = useState(0);
+    const timeoutRef = useRef(null);
+    const initialStepRender = useRef(true);
 
-    const currentStep = activeChallenge?.steps[challengeStepIndex];
-    const currentPreset = presets.find(p => p.id === currentStep?.presetId);
+    const finishChallenge = useCallback(() => {
+        if (!activeChallenge || !challengeProgress) return;
 
-    // This effect runs when the step changes, setting everything up.
+        const result = {
+            id: `res_${Date.now()}`,
+            challengeId: activeChallenge.id,
+            challengeName: activeChallenge.name,
+            challengeType: activeChallenge.type,
+            completionTime: new Date().toISOString(),
+            steps: activeChallenge.steps,
+            stepResults: challengeProgress.stepResults,
+            totalScore: challengeProgress.totalScore,
+            totalAsked: challengeProgress.totalAsked,
+            streak: challengeProgress.streak,
+            finalTime: activeChallenge.type === 'Gauntlet' ? stopwatchTime : null,
+        };
+
+        saveChallengeResult(result);
+        setLastChallengeResultId(result.id); // Triggers navigation in App.js
+        endChallenge(); // Cleans up and unmounts the runner
+
+    }, [activeChallenge, challengeProgress, endChallenge, saveChallengeResult, setLastChallengeResultId, stopwatchTime]);
+
+
     useEffect(() => {
-        if (!activeChallenge || !currentStep || !currentPreset) {
-            if (activeChallenge && !isFinished) endChallenge();
+        if (!activeChallenge) return;
+        const currentStep = activeChallenge.steps[challengeStepIndex];
+        const currentPreset = presets.find(p => p.id === currentStep?.presetId);
+        if (!currentStep || !currentPreset) return;
+        initialStepRender.current = true;
+        loadPreset(currentPreset);
+        if (activeChallenge.type === 'PracticeRoutine' && currentStep.goalType === 'time') { setStepTimeLeft(currentStep.goalValue); } 
+        else if (activeChallenge.type === 'Gauntlet') { resetStopwatch(); if (!isStopwatchRunning) toggleStopwatch(); }
+    }, [activeChallenge, challengeStepIndex, presets, loadPreset, resetStopwatch, isStopwatchRunning, toggleStopwatch]);
+
+
+    useEffect(() => {
+        if (!activeChallenge || activeChallenge.type !== 'PracticeRoutine' || activeChallenge.steps[challengeStepIndex]?.goalType !== 'time') return;
+        if (initialStepRender.current) { initialStepRender.current = false; return; }
+        if (stepTimeLeft <= 0) {
+            if (challengeStepIndex >= activeChallenge.steps.length - 1) {
+                finishChallenge();
+            } else {
+                nextChallengeStep();
+            }
             return;
         }
+        const intervalId = setInterval(() => setStepTimeLeft(prev => prev - 1), 1000);
+        return () => clearInterval(intervalId);
+    }, [stepTimeLeft, activeChallenge, challengeStepIndex, nextChallengeStep, finishChallenge]);
 
-        loadPreset(currentPreset);
 
-        if (activeChallenge.type === 'PracticeRoutine') {
-            const durationInMinutes = currentStep.goalValue / 60;
-            resetTimer(durationInMinutes);
-            if (!isTimerRunning) setTimeout(() => toggleTimer(), 50);
-        } else if (activeChallenge.type === 'Gauntlet') {
-            resetStopwatch();
-            if (!isStopwatchRunning) toggleStopwatch();
-        }
+    const handleProgressUpdate = useCallback((progress) => {
+        if (!activeChallenge) return;
+        updateChallengeProgress(challengeStepIndex, progress);
+        const currentStep = activeChallenge.steps[challengeStepIndex];
+        const isFinalStep = challengeStepIndex >= activeChallenge.steps.length - 1;
 
-        return () => {
-            if (isTimerRunning) toggleTimer();
+        const advance = (isFinished) => {
+            timeoutRef.current = setTimeout(() => {
+                if (isFinished) {
+                    if (isStopwatchRunning) toggleStopwatch();
+                    finishChallenge();
+                } else {
+                    nextChallengeStep();
+                }
+            }, 2000);
         };
-    }, [activeChallenge, challengeStepIndex, currentPreset, currentStep, endChallenge, isFinished, isStopwatchRunning, isTimerRunning, loadPreset, resetStopwatch, resetTimer, toggleStopwatch, toggleTimer]);
 
-    // This effect checks for completion of time-based challenges.
-    useEffect(() => {
-        if (activeChallenge?.type === 'PracticeRoutine' && timeLeft <= 0 && isTimerRunning) {
-            if (isTimerRunning) toggleTimer();
-            
-            if (challengeStepIndex >= activeChallenge.steps.length - 1) {
-                setIsFinished(true);
-                endChallenge();
-            } else {
-                nextChallengeStep();
-            }
+        const questionsAnsweredForStep = progress.totalAsked; // Quiz sends its internal total
+
+        if (activeChallenge.type === 'PracticeRoutine' && currentStep.goalType === 'questions') {
+            if (questionsAnsweredForStep >= currentStep.goalValue) advance(isFinalStep);
+        } else if (activeChallenge.type === 'Gauntlet') {
+            // Gauntlet goal is based on total questions in the step
+            if (questionsAnsweredForStep >= currentStep.goalValue) advance(true);
+        } else if (activeChallenge.type === 'Streak') {
+            if (!progress.wasCorrect) advance(true);
         }
-    }, [timeLeft, isTimerRunning, activeChallenge, challengeStepIndex, nextChallengeStep, endChallenge, toggleTimer]);
-
-    // This is the new callback function that quizzes will call.
-    // Inside ChallengeRunner.js
-const handleProgressUpdate = useCallback((progress) => {
-    if (!activeChallenge || !currentStep || isFinished) return;
-
-    // First, update the general progress state for all challenge types
-    const newProgress = {
-        totalAsked: progress.totalAsked,
-        score: progress.score,
-        streak: progress.wasCorrect ? (challengeProgress?.streak || 0) + 1 : 0
-    };
-    updateChallengeProgress(newProgress);
-
-    // --- Logic for Practice Routines with a "questions" goal ---
-    if (activeChallenge.type === 'PracticeRoutine' && currentStep.goalType === 'questions') {
-        if (progress.totalAsked >= currentStep.goalValue) {
-            // Goal met, move to the next step or finish
-            if (challengeStepIndex >= activeChallenge.steps.length - 1) {
-                setIsFinished(true);
-                endChallenge();
-            } else {
-                nextChallengeStep();
-            }
-        }
-    }
-
-    // --- Logic for Gauntlet challenges ---
-    else if (activeChallenge.type === 'Gauntlet') {
-        if (progress.totalAsked >= currentStep.goalValue) {
-            if (isStopwatchRunning) toggleStopwatch(); // Stop the clock!
-            // Future: Save final time and score to a leaderboard here
-            setIsFinished(true);
-            endChallenge();
-        }
-    }
-
-    // --- Logic for Streak challenges ---
-    else if (activeChallenge.type === 'Streak') {
-        if (!progress.wasCorrect) {
-            // Streak is broken, the challenge is over.
-            setIsFinished(true);
-            endChallenge();
-        }
-    }
-}, [
-    activeChallenge, currentStep, challengeProgress, updateChallengeProgress, 
-    endChallenge, nextChallengeStep, challengeStepIndex, isStopwatchRunning, 
-    toggleStopwatch, isFinished
-]);
-    if (isFinished) {
-        return (
-            <div className="text-center p-8">
-                <h2 className="text-4xl font-bold text-green-400">Challenge Complete!</h2>
-                <button onClick={() => setIsFinished(false)} className="mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">
-                    Return to Hub
-                </button>
-            </div>
-        );
-    }
+    }, [activeChallenge, challengeStepIndex, isStopwatchRunning, nextChallengeStep, toggleStopwatch, updateChallengeProgress, finishChallenge]);
     
+    useEffect(() => { return () => clearTimeout(timeoutRef.current); }, []);
+
+    const currentPreset = presets.find(p => p.id === activeChallenge?.steps[challengeStepIndex]?.presetId);
     if (!activeChallenge || !currentPreset) {
-        return (
-             <div className="text-center p-8">
-                <h2 className="text-2xl font-bold text-gray-400">Loading Challenge...</h2>
-            </div>
-        );
+        return ( <div className="text-center p-8"><h2 className="text-2xl font-bold text-gray-400">Loading Challenge...</h2></div> );
     }
     
     return (
         <div className="w-full">
-            <ChallengeHUD 
-                challenge={activeChallenge} 
-                stepIndex={challengeStepIndex}
-                progress={challengeProgress || { totalAsked: 0, streak: 0 }}
-                timeLeft={timeLeft}
-            />
-            
+            <ChallengeHUD challenge={activeChallenge} stepIndex={challengeStepIndex} progress={challengeProgress} timeLeft={stepTimeLeft} />
             <div className="w-full p-4 bg-slate-900/50 rounded-lg">
-                {/* **FIX:** Directly call the single helper function and pass the props object. */}
                 {getComponentForPreset(currentPreset, { onProgressUpdate: handleProgressUpdate })}
             </div>
-
             <div className="mt-8 flex justify-center">
-                 <button onClick={() => { setIsFinished(true); endChallenge(); }} className="bg-red-700 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg">
-                    End Challenge Manually
-                </button>
+                 <button onClick={finishChallenge} className="bg-red-700 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg">End Challenge Manually</button>
             </div>
         </div>
     );

@@ -15,19 +15,29 @@ import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
 import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer';
 import MelodicEarTrainer from './components/earTraining/MelodicEarTrainer';
 import ChallengesPage from './components/challenges/ChallengesPage';
-import ChallengeRunner from './components/challenges/ChallengeRunner'; // 1. Import the new ChallengeRunner
+import ChallengeRunner from './components/challenges/ChallengeRunner';
+import ScoreboardPage from './components/challenges/ScoreboardPage'; // 1. Import the new Scoreboard page
 
 const AppContent = () => {
   const [activeTab, setActiveTab] = useState('welcome');
   const [openCategory, setOpenCategory] = useState(null);
-  // 2. Get activeChallenge from the context
-  const { activeTool, unlockAudio, presetToLoad, activeChallenge } = useTools();
-
+  
+  // 2. Get activeChallenge and the new navigation state from the context
+  const { activeTool, unlockAudio, presetToLoad, activeChallenge, lastChallengeResultId } = useTools();
+  // This useEffect handles loading a preset
   useEffect(() => {
     if (presetToLoad) {
       setActiveTab(presetToLoad.gameId);
     }
   }, [presetToLoad]);
+
+  // 3. This new useEffect handles navigating to the scoreboard after a challenge
+  useEffect(() => {
+    if (lastChallengeResultId) {
+      setActiveTab('scoreboard');
+      // The ScoreboardPage component will be responsible for clearing the ID
+    }
+  }, [lastChallengeResultId]);
 
   const toolCategories = [
     {
@@ -65,6 +75,7 @@ const AppContent = () => {
       name: 'Challenges',
       tools: [
         { id: 'challenges-hub', name: 'Challenge Hub' },
+        { id: 'scoreboard', name: 'Scoreboard' }, // 4. Add Scoreboard to the navigation
       ],
     },
   ];
@@ -136,7 +147,6 @@ const AppContent = () => {
       </nav>
 
       <main className="w-full max-w-5xl mx-auto bg-slate-800 shadow-2xl rounded-xl p-4 md:p-8 transform transition-transform duration-500 ease-out flex-grow">
-          {/* 3. Conditionally render ChallengeRunner or the normal tab view */}
           {activeChallenge ? (
               <ChallengeRunner />
           ) : (
@@ -154,6 +164,7 @@ const AppContent = () => {
                   {activeTab === 'interval-ear-trainer' && <IntervalEarTrainer />}
                   {activeTab === 'melodic-ear-trainer' && <MelodicEarTrainer />}
                   {activeTab === 'challenges-hub' && <ChallengesPage />}
+                  {activeTab === 'scoreboard' && <ScoreboardPage />} {/* 5. Add the new component to the render logic */}
               </>
           )}
       </main>

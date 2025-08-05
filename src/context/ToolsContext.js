@@ -8,6 +8,7 @@ import { useStopwatchLogic } from './useStopwatchLogic';
 import { useAudioPlayers } from './useAudioPlayers';
 import { usePresetsLogic } from './usePresetsLogic';
 import { useChallengesLogic } from './useChallengesLogic';
+import { useScoreboardLogic } from './useScoreboardLogic'; // 1. Import the new hook
 
 const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
@@ -24,6 +25,7 @@ export const ToolsProvider = ({ children }) => {
     const [activeChallenge, setActiveChallenge] = useState(null);
     const [challengeStepIndex, setChallengeStepIndex] = useState(0);
     const [challengeProgress, setChallengeProgress] = useState(null);
+    const [lastChallengeResultId, setLastChallengeResultId] = useState(null); // 2. Add state for navigation
 
     const toggleActiveTool = (tool) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
@@ -55,10 +57,10 @@ export const ToolsProvider = ({ children }) => {
         setActiveChallenge(challenge);
         setChallengeStepIndex(0);
         setChallengeProgress({
-            score: 0,
+            totalScore: 0,
             totalAsked: 0,
             streak: 0,
-            time: 0,
+            stepResults: challenge.steps.map(() => ({ score: 0, asked: 0 })),
         });
     }, []);
 
@@ -72,8 +74,23 @@ export const ToolsProvider = ({ children }) => {
         setChallengeProgress(null);
     }, []);
 
-    const updateChallengeProgress = useCallback((newProgress) => {
-        setChallengeProgress(prev => ({ ...prev, ...newProgress }));
+    const updateChallengeProgress = useCallback((stepIndex, quizProgress) => {
+        setChallengeProgress(prev => {
+            if (!prev || !prev.stepResults || prev.stepResults[stepIndex] === undefined) {
+                return prev; // Safety check
+            }
+            const newStepResults = [...prev.stepResults];
+            newStepResults[stepIndex] = { score: quizProgress.score, asked: quizProgress.totalAsked };
+            const totalScore = newStepResults.reduce((sum, r) => sum + r.score, 0);
+            const totalAsked = newStepResults.reduce((sum, r) => sum + r.asked, 0);
+            return {
+                ...prev,
+                stepResults: newStepResults,
+                totalScore,
+                totalAsked,
+                streak: quizProgress.wasCorrect ? (prev.streak || 0) + 1 : 0
+            };
+        });
     }, []);
 
     // --- Custom Hooks for each tool's logic ---
@@ -84,9 +101,8 @@ export const ToolsProvider = ({ children }) => {
     const stopwatch = useStopwatchLogic();
     const audioPlayers = useAudioPlayers(unlockAudio, metronome.bpm);
     const presets = usePresetsLogic();
-    
-    // **FIX:** Renamed 'challenges' to 'challengesLogic' to avoid naming collision
     const challengesLogic = useChallengesLogic(presets.presets, presets.savePreset);
+    const scoreboard = useScoreboardLogic(); // 3. Instantiate the new hook
     
     // Combine all state and functions into a single value object
     const value = {
@@ -100,7 +116,8 @@ export const ToolsProvider = ({ children }) => {
         ...stopwatch,
         ...audioPlayers,
         ...presets,
-        ...challengesLogic, // **FIX:** Spread the correctly named object
+        ...challengesLogic,
+        ...scoreboard, // 4. Add scoreboard functions and state to the context
         presetToLoad,
         loadPreset,
         clearPresetToLoad,
@@ -111,6 +128,8 @@ export const ToolsProvider = ({ children }) => {
         nextChallengeStep,
         endChallenge,
         updateChallengeProgress,
+        lastChallengeResultId, // 4. Add state for navigation
+        setLastChallengeResultId,
     };
 
     return (

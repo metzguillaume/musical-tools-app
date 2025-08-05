@@ -1,5 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// New component for a single sortable step
+const SortableStepItem = ({ step, index, onRemove, getPresetName }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+    } = useSortable({ id: step.id }); // Use a unique ID for each step
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} className="bg-slate-800 p-3 rounded-md flex items-center justify-between touch-none">
+            <div className="flex items-center gap-4">
+                <button {...listeners} className="cursor-grab text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v2h2a1 1 0 110 2h-2v2a1 1 0 11-2 0V8H7a1 1 0 110-2h2V4a1 1 0 011-1zM3 10a1 1 0 011-1h2V7a1 1 0 112 0v2h2a1 1 0 110 2H8v2a1 1 0 11-2 0v-2H4a1 1 0 01-1-1zm14 0a1 1 0 011-1h2V7a1 1 0 112 0v2h2a1 1 0 110 2h-2v2a1 1 0 11-2 0v-2h-2a1 1 0 01-1-1z" clipRule="evenodd" />
+                    </svg>
+                </button>
+                <span className="font-semibold text-gray-200">{index + 1}. {getPresetName(step.presetId)}</span>
+            </div>
+            <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-400">
+                    {step.goalType === 'time' ? `${step.goalValue / 60} min` : `${step.goalValue} questions`}
+                </span>
+                <button onClick={() => onRemove(index)} className="text-red-500 font-bold text-xl">&times;</button>
+            </div>
+        </div>
+    );
+};
 
 const ChallengeEditor = ({ challengeToEdit, onSave, onCancel }) => {
     const { presets } = useTools();
@@ -11,6 +49,20 @@ const ChallengeEditor = ({ challengeToEdit, onSave, onCancel }) => {
     const [newStepPresetId, setNewStepPresetId] = useState(presets.length > 0 ? presets[0].id : '');
     const [newStepGoalType, setNewStepGoalType] = useState('time');
     const [newStepGoalValue, setNewStepGoalValue] = useState(5);
+
+    // Dnd-kit sensors and handler
+    const sensors = useSensors(useSensor(PointerSensor));
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (active.id !== over.id) {
+            setSteps((items) => {
+                const oldIndex = items.findIndex(item => item.id === active.id);
+                const newIndex = items.findIndex(item => item.id === over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+        }
+    };
 
     useEffect(() => {
         if (challengeToEdit) {
@@ -25,8 +77,9 @@ const ChallengeEditor = ({ challengeToEdit, onSave, onCancel }) => {
             alert("Please select a preset.");
             return;
         }
+        // Add a unique ID for dnd-kit
         const newStep = {
-            stepOrder: steps.length + 1,
+            id: `step_${Date.now()}`, 
             presetId: newStepPresetId,
             goalType: newStepGoalType,
             goalValue: newStepGoalType === 'time' ? newStepGoalValue * 60 : newStepGoalValue,
@@ -73,17 +126,20 @@ const ChallengeEditor = ({ challengeToEdit, onSave, onCancel }) => {
             <div className="border-t border-slate-600 pt-4">
                 <h3 className="text-xl font-bold text-teal-300 mb-4">Challenge Steps</h3>
                 <div className="space-y-2 mb-4">
-                    {steps.map((step, index) => (
-                        <div key={index} className="bg-slate-800 p-3 rounded-md flex items-center justify-between">
-                            <span className="font-semibold text-gray-200">{index + 1}. {getPresetName(step.presetId)}</span>
-                            <div className="flex items-center gap-4">
-                                <span className="text-sm text-gray-400">
-                                    {step.goalType === 'time' ? `${step.goalValue / 60} min` : `${step.goalValue} questions`}
-                                </span>
-                                <button onClick={() => handleRemoveStep(index)} className="text-red-500 font-bold text-xl">&times;</button>
-                            </div>
-                        </div>
-                    ))}
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={steps} strategy={verticalListSortingStrategy}>
+                            {steps.map((step, index) => (
+                                <SortableStepItem
+                                    key={step.id}
+                                    id={step.id}
+                                    step={step}
+                                    index={index}
+                                    onRemove={handleRemoveStep}
+                                    getPresetName={getPresetName}
+                                />
+                            ))}
+                        </SortableContext>
+                    </DndContext>
                     {steps.length === 0 && <p className="text-center text-gray-400">No steps added yet.</p>}
                 </div>
 

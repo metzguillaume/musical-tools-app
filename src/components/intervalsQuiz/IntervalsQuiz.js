@@ -13,7 +13,7 @@ const AnswerButton = ({ value, type, selectedValue, onClick, isDisabled, childre
     );
 };
 
-const IntervalsQuiz = () => {
+const IntervalsQuiz = ({ onProgressUpdate }) => {
     const { addLogEntry, fretboardVolume, setFretboardVolume, savePreset, presetToLoad, clearPresetToLoad } = useTools();
 
     // Consolidated settings state object
@@ -56,7 +56,7 @@ const IntervalsQuiz = () => {
         history, reviewIndex, setReviewIndex, handleReviewNav, startReview,
         checkAnswer, generateNewQuestion,
         replayAudioForHistoryItem
-    } = useIntervalsQuiz(settings, settings.playAudio, audioDirection);
+    } = useIntervalsQuiz(settings, settings.playAudio, audioDirection, onProgressUpdate);
     
     const isReviewing = reviewIndex !== null;
     

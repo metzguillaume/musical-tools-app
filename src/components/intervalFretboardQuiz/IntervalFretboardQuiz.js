@@ -6,7 +6,7 @@ import QuizLayout from '../common/QuizLayout';
 import { IntervalFretboardQuizControls } from './IntervalFretboardQuizControls'; 
 import { useIntervalFretboardQuiz, quizData } from './useIntervalFretboardQuiz';
 
-const IntervalFretboardQuiz = () => {
+const IntervalFretboardQuiz = ({ onProgressUpdate }) => {
     const { addLogEntry, fretboardVolume, setFretboardVolume, savePreset, presetToLoad, clearPresetToLoad } = useTools();
     
     const [settings, setSettings] = useState({
@@ -32,7 +32,7 @@ const IntervalFretboardQuiz = () => {
     const {
         score, currentQuestion, feedback, isAnswered, selected, setSelected, history, reviewIndex, setReviewIndex,
         startNewRound, handleReviewNav, startReview, replayAudioForHistoryItem
-    } = useIntervalFretboardQuiz(settings.autoAdvance, settings.playAudio);
+    } = useIntervalFretboardQuiz(settings.autoAdvance, settings.playAudio, onProgressUpdate);
     
     const isReviewing = reviewIndex !== null;
 

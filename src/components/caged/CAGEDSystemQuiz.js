@@ -19,7 +19,7 @@ const ShowDegreesToggle = ({ isChecked, onChange }) => (
 );
 
 
-const CAGEDSystemQuiz = () => {
+const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
     const { addLogEntry, savePreset, presetToLoad, clearPresetToLoad } = useTools();
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
@@ -71,7 +71,7 @@ const CAGEDSystemQuiz = () => {
         return active;
     }, [settings.includeMajor, settings.includeMinor, settings.shapes]);
     
-    const quizProps = useCagedQuiz(quizMode, activeShapes);
+    const quizProps = useCagedQuiz(quizMode, activeShapes, onProgressUpdate);
     const { score, totalAsked, feedback, isAnswered, history, reviewIndex, setReviewIndex, isReviewing, itemToDisplay, handleAnswerSelect, handleFretClick, checkAnswer, generateNewQuestion, userAnswer, setUserAnswer } = quizProps;
 
     useEffect(() => {

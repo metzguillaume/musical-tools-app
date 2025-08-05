@@ -115,26 +115,54 @@ const ChallengeRunner = () => {
     }, [timeLeft, isTimerRunning, activeChallenge, challengeStepIndex, nextChallengeStep, endChallenge, toggleTimer]);
 
     // This is the new callback function that quizzes will call.
-    const handleProgressUpdate = useCallback((progress) => {
-        if (!activeChallenge || !currentStep) return;
+    // Inside ChallengeRunner.js
+const handleProgressUpdate = useCallback((progress) => {
+    if (!activeChallenge || !currentStep || isFinished) return;
 
-        updateChallengeProgress({
-            totalAsked: progress.totalAsked,
-            score: progress.score,
-            streak: progress.wasCorrect ? (challengeProgress?.streak || 0) + 1 : 0
-        });
+    // First, update the general progress state for all challenge types
+    const newProgress = {
+        totalAsked: progress.totalAsked,
+        score: progress.score,
+        streak: progress.wasCorrect ? (challengeProgress?.streak || 0) + 1 : 0
+    };
+    updateChallengeProgress(newProgress);
 
-        if (activeChallenge.type === 'Gauntlet' && progress.totalAsked >= currentStep.goalValue) {
-            if (isStopwatchRunning) toggleStopwatch();
-            setIsFinished(true);
-            endChallenge();
-        } else if (activeChallenge.type === 'Streak' && !progress.wasCorrect) {
+    // --- Logic for Practice Routines with a "questions" goal ---
+    if (activeChallenge.type === 'PracticeRoutine' && currentStep.goalType === 'questions') {
+        if (progress.totalAsked >= currentStep.goalValue) {
+            // Goal met, move to the next step or finish
+            if (challengeStepIndex >= activeChallenge.steps.length - 1) {
+                setIsFinished(true);
+                endChallenge();
+            } else {
+                nextChallengeStep();
+            }
+        }
+    }
+
+    // --- Logic for Gauntlet challenges ---
+    else if (activeChallenge.type === 'Gauntlet') {
+        if (progress.totalAsked >= currentStep.goalValue) {
+            if (isStopwatchRunning) toggleStopwatch(); // Stop the clock!
+            // Future: Save final time and score to a leaderboard here
             setIsFinished(true);
             endChallenge();
         }
-    }, [activeChallenge, currentStep, challengeProgress, updateChallengeProgress, endChallenge, isStopwatchRunning, toggleStopwatch]);
-    
+    }
 
+    // --- Logic for Streak challenges ---
+    else if (activeChallenge.type === 'Streak') {
+        if (!progress.wasCorrect) {
+            // Streak is broken, the challenge is over.
+            setIsFinished(true);
+            endChallenge();
+        }
+    }
+}, [
+    activeChallenge, currentStep, challengeProgress, updateChallengeProgress, 
+    endChallenge, nextChallengeStep, challengeStepIndex, isStopwatchRunning, 
+    toggleStopwatch, isFinished
+]);
     if (isFinished) {
         return (
             <div className="text-center p-8">

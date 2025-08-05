@@ -5,7 +5,7 @@ import { fretboardModel } from '../../utils/fretboardUtils.js';
 import { CAGED_SHAPES, ROOT_NOTE_OPTIONS } from './cagedConstants.js';
 import { NOTE_TO_MIDI, SEMITONE_TO_DEGREE } from '../../utils/musicTheory.js';
 
-export const useCagedQuiz = (quizMode, activeShapes) => {
+export const useCagedQuiz = (quizMode, activeShapes, onProgressUpdate) => {
     const [score, setScore] = useState(0);
     const [totalAsked, setTotalAsked] = useState(0);
     const [feedback, setFeedback] = useState({ message: '', type: '' });
@@ -84,19 +84,26 @@ export const useCagedQuiz = (quizMode, activeShapes) => {
             isCorrect = correctSet.size === userSet.size && [...correctSet].every(note => userSet.has(note));
         }
         
+        const newScore = isCorrect ? score + 1 : score;
+        const newTotalAsked = totalAsked + 1;
+
         if (isCorrect) {
-            setScore(s => s + 1);
+            setScore(newScore);
             setFeedback({ message: 'Correct!', type: 'correct' });
         } else {
             setFeedback({ message: `Incorrect! It was ${correctAnswerText}.`, type: 'incorrect' });
         }
         
-        setTotalAsked(prev => prev + 1);
+        setTotalAsked(newTotalAsked);
+
+        if (onProgressUpdate) {
+            onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
+        }
         
         setHistory(prev => [...prev, { question: currentQuestion, userAnswer, wasCorrect: isCorrect }]);
         setIsAnswered(true);
         if (autoAdvance) timeoutRef.current = setTimeout(generateNewQuestion, 2000);
-    }, [isAnswered, userAnswer, currentQuestion, generateNewQuestion]);
+    }, [isAnswered, userAnswer, currentQuestion, generateNewQuestion, onProgressUpdate, score, totalAsked]);
 
     const handleAnswerSelect = (type, value) => {
         if (isAnswered || isReviewing) return;

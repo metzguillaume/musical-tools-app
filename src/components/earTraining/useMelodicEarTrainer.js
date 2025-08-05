@@ -21,7 +21,7 @@ const findPlayableNote = (midi) => {
     return null;
 };
 
-export const useMelodicEarTrainer = (settings) => {
+export const useMelodicEarTrainer = (settings, onProgressUpdate) => {
     const { bpm, fretboardPlayers, areFretboardSoundsReady, unlockAudio, setDroneNote } = useTools();
     const [score, setScore] = useState(0);
     const [totalAsked, setTotalAsked] = useState(0);
@@ -174,21 +174,28 @@ export const useMelodicEarTrainer = (settings) => {
         
         const isCorrect = userAnswerArray.length === correctAnswer.length && userAnswerArray.every((val, i) => val === correctAnswer[i]);
 
+        const newScore = isCorrect ? score + 1 : score;
+        const newTotalAsked = totalAsked + 1;
+
         if(isCorrect) {
-            setScore(s => s + 1);
+            setScore(newScore);
             setFeedback({ message: 'Correct!', type: 'correct' });
         } else {
             setFeedback({ message: `Incorrect. The answer was: ${correctAnswer.join(' - ')}`, type: 'incorrect' });
         }
         
-        setTotalAsked(t => t + 1);
+        setTotalAsked(newTotalAsked);
         setHistory(h => [...h, { question: currentQuestion, userAnswer: userAnswerArray, wasCorrect: isCorrect, answerMode }]);
+
+        if (onProgressUpdate) {
+            onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
+        }
         setIsAnswered(true);
 
         if (autoAdvance) {
             timeoutRef.current = setTimeout(generateNewQuestion, 2500);
         }
-    }, [isAnswered, currentQuestion, settings, generateNewQuestion]);
+    }, [isAnswered, currentQuestion, settings, generateNewQuestion, onProgressUpdate, score, totalAsked]);
     
     const playUserAnswer = useCallback(async (userAnswerArray, historyItem) => {
         if (!userAnswerArray || userAnswerArray.length === 0 || !historyItem || !areFretboardSoundsReady) return;

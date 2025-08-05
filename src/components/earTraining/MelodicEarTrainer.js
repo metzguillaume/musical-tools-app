@@ -79,7 +79,7 @@ const AnswerInput = ({ settings, userAnswer, setUserAnswer, isAnswered, currentI
     );
 };
 
-const MelodicEarTrainer = () => {
+const MelodicEarTrainer = ({ onProgressUpdate }) => {
     const { addLogEntry, savePreset, presetToLoad, clearPresetToLoad, fretboardVolume, setFretboardVolume } = useTools();
     const [settings, setSettings] = useState({
         autoAdvance: true,
@@ -103,7 +103,7 @@ const MelodicEarTrainer = () => {
     const {
         score, totalAsked, feedback, isAnswered, currentQuestion, history, reviewIndex, setReviewIndex,
         generateNewQuestion, checkAnswer, handleReviewNav, startReview, playMelody, playUserAnswer
-    } = useMelodicEarTrainer(settings);
+    } = useMelodicEarTrainer(settings, onProgressUpdate);
     
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'melodic-ear-trainer') {

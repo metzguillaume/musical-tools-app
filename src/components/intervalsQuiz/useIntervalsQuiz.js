@@ -18,7 +18,7 @@ export const intervalData = [
     { name: 'Major 7th', semitones: 11, quality: 'Major', number: '7th' }, { name: 'Perfect Octave', semitones: 12, quality: 'Perfect', number: 'Octave' }
 ];
 
-export const useIntervalsQuiz = (settings, playAudio, audioDirection) => {
+export const useIntervalsQuiz = (settings, playAudio, audioDirection, onProgressUpdate) => {
     const { playFretboardNotes } = useTools();
     const { quizMode, rootNoteType, direction, autoAdvance, selectedIntervals } = settings;
 
@@ -178,14 +178,21 @@ export const useIntervalsQuiz = (settings, playAudio, audioDirection) => {
             correctAnswerText = `${quality} ${number}`;
         }
         
+        const newScore = isCorrect ? score + 1 : score;
+        const newTotalAsked = history.length + 1;
+
         if (isCorrect) {
-            setScore(s => s + 1);
+            setScore(newScore);
             setFeedback({ message: 'Correct!', type: 'correct' });
         } else {
             setFeedback({ message: `Incorrect! The answer was ${correctAnswerText}.`, type: 'incorrect' });
         }
         
         setHistory(prev => [...prev, { question: currentQuestion, userAnswer, wasCorrect: isCorrect }]);
+
+        if (onProgressUpdate) {
+            onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
+        }
         setAnswerChecked(true);
 
         if (playAudio) {
@@ -199,7 +206,7 @@ export const useIntervalsQuiz = (settings, playAudio, audioDirection) => {
         if (autoAdvance) {
             timeoutRef.current = setTimeout(generateNewQuestion, 2000);
         }
-    }, [answerChecked, userAnswer, currentQuestion, autoAdvance, generateNewQuestion, playAudio, playIntervalAudio, audioDirection]);
+    }, [answerChecked, userAnswer, currentQuestion, autoAdvance, generateNewQuestion, playAudio, playIntervalAudio, audioDirection, score, history.length, onProgressUpdate]);
 
     useEffect(() => {
         setScore(0);

@@ -16,7 +16,7 @@ export const quizData = {
     ]
 };
 
-export const useIntervalFretboardQuiz = (autoAdvance, playAudio) => {
+export const useIntervalFretboardQuiz = (autoAdvance, playAudio, onProgressUpdate) => {
     // UPDATED: No longer needs bpm here, as the context function will access it
     const { playFretboardNotes } = useTools();
 
@@ -100,8 +100,11 @@ export const useIntervalFretboardQuiz = (autoAdvance, playAudio) => {
             isCorrect = selected.quality === correct.quality && selected.number === correct.number;
         }
 
+        const newScore = isCorrect ? score + 1 : score;
+        const newTotalAsked = history.length + 1;
+
         if (isCorrect) {
-            setScore(s => s + 1);
+            setScore(newScore);
             setFeedback({ message: 'Correct!', type: 'correct' });
         } else {
             const correctAnswerText = correct.number === 'Tritone' ? 'a Tritone' : `a ${correct.quality} ${correct.number}`;
@@ -109,6 +112,10 @@ export const useIntervalFretboardQuiz = (autoAdvance, playAudio) => {
         }
         
         setHistory(prev => [...prev, { question: currentQuestion, userAnswer: selected, wasCorrect: isCorrect }]);
+        
+        if (onProgressUpdate) {
+            onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
+        }
         setIsAnswered(true);
 
         if (playAudio) {
@@ -118,8 +125,7 @@ export const useIntervalFretboardQuiz = (autoAdvance, playAudio) => {
         if (autoAdvance) {
             timeoutRef.current = setTimeout(startNewRound, 2000);
         }
-    }, [isAnswered, selected, currentQuestion, autoAdvance, startNewRound, playAudio, playFretboardNotes]);
-
+    }, [isAnswered, selected, currentQuestion, autoAdvance, startNewRound, playAudio, playFretboardNotes, history.length, onProgressUpdate, score]);
     useEffect(() => {
         if (selected.quality && selected.number && !isAnswered) {
             checkAnswer();

@@ -94,8 +94,8 @@ const AppContent = () => {
 
   return (
     <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-4 pb-32 md:p-6 transition-all duration-300 ${activeTool === 'log' || activeTool === 'presets' ? 'md:pl-96' : 'md:pl-72'}`}>
-      <div className="hidden md:block fixed top-5 left-0 z-50">
-        <img src={`${process.env.PUBLIC_URL}/WillMetz2.png`} alt="Will Metz Academy Logo" className="h-32 w-auto" />
+      <div className="hidden md:block fixed top-5 left-0 z-50 px-5">
+        <img src={`${process.env.PUBLIC_URL}/WillMetz2.png`} alt="Will Metz Academy Logo" className="h-24 w-auto" />
       </div>
 
       <GlobalTools />

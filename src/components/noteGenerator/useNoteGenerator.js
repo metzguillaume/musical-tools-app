@@ -1,26 +1,35 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTools } from '../../context/ToolsContext';
 
+// Helper function to shuffle an array
+const shuffle = (array) => {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+    return array;
+};
+
 export const useNoteGenerator = () => {
     const { bpm, addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode, presetToLoad, clearPresetToLoad } = useTools();
     
-    // Core settings are now grouped for presets
     const [settings, setSettings] = useState({
-    numNotes: 12,
-    noteType: 'chromatic',
-    showBarlines: true,
-    fontSize: 4, // fontSize is now part of settings
-});
+        numNotes: 12,
+        noteType: 'chromatic',
+        showBarlines: true,
+        fontSize: 4,
+        barlineFrequency: 4,
+        avoidRepeats: true,
+    });
 
-    // Effect to listen for a preset to be loaded
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'note-generator') {
             setSettings(presetToLoad.settings);
             clearPresetToLoad();
         }
     }, [presetToLoad, clearPresetToLoad]);
-
-    // Non-preset state
 
     const [generatedNotes, setGeneratedNotes] = useState([]);
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
@@ -30,32 +39,58 @@ export const useNoteGenerator = () => {
 
     const generateNotes = useCallback(() => {
         const naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-        const chromaticNotes = ['C', { sharp: 'C#', flat: 'Db' }, 'D', { sharp: 'D#', flat: 'Eb' }, 'E', 'F', { sharp: 'F#', flat: 'Gb' }, 'G', { sharp: 'G#', flat: 'Ab' }, 'A', { sharp: 'A#', flat: 'Bb' }, 'B'];
-        const sourceArray = settings.noteType === 'natural' ? naturalNotes : chromaticNotes;
+        const chromaticSource = ['C', { sharp: 'C#', flat: 'Db' }, 'D', { sharp: 'D#', flat: 'Eb' }, 'E', 'F', { sharp: 'F#', flat: 'Gb' }, 'G', { sharp: 'G#', flat: 'Ab' }, 'A', { sharp: 'A#', flat: 'Bb' }, 'B'];
         
-        const newNotes = [];
-        let currentSectionNotes = [];
+        let newNotes = [];
 
-        for (let i = 0; i < settings.numNotes; i++) {
-            if (i > 0 && i % 4 === 0) {
-                currentSectionNotes = [];
-            }
-            let note;
-            let attempts = 0;
-            do {
-                let potentialNote = sourceArray[Math.floor(Math.random() * sourceArray.length)];
-                if (typeof potentialNote === 'object') {
-                    potentialNote = Math.random() < 0.5 ? potentialNote.sharp : potentialNote.flat;
+        if (settings.avoidRepeats && settings.noteType === 'chromatic') {
+            let uniqueChromaticScale = chromaticSource.map(note => {
+                if (typeof note === 'object') {
+                    return Math.random() < 0.5 ? note.sharp : note.flat;
                 }
-                note = potentialNote;
-                attempts++;
-            } while (currentSectionNotes.includes(note) && sourceArray.length > currentSectionNotes.length && attempts < 20);
-            
-            newNotes.push(note);
-            currentSectionNotes.push(note);
+                return note;
+            });
+
+            const shuffledChromatic = shuffle(uniqueChromaticScale);
+
+            if (settings.numNotes <= 12) {
+                newNotes = shuffledChromatic.slice(0, settings.numNotes);
+            } else {
+                newNotes = [...shuffledChromatic];
+                for (let i = 12; i < settings.numNotes; i++) {
+                    let randomNote;
+                    // THIS IS THE FIX: This loop ensures the new random note
+                    // is not the same as the previously added note.
+                    do {
+                        let potentialNote = chromaticSource[Math.floor(Math.random() * chromaticSource.length)];
+                        if (typeof potentialNote === 'object') {
+                            potentialNote = Math.random() < 0.5 ? potentialNote.sharp : potentialNote.flat;
+                        }
+                        randomNote = potentialNote;
+                    } while (randomNote === newNotes[newNotes.length - 1]);
+                    
+                    newNotes.push(randomNote);
+                }
+            }
+        } else {
+            const sourceArray = settings.noteType === 'natural' ? naturalNotes : chromaticSource;
+            let lastNote = null;
+            for (let i = 0; i < settings.numNotes; i++) {
+                let note;
+                do {
+                    let potentialNote = sourceArray[Math.floor(Math.random() * sourceArray.length)];
+                    if (typeof potentialNote === 'object') {
+                        potentialNote = Math.random() < 0.5 ? potentialNote.sharp : potentialNote.flat;
+                    }
+                    note = potentialNote;
+                } while (note === lastNote && sourceArray.length > 1);
+                newNotes.push(note);
+                lastNote = note;
+            }
         }
+        
         setGeneratedNotes(newNotes);
-    }, [settings.numNotes, settings.noteType]);
+    }, [settings.numNotes, settings.noteType, settings.avoidRepeats]);
 
     const scheduledGenerate = useCallback(() => {
         setTimeout(generateNotes, 0);
@@ -91,23 +126,22 @@ export const useNoteGenerator = () => {
     const handleLogProgress = () => {
         const remarks = prompt("Enter any remarks for this session:", `Practiced ${settings.noteType} notes.`);
         if (remarks !== null) {
-            const newEntry = { game: 'Note Generator', bpm: bpm, date: new Date().toLocaleDateString(), remarks: remarks || "No remarks." };
+            const newEntry = { game: 'Note Generator', bpm: bpm || 'N/A', date: new Date().toLocaleDateDateString(), remarks: remarks || "No remarks." };
             addLogEntry(newEntry);
             alert("Session logged!");
         }
     };
 
     return {
-    settings, setSettings,
-    // fontSize and setFontSize are now accessed via the settings object
-    generatedNotes,
-    isAutoGenerateOn, setIsAutoGenerateOn,
-    autoGenerateInterval, setAutoGenerateInterval,
-    isControlsOpen, setIsControlsOpen,
-    isInfoModalOpen, setIsInfoModalOpen,
-    countdownClicks, setCountdownClicks,
-    countdownMode, setCountdownMode,
-    handleLogProgress,
-    generateNotes
+        settings, setSettings,
+        generatedNotes,
+        isAutoGenerateOn, setIsAutoGenerateOn,
+        autoGenerateInterval, setAutoGenerateInterval,
+        isControlsOpen, setIsControlsOpen,
+        isInfoModalOpen, setIsInfoModalOpen,
+        countdownClicks, setCountdownClicks,
+        countdownMode, setCountdownMode,
+        handleLogProgress,
+        generateNotes
     };
 };

@@ -84,7 +84,7 @@ const NoteGenerator = () => {
                                         {accidental}
                                     </sup>
                                 </span>
-                                {settings.showBarlines && (index + 1) % 4 === 0 && index < generatedNotes.length - 1 && (
+                                {settings.showBarlines && settings.barlineFrequency > 0 && (index + 1) % settings.barlineFrequency === 0 && index < generatedNotes.length - 1 && (
                                     <div className="h-16 w-1 bg-slate-600 rounded-full mx-2" style={{height: `${settings.fontSize*1.2}rem`}}></div>
                                 )}
                             </React.Fragment>

@@ -32,11 +32,22 @@ export const ToolsProvider = ({ children }) => {
     };
 
     const unlockAudio = useCallback(async () => {
+        // Always try to resume the context if it's suspended
+        if (Tone.context.state === 'suspended') {
+            try {
+                await Tone.start();
+                console.log("Audio Context resumed successfully.");
+            } catch (e) {
+                console.error("Could not resume Audio Context", e);
+            }
+        }
+        
+        // This part only runs once on the very first interaction
         if (isAudioUnlocked) return;
         try {
             await Tone.start();
             setIsAudioUnlocked(true);
-            console.log("Audio Context unlocked and running.");
+            console.log("Audio Context unlocked and running for the first time.");
         } catch (e) {
             console.error("Could not start Audio Context", e);
         }

@@ -1,17 +1,16 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import * as Tone from 'tone';
+// REMOVED: import * as Tone from 'tone';
 
 export const useTimerLogic = (unlockAudio) => {
     const [timerDuration, setTimerDuration] = useState(10 * 60);
     const [timeLeft, setTimeLeft] = useState(timerDuration);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const timerIntervalRef = useRef(null);
-    const timerAlarm = useRef(null);
+    
+    // NEW: Initialize with the standard browser Audio object
+    const timerAlarm = useRef(new Audio(`${process.env.PUBLIC_URL}/sounds/ding.wav`));
 
-    useEffect(() => {
-        timerAlarm.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/ding.wav`, fadeOut: 0.1 }).toDestination();
-        return () => { timerAlarm.current?.dispose(); };
-    }, []);
+    // REMOVED: The useEffect that created a Tone.Player is no longer needed.
 
     useEffect(() => {
         if (isTimerRunning) {
@@ -20,7 +19,10 @@ export const useTimerLogic = (unlockAudio) => {
                     if (t <= 1) {
                         clearInterval(timerIntervalRef.current);
                         setIsTimerRunning(false);
-                        if (timerAlarm.current.loaded) timerAlarm.current.start();
+                        
+                        // NEW: Use the simple .play() method to trigger the sound
+                        timerAlarm.current.play();
+
                         return 0;
                     }
                     return t - 1;
@@ -35,12 +37,12 @@ export const useTimerLogic = (unlockAudio) => {
         if (timeLeft > 0) setIsTimerRunning(p => !p);
     }, [timeLeft, unlockAudio]);
     
-    const resetTimer = (newDuration) => { 
-        const s = (newDuration || timerDuration / 60) * 60; 
+    const resetTimer = useCallback((newDuration) => { 
+        const newDurationInSeconds = (newDuration || (timerDuration / 60)) * 60;
         setIsTimerRunning(false); 
-        setTimerDuration(s); 
-        setTimeLeft(s); 
-    };
+        setTimerDuration(newDurationInSeconds); 
+        setTimeLeft(newDurationInSeconds); 
+    }, [timerDuration]);
 
-    return { timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration };
+    return { timeLeft, isTimerRunning, toggleTimer, resetTimer, timerDuration, setTimerDuration };
 };

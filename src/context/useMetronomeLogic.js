@@ -86,8 +86,11 @@ export const useMetronomeLogic = (unlockAudio) => {
     const stopMetronome = useCallback(() => {
         const transport = Tone.getTransport();
         transport.stop();
+        transport.cancel(); 
+        // THIS IS THE KEY FIX: Force the timeline position back to zero.
+        transport.position = 0; 
         transportEventRef.current.id = null;
-        transportEventRef.current.beatCounter = 0; // Reset the counter
+        transportEventRef.current.beatCounter = 0;
         setIsMetronomePlaying(false);
     }, []);
 

@@ -1,18 +1,15 @@
 import React from 'react';
 import { useTools } from '../../context/ToolsContext';
-// UPDATED PATH
 import SilentSwitchNotification from '../common/SilentSwitchNotification';
 
-// This is the Metronome tool panel.
 const Metronome = () => {
-    const { bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume } = useTools();
+    // 1. Get the isMetronomeReady state from the context
+    const { bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady } = useTools();
 
-    // UPDATED: This handler now allows any numeric input while typing.
     const handleBpmInputChange = (e) => {
         setBpm(e.target.value);
     };
 
-    // UPDATED: This handler now validates the final number when you click away.
     const handleBpmInputBlur = () => {
         let value = parseInt(bpm, 10);
         if (isNaN(value) || value < 40) {
@@ -20,14 +17,14 @@ const Metronome = () => {
         } else if (value > 240) {
             setBpm(240);
         } else {
-            setBpm(value); // Ensure the final value is a number, not a string.
+            setBpm(value);
         }
     };
 
     return (
         <div className="bg-slate-700 p-4 rounded-b-lg w-full">
             <SilentSwitchNotification />
-            {/* BPM Controls */}
+            
             <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
                     <label htmlFor="bpm-input" className="text-gray-200 text-lg font-semibold">
@@ -55,7 +52,6 @@ const Metronome = () => {
                 />
             </div>
 
-            {/* Volume Controls */}
             <div className="mb-4">
                  <label htmlFor="volume-slider" className="block text-gray-200 text-lg font-semibold mb-2">
                     Volume
@@ -72,11 +68,13 @@ const Metronome = () => {
                 />
             </div>
 
+            {/* 2. Update the button to be disabled and show a loading state */}
             <button
                 onClick={toggleMetronome}
-                className={`w-full py-3 rounded-lg text-lg font-bold text-white ${isMetronomePlaying ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                disabled={!isMetronomeReady}
+                className={`w-full py-3 rounded-lg text-lg font-bold text-white transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed ${isMetronomePlaying ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
             >
-                {isMetronomePlaying ? 'Stop' : 'Start'}
+                {!isMetronomeReady ? 'Loading...' : (isMetronomePlaying ? 'Stop' : 'Start')}
             </button>
         </div>
     );

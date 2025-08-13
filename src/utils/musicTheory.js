@@ -139,8 +139,19 @@ export const getDiatonicChords = (rootNoteName, scaleName, complexity) => {
     return scaleNotes.map((note, index) => {
         const quality = qualities[index];
         const suffix = QUALITY_TO_SUFFIX[quality] ?? '';
+        
+        // FIX: Roman numerals are now cased based on quality
+        let roman = ROMAN_NUMERALS[index];
+        if (quality.includes('Minor')) {
+            roman = roman.toLowerCase();
+        } else if (quality.includes('Diminished')) {
+            roman = roman.toLowerCase() + '°';
+        } else if (quality.includes('Augmented')) {
+            roman = roman + '+';
+        }
+
         return {
-            roman: ROMAN_NUMERALS[index],
+            roman: roman,
             name: `${note}${suffix}`,
             root: note,
             quality: quality,

@@ -148,13 +148,22 @@ const MelodicEarTrainer = ({ onProgressUpdate }) => {
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (event.key === 'Enter' && !isAnswered && fullUserAnswer.length === settings.melodyLength) {
+            if (event.key !== 'Enter') return;
+
+            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+
+            if (isAnswered && (!settings.autoAdvance || !wasCorrect)) {
+                event.preventDefault();
+                setUserAnswer([]);
+                generateNewQuestion();
+            } else if (!isAnswered && fullUserAnswer.length === settings.melodyLength) {
+                event.preventDefault();
                 handleSubmit();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isAnswered, fullUserAnswer, settings.melodyLength, handleSubmit]);
+    }, [isAnswered, fullUserAnswer, settings, history, handleSubmit, generateNewQuestion]);
 
     const handleSettingChange = (key, value) => {
         setSettings(prev => ({ ...prev, [key]: value }));
@@ -193,6 +202,7 @@ const MelodicEarTrainer = ({ onProgressUpdate }) => {
         </label>
     );
 
+    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
     const footerContent = isReviewing ? (
         <div className="flex items-center gap-4">
             <button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="p-3 rounded-lg bg-slate-600 hover:bg-slate-500">Prev</button>
@@ -202,7 +212,7 @@ const MelodicEarTrainer = ({ onProgressUpdate }) => {
     ) : (
         <>
             <button onClick={handleSubmit} disabled={isAnswered || fullUserAnswer.length !== settings.melodyLength} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg disabled:bg-gray-500">Submit (Enter)</button>
-            {!settings.autoAdvance && isAnswered && <button onClick={() => { setUserAnswer([]); generateNewQuestion(); }} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next</button>}
+            {isAnswered && (!settings.autoAdvance || !wasCorrect) && <button onClick={() => { setUserAnswer([]); generateNewQuestion(); }} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next</button>}
         </>
     );
 

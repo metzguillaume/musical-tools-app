@@ -3,134 +3,41 @@ import { useTools } from '../../context/ToolsContext';
 import { useChordTrainer } from './useChordTrainer';
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
+import { ChordTrainerSetup } from './ChordTrainerSetup';
+import { ChordTrainerControls } from './ChordTrainerControls';
 
-// --- UI Constants ---
-const keysInFifthsOrder = [
-    ['C', 'Am'], ['G', 'Em'], ['D', 'Bm'], ['A', 'F#m'], ['E', 'C#m'], ['B', 'G#m'],
-    ['F#', 'D#m'], ['Db', 'Bbm'], ['Ab', 'Fm'], ['Eb', 'Cm'], ['Bb', 'Gm'], ['F', 'Dm']
-];
-const keysSharpOrder = ['C', 'G', 'D', 'A', 'E', 'B', 'F#'];
-const keysFlatOrder = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'];
-const extraEnharmonicKeys = ['Gb'];
-const majorDefaultWeights = [10, 6, 4, 8, 10, 8, 2];
-const scaleDegreeNames = {
-    triads: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'],
-    sevenths: ['Imaj7', 'ii7', 'iii7', 'IVmaj7', 'V7', 'vi7', 'viim7b5']
-};
-const gameModes = [ {id: 1, label: "Name Chord"}, {id: 4, label: "Name Numeral"}, {id: 2, label: "Progression"}, {id: 3, label: "Transpose"} ];
-const reminders = {
-    1: "e.g., Dm or F#maj7",
-    2: "e.g., C G Am Bdim",
-    3: "e.g., G D Em Bm7b5",
-    4: "e.g., I V vi vii°"
-};
+const ALTERNATE_SYMBOLS = { 'm': '-', 'maj7': '△7', 'm7': '-7', 'dim': '°', 'm7b5': 'ø7', '7': '7' };
 
-const ChordDisplay = ({ chord }) => {
+const ChordDisplay = ({ chord, useAlternateNotation = false }) => {
     if (!chord) return null;
-    const regex = /([A-G][#b]?)(-|°|△|ø|maj7|m7b5|m7|7|dim)/;
-    const match = chord.match(regex);
-    if (!match) return <span>{chord}</span>;
-    const [, root, quality] = match;
-    return <span>{root}<sup>{quality}</sup></span>;
-};
-
-// --- Sub-Components ---
-const WeightSliders = ({ weights, onWeightChange, use7thChords }) => {
-    const degreeNames = use7thChords ? scaleDegreeNames.sevenths : scaleDegreeNames.triads;
-    return (
-        <div>
-            <h4 className="font-semibold text-lg text-teal-300 mb-2">Chord Weights</h4>
-            {weights.map((weight, index) => (
-                <div key={index} className="flex items-center gap-3 mt-1">
-                    <label className="w-8 font-mono text-right text-sm">{degreeNames[index]}</label>
-                    <input 
-                        type="range" 
-                        min="0" 
-                        max="10" 
-                        value={weight} 
-                        onChange={(e) => {
-                            const newWeights = weights.map((w, i) => i === index ? Number(e.target.value) : w);
-                            onWeightChange(newWeights);
-                        }} 
-                        className="flex-1 h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer" 
-                    />
-                    <span className="w-4 text-left text-sm">{weight}</span>
-                </div>
-            ))}
-        </div>
-    );
-};
-
-const SetupScreen = ({ onStart }) => {
-    const [localSettings, setLocalSettings] = useState({
-        selectedKeys: ['C', 'G', 'F'],
-        selectedModes: [1, 4],
-        use7thChords: false,
-        generationMethod: 'weighted',
-        majorWeights: majorDefaultWeights,
-    });
-    const [showAdvanced, setShowAdvanced] = useState(false);
-
-    const handleKeySelection = (key) => {
-        const newKeys = localSettings.selectedKeys.includes(key) ? localSettings.selectedKeys.filter(k => k !== key) : [...localSettings.selectedKeys, key];
-        setLocalSettings(p => ({...p, selectedKeys: newKeys}));
-    };
-    const handleModeSelection = (modeId) => {
-        const newModes = localSettings.selectedModes.includes(modeId) ? localSettings.selectedModes.filter(m => m !== modeId) : [...localSettings.selectedModes, modeId];
-        setLocalSettings(p => ({...p, selectedModes: newModes}));
-    };
-    const handleStart = () => {
-        if (localSettings.selectedKeys.length === 0 || localSettings.selectedModes.length === 0) {
-            alert("Please select at least one key and one game mode.");
-            return;
+    let displayName = chord;
+    if (useAlternateNotation) {
+        const sortedSuffixes = Object.keys(ALTERNATE_SYMBOLS).sort((a, b) => b.length - a.length);
+        for (const suffix of sortedSuffixes) {
+            if (displayName.endsWith(suffix)) {
+                displayName = displayName.slice(0, -suffix.length) + ALTERNATE_SYMBOLS[suffix];
+                break;
+            }
         }
-        onStart(localSettings);
-    };
+    }
+    const match = displayName.match(/^([A-G])([#b]?)(.*)/);
+    if (!match) { return <span>{displayName}</span>; }
+    let [, root, accidental, quality] = match;
+    if (accidental === '#') accidental = '♯';
+    if (accidental === 'b') accidental = '♭';
 
     return (
-        <div className="w-full">
-            <h2 className="text-3xl font-extrabold mb-6 text-indigo-300 text-center">Chord Trainer Setup</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-slate-700 p-4 rounded-lg flex flex-col items-center">
-                    <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">Select Keys</h3>
-                    <div className="relative w-[350px] h-[350px] mx-auto mb-4">
-                        {keysInFifthsOrder.map(([majorKey], index) => {
-                            const angle = index * (360 / 12) - 90;
-                            const radius = 150;
-                            const style = { transform: `translate(-50%, -50%) rotate(${angle}deg) translate(${radius}px) rotate(${-angle}deg)` };
-                            return (
-                                <div key={majorKey} style={style} className="absolute top-1/2 left-1/2">
-                                    <button onClick={() => handleKeySelection(majorKey)} className={`p-2 rounded-md min-w-[50px] ${localSettings.selectedKeys.includes(majorKey) ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}>
-                                        {majorKey}
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                    <div className="border-t border-slate-600 pt-3 text-center mt-2"><h4 className="font-semibold text-lg text-gray-400 mb-2">Enharmonic Keys</h4><div className="flex justify-center gap-4">{extraEnharmonicKeys.map(key => (<button key={key} onClick={() => handleKeySelection(key)} className={`p-2 rounded-md min-w-[50px] ${localSettings.selectedKeys.includes(key) ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}>{key}</button>))}</div></div>
-                </div>
-                <div className="bg-slate-700 p-4 rounded-lg flex flex-col">
-                    <h3 className="text-xl font-bold text-teal-300 mb-4">Game Modes</h3>
-                    <div className="space-y-2">{gameModes.map(mode => (<button key={mode.id} onClick={() => handleModeSelection(mode.id)} className={`w-full text-left p-3 rounded-md ${localSettings.selectedModes.includes(mode.id) ? 'bg-blue-600 text-white':'bg-slate-600 hover:bg-slate-500'}`}>{mode.label}</button>))}</div>
-                    <div className="border-t border-slate-600 my-4"></div>
-                    <h3 className="text-xl font-bold text-teal-300 mb-2">Chord Type</h3>
-                    <label className="flex items-center justify-between p-3 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Use 7th Chords</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={localSettings.use7thChords} onChange={(e) => setLocalSettings(p => ({...p, use7thChords: e.target.checked}))} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
-                    <div className="border-t border-slate-600 my-4"></div>
-                    <button onClick={() => setShowAdvanced(p => !p)} className="text-left text-teal-300 font-bold text-lg hover:text-teal-200 w-full">{showAdvanced ? '▼' : '►'} Advanced Settings</button>
-                    {showAdvanced && (
-                        <div className="mt-2 p-3 bg-slate-800/50 rounded-lg space-y-4">
-                            <div><h4 className="font-semibold">Generation Method</h4><div className="flex bg-slate-600 rounded-md p-1 mt-1"><button onClick={() => setLocalSettings(p=>({...p, generationMethod: 'weighted'}))} className={`flex-1 text-sm rounded-md py-1 ${localSettings.generationMethod === 'weighted' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Weighted</button><button onClick={() => setLocalSettings(p=>({...p, generationMethod: 'random'}))} className={`flex-1 text-sm rounded-md py-1 ${localSettings.generationMethod === 'random' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Random</button></div></div>
-                            <WeightSliders 
-                                weights={localSettings.majorWeights}
-                                onWeightChange={(newWeights) => setLocalSettings(p => ({ ...p, majorWeights: newWeights }))}
-                                use7thChords={localSettings.use7thChords}
-                            />
-                        </div>
-                    )}
-                    <div className="mt-auto pt-4"><button onClick={handleStart} className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-xl">Start Practice</button></div>
-                </div>
-            </div>
-        </div>
+        <span className="whitespace-nowrap inline-flex items-baseline">
+            <span>{root}</span>
+            <span className="relative" style={{ marginLeft: '0.1em', display: 'inline-block' }}>
+                <span style={{ fontSize: '70%', marginLeft: accidental ? '0.25em' : '0' }}>
+                    {quality || <span className="opacity-0">&nbsp;</span>}
+                </span>
+                <span className="absolute left-0" style={{ fontSize: '60%', bottom: '45%' }}>
+                    {accidental}
+                </span>
+            </span>
+        </span>
     );
 };
 
@@ -143,17 +50,10 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup, onProgressUpda
 
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-    const { savePreset, presetToLoad, clearPresetToLoad } = useTools();
-
-    // This useEffect listens for a preset to be loaded from the context
-    useEffect(() => {
-        if (presetToLoad && presetToLoad.gameId === 'chord-trainer') {
-            setSettings(presetToLoad.settings); // Apply the settings
-            clearPresetToLoad(); // Clear the preset from context
-        }
-    }, [presetToLoad, clearPresetToLoad, setSettings]);
+    const { savePreset } = useTools();
     const inputRef = useRef(null);
     const isReviewing = reviewIndex !== null;
+    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
 
     useEffect(() => {
         if (!feedback && !isReviewing && inputRef.current) {
@@ -161,134 +61,107 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup, onProgressUpda
         }
     }, [currentQuestion, feedback, isReviewing]);
     
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === 'Enter' && feedback && (!settings.autoAdvance || !wasCorrect)) {
+                event.preventDefault();
+                generateNewQuestion();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [feedback, settings.autoAdvance, wasCorrect, generateNewQuestion]);
+
     const handleSettingChange = (key, value) => setSettings(prev => ({...prev, [key]: value}));
-    const handleKeySelection = (key) => { const newKeys = settings.selectedKeys.includes(key) ? settings.selectedKeys.filter(k => k !== key) : [...settings.selectedKeys, key]; handleSettingChange('selectedKeys', newKeys); };
-    const handleModeSelection = (modeId) => { const newModes = settings.selectedModes.includes(modeId) ? settings.selectedModes.filter(m => m !== modeId) : [...settings.selectedModes, modeId]; handleSettingChange('selectedModes', newModes); };
-    const handleDegreeToggle = (degree) => handleSettingChange('degreeToggles', {...settings.degreeToggles, [degree]: !settings.degreeToggles[degree]});
+    
     const handleSavePreset = () => {
-        const suggestedName = `CT: ${settings.selectedKeys.join(',')} - ${settings.selectedModes.map(m => gameModes.find(gm => gm.id === m)?.label).join('/')}`;
-        const name = prompt("Enter a name for your preset:", suggestedName);
+        const name = prompt("Enter a name for your preset:", `CT - ${settings.selectedKeys.join(',')}`);
         if (name && name.trim() !== "") {
-            const newPreset = {
-                id: Date.now().toString(),
-                name: name.trim(),
-                gameId: 'chord-trainer', // This ID must match the one in App.js
-                gameName: 'Chord Trainer',
-                settings: settings,
-            };
-            savePreset(newPreset);
+            savePreset({ id: Date.now().toString(), name: name.trim(), gameId: 'chord-trainer', gameName: 'Chord Trainer', settings });
             alert(`Preset "${name.trim()}" saved!`);
         }
     };
+    
     const itemToDisplay = isReviewing ? history[reviewIndex] : { question: currentQuestion, userAnswer };
     
-    const ControlsContent = () => (
-        <div className="space-y-4">
-            <div><h4 className="font-semibold text-lg text-teal-300 mb-2">Keys</h4><div className="space-y-2"><div>{keysSharpOrder.map(key => (<button key={key} onClick={() => handleKeySelection(key)} className={`px-3 py-1 mr-1 mb-1 text-sm rounded-full font-semibold ${settings.selectedKeys.includes(key) ? 'bg-blue-600 text-white' : 'bg-slate-600'}`}>{key}</button>))}</div><div>{keysFlatOrder.map(key => (<button key={key} onClick={() => handleKeySelection(key)} className={`px-3 py-1 mr-1 mb-1 text-sm rounded-full font-semibold ${settings.selectedKeys.includes(key) ? 'bg-blue-600 text-white' : 'bg-slate-600'}`}>{key}</button>))}</div></div></div>
-            <div><h4 className="font-semibold text-lg text-teal-300 mb-2">Game Modes</h4><div className="grid grid-cols-2 gap-2">{gameModes.map(mode => (<button key={mode.id} onClick={() => handleModeSelection(mode.id)} className={`p-2 text-sm rounded-md font-semibold ${settings.selectedModes.includes(mode.id) ? 'bg-blue-600 text-white' : 'bg-slate-600'}`}>{mode.label}</button>))}</div></div>
-            <label className="flex items-center justify-between p-2 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Use 7th Chords</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.use7thChords} onChange={(e) => handleSettingChange('use7thChords', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
-            <div><h4 className="font-semibold text-lg text-teal-300 mb-2">Scale Degrees</h4><div className="grid grid-cols-4 gap-2">{Object.keys(settings.degreeToggles).map((degree, i) => (<button key={degree} onClick={() => handleDegreeToggle(degree)} className={`p-2 text-sm rounded-md font-mono ${settings.degreeToggles[degree] ? 'bg-blue-600 text-white' : 'bg-slate-600'}`}>{settings.use7thChords ? scaleDegreeNames.sevenths[i] : scaleDegreeNames.triads[i]}</button>))}</div></div>
-            
-            <div className="border-t border-slate-600 pt-4 mt-4">
-                 <details open>
-                    <summary className="text-lg font-bold text-teal-300 cursor-pointer hover:text-teal-200">Advanced Options</summary>
-                    <div className="mt-2 p-3 bg-slate-800/50 rounded-lg space-y-4">
-                        <div><h4 className="font-semibold text-lg text-teal-300 mb-2">Generation Method</h4><div className="flex bg-slate-600 rounded-md p-1 mt-1"><button onClick={() => handleSettingChange('generationMethod', 'weighted')} className={`flex-1 text-sm rounded-md py-1 ${settings.generationMethod === 'weighted' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Weighted</button><button onClick={() => handleSettingChange('generationMethod', 'random')} className={`flex-1 text-sm rounded-md py-1 ${settings.generationMethod === 'random' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Random</button></div></div>
-                        <WeightSliders
-                            weights={settings.majorWeights}
-                            onWeightChange={(newWeights) => handleSettingChange('majorWeights', newWeights)}
-                            use7thChords={settings.use7thChords}
-                        />
-                        <label className="flex items-center justify-between p-2 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Use Alternate Symbols</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.useAlternateSymbols} onChange={(e) => handleSettingChange('useAlternateSymbols', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
-                        <label className="flex items-center justify-between p-2 rounded-md bg-slate-600 cursor-pointer"><span className="font-semibold">Hide Quality (Challenge)</span><div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.hideQuality} onChange={(e) => handleSettingChange('hideQuality', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
-                    </div>
-                </details>
-            </div>
-            <div className="border-t border-slate-600 pt-4 mt-4">
-                 <button onClick={handleSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
-                    Save Current Settings as Preset
-                </button>
-            </div>
-        </div>
-    );
-
     const renderPrompt = () => {
         const q = itemToDisplay.question;
-        if (!q) return null;
-        if (q.type === 'error') return <span className="text-red-400">{q.prompt}</span>;
-        if (q.promptStructure) {
-            return (<span className="text-2xl">{q.promptStructure.textParts[0]}<strong className="text-3xl font-bold text-teal-300 mx-2">{q.promptStructure.highlightParts[0].split(' ').map((c,i)=><ChordDisplay key={i} chord={c}/>).reduce((p,c)=>[p,' ',c])}</strong>{q.promptStructure.textParts[1]}<strong className="text-3xl font-bold text-teal-300">{q.promptStructure.highlightParts[1]}</strong>{q.promptStructure.textParts[2]}<strong className="text-3xl font-bold text-teal-300">{q.promptStructure.highlightParts[2]}</strong></span>);
-        }
-        return q.prompt.split('**').map((part, index) => (
-            index % 2 === 1 ? <strong key={index} className="text-3xl font-bold text-teal-300"><ChordDisplay chord={part}/></strong> : <span key={index} className="text-2xl">{part}</span>
-        ));
+        if (!q || !q.prompt) return null;
+        if (q.type === 'error') return <span className="text-red-400">{q.prompt.text}</span>;
+        
+        let keyIndex = 0;
+        const questionTextParts = q.prompt.text.split('{key}').map((part, index) => {
+            if (index < q.prompt.keys.length) {
+                return (
+                    <React.Fragment key={index}>
+                        {part}
+                        <span className="text-highlight font-bold">{q.prompt.keys[keyIndex++]}</span>
+                    </React.Fragment>
+                );
+            }
+            return part;
+        });
+
+        const contentParts = q.prompt.content.split(' ');
+
+        return (
+            <div className="flex flex-col items-center text-center">
+                <div className="text-3xl mb-4">{questionTextParts}</div>
+                <div className="inline-flex flex-wrap justify-center items-center gap-2">
+                    {contentParts.map((part, index) => (
+                        <strong key={index} className="text-4xl font-bold text-teal-300 bg-slate-700/50 px-3 py-1 rounded-md">
+                            <ChordDisplay chord={part} useAlternateNotation={settings.useAlternateNotation} />
+                        </strong>
+                    ))}
+                </div>
+            </div>
+        );
     };
 
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Chord Trainer Guide">
                 <div className="space-y-4 text-sm">
-                    <div>
-                        <h4 className="font-bold text-indigo-300 mb-1">Game Modes</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                            <li><b>Name Chord:</b> Given a key and a Roman numeral, name the chord.</li>
-                            <li><b>Name Numeral:</b> Given a key and a chord, name the Roman numeral.</li>
-                            <li><b>Progression:</b> Given a key and a numeral progression, name all the chords.</li>
-                            <li><b>Transpose:</b> Transpose a chord progression from one key to another.</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-indigo-300 mt-2 mb-1">Answer Formatting</h4>
-                        <p>Type your answer using standard notation (e.g., <span className="font-mono">C, F#m, Bbdim, Gmaj7, viim7b5</span>). For progressions, separate chords with a single space.</p>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-indigo-300 mt-2">Challenge Mode: Hide Quality</h4>
-                        <p>For a tougher workout, enable the "Hide Quality" toggle in the controls. This will hide whether a Roman numeral is major, minor, or diminished in the "Name Chord" and "Progression" modes, forcing you to recall the quality from theory.</p>
-                    </div>
+                    <div><h4 className="font-bold text-indigo-300 mb-1">Game Modes</h4><ul className="list-disc list-inside space-y-1"><li><b>Name Chord:</b> Given a key and a Roman numeral, name the chord.</li><li><b>Name Numeral:</b> Given a key and a chord, name the Roman numeral.</li><li><b>Progression:</b> Given a key and a numeral progression, name all the chords.</li></ul></div>
+                    <div><h4 className="font-bold text-indigo-300 mt-2 mb-1">Chord Complexity</h4><p>Use the "Use 7th Chords" toggle to switch between triads (3-note chords) and tetrads (4-note chords). When active, you must provide the full 7th chord name (e.g., Cmaj7, Dm7).</p></div>
+                    <div><h4 className="font-bold text-indigo-300 mt-2 mb-1">Roman Numerals</h4><p>Roman numerals represent scale degrees. Their case indicates quality (e.g., I is major, ii is minor, vii° is diminished). They do not include the "7" for tetrads; you are expected to know the correct 7th chord quality for that degree.</p></div>
+                    <div><h4 className="font-bold text-indigo-300 mt-2">Advanced Options</h4><ul className="list-disc list-inside space-y-1"><li><b>Alternate Notation:</b> Displays chords with professional symbols (e.g., C-, F△7, Bø7). Even when active, you should type your answers in standard notation (e.g., Cm7, Fmaj7).</li><li><b>Hide Quality:</b> For a harder challenge, this makes all Roman numerals uppercase (e.g., ii becomes II), forcing you to recall the quality from theory.</li></ul></div>
                 </div>
             </InfoModal>
+
             <div className="w-full flex-1 bg-slate-800 p-4 rounded-lg">
-                {/* --- UPDATED HEADER AND SUB-HEADER --- */}
                 <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2">
-                        <h1 className="text-2xl font-bold text-indigo-300">Chord Trainer</h1>
-                        <InfoButton onClick={() => setIsInfoModalOpen(true)} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => onLogSession(score, history)} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log</button>
-                        <button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Controls</button>
-                    </div>
+                    <div className="flex items-center gap-2"><h1 className="text-2xl font-bold text-indigo-300">Chord Trainer</h1><InfoButton onClick={() => setIsInfoModalOpen(true)} /></div>
+                    <div className="flex items-center gap-2"><button onClick={() => onLogSession(score, history)} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log</button><button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Controls</button></div>
                 </div>
                 <div className="grid grid-cols-3 items-center mb-4 text-lg">
                     <span className="font-semibold justify-self-start">Score: {score} / {history.length}</span>
-                    <div className="justify-self-center">
-                        {history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-sm py-1 px-3 rounded-lg">Review History</button>}
-                    </div>
-                    <label className="flex items-center gap-2 cursor-pointer font-semibold justify-self-end">
-                        <span>Auto-Advance</span>
-                        <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={settings.autoAdvance} onChange={(e) => handleSettingChange('autoAdvance', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div>
-                    </label>
+                    <div className="justify-self-center">{history.length > 0 && <button onClick={startReview} disabled={isReviewing} className="bg-gray-600 hover:bg-gray-500 text-sm py-1 px-3 rounded-lg">Review</button>}</div>
+                    <label className="flex items-center gap-2 cursor-pointer font-semibold justify-self-end"><span>Auto-Advance</span><div className="relative inline-flex items-center"><input type="checkbox" checked={settings.autoAdvance} onChange={(e) => handleSettingChange('autoAdvance', e.target.checked)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label>
                 </div>
                 
-                <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
-                    <div className="w-full bg-slate-900/50 p-4 rounded-lg text-center min-h-[80px] flex justify-center items-center flex-wrap gap-x-2 mb-2">{renderPrompt()}</div>
-                    {isReviewing ? (<div className="my-4 p-3 rounded-lg w-full bg-slate-700"><div className="w-full bg-slate-900/50 p-4 rounded-lg text-center min-h-[80px] flex justify-center items-center flex-wrap gap-x-2 mb-2">{renderPrompt()}</div><div className={`mt-4 text-center p-3 rounded-lg w-full ${itemToDisplay.wasCorrect ? 'bg-green-900/50':'bg-red-900/50'}`}><p className="font-bold">Correct: <span className="text-teal-300">{itemToDisplay.question.answer.split(' ').map((c,i)=><ChordDisplay key={i} chord={c}/>).reduce((p,c)=>[p,' ',c])}</span></p>{!itemToDisplay.wasCorrect && <p className="mt-1"><span className="font-bold">You:</span> <span className="text-red-400">{itemToDisplay.userAnswer}</span></p>}</div></div>) : (<div className={`text-xl my-4 min-h-[28px] ${feedback.startsWith('Correct') ? 'text-green-400' : 'text-red-400'}`}>{feedback || <div className="text-base italic text-gray-400">{currentQuestion && reminders[currentQuestion.mode]}</div>}</div>)}
+                <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
+                    <div className="w-full bg-slate-900/50 p-4 rounded-lg text-center min-h-[120px] flex justify-center items-center flex-wrap gap-x-2 mb-2">{renderPrompt()}</div>
+                    
+                    {currentQuestion && currentQuestion.reminder && !feedback && (
+                        <div className="text-sm italic text-highlight bg-yellow-900/30 p-2 rounded-md my-2 w-full text-center">
+                            {currentQuestion.reminder}
+                        </div>
+                    )}
+                    
+                    <div className={`text-xl my-4 min-h-[28px] ${feedback.startsWith('Correct') ? 'text-green-400' : 'text-red-400'}`}>{feedback}</div>
                     <form onSubmit={(e)=>{e.preventDefault(); checkAnswer(userAnswer, settings.autoAdvance)}} className="w-full max-w-sm flex flex-col items-center">
                         <input ref={inputRef} type="text" value={isReviewing ? '' : userAnswer} onChange={(e) => setUserAnswer(e.target.value)} className="w-full text-center text-xl p-3 rounded-lg bg-slate-700" disabled={!!feedback || isReviewing} autoFocus />
                         <div className="h-20 mt-3 flex justify-center items-center gap-4">
-                            {isReviewing ? (
-                                <div className="flex items-center gap-4">
-                                    <button type="button" onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="p-3 rounded-lg bg-slate-600 hover:bg-slate-500">Prev</button>
-                                    <button type="button" onClick={() => setReviewIndex(null)} className="bg-purple-600 p-3 rounded-lg font-bold">Return to Quiz</button>
-                                    <button type="button" onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="p-3 rounded-lg bg-slate-600 hover:bg-slate-500">Next</button>
-                                </div>
-                            ) : (
+                            {isReviewing ? (<div className="flex items-center gap-4"><button type="button" onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="p-3 rounded-lg bg-slate-600">Prev</button><button type="button" onClick={() => setReviewIndex(null)} className="bg-purple-600 p-3 rounded-lg font-bold">Return</button><button type="button" onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="p-3 rounded-lg bg-slate-600">Next</button></div>) 
+                            : (
                                 <>
-                                    {!isChallengeMode && <button type="button" onClick={onGoToSetup} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg">Menu</button>}
-                                    {!feedback ? (
-                                        <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Submit</button>
-                                    ) : !settings.autoAdvance && (
-                                        <button type="button" onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next</button>
+                                    {!onProgressUpdate && <button type="button" onClick={onGoToSetup} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg">Menu</button>}
+                                    {!feedback && <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg">Submit</button>}
+                                    {feedback && (!settings.autoAdvance || !wasCorrect) && (
+                                        <button type="button" onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>
                                     )}
                                 </>
                             )}
@@ -296,57 +169,40 @@ const QuizScreen = ({ initialSettings, onLogSession, onGoToSetup, onProgressUpda
                     </form>
                 </div>
             </div>
-            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ${isControlsOpen ? 'w-96 p-4' : 'w-0 overflow-hidden'}`}>{isControlsOpen && <ControlsContent />}</div>
-            {isControlsOpen && (<div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}><div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4" onClick={e => e.stopPropagation()}><div className="flex-grow overflow-y-auto pr-2"><ControlsContent /></div></div></div>)}
+
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ${isControlsOpen ? 'w-96 p-4' : 'w-0 overflow-hidden'}`}>{isControlsOpen && <ChordTrainerControls settings={settings} onSettingChange={handleSettingChange} onSavePreset={handleSavePreset} />}</div>
+            {isControlsOpen && (<div className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60" onClick={() => setIsControlsOpen(false)}><div className="w-11/12 max-w-sm bg-slate-800 rounded-2xl p-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}><div className="flex-grow overflow-y-auto pr-2"><ChordTrainerControls settings={settings} onSettingChange={handleSettingChange} onSavePreset={handleSavePreset} /></div></div></div>)}
         </div>
     );
 };
 
 const ChordTrainer = ({ onProgressUpdate, challengeSettings }) => {
-    const { addLogEntry } = useTools();
+    const { addLogEntry, clearPresetToLoad, presetToLoad } = useTools();
+    const [screen, setScreen] = useState('setup');
+    const [initialSettings, setInitialSettings] = useState(null);
 
-    // If challengeSettings are passed, start in 'quiz' mode. Otherwise, start in 'setup'.
-    const [screen, setScreen] = useState(challengeSettings ? 'quiz' : 'setup');
-    const [initialSettings, setInitialSettings] = useState(challengeSettings || null);
+    useEffect(() => {
+        if (challengeSettings) {
+            setInitialSettings(challengeSettings);
+            setScreen('quiz');
+        } else if (presetToLoad && presetToLoad.gameId === 'chord-trainer') {
+            setInitialSettings(presetToLoad.settings);
+            setScreen('quiz');
+            clearPresetToLoad();
+        }
+    }, [challengeSettings, presetToLoad, clearPresetToLoad]);
 
     const handleStart = (settingsFromSetup) => {
-        setInitialSettings({
-            ...settingsFromSetup,
-            degreeToggles: { 'I': true, 'ii': true, 'iii': true, 'IV': true, 'V': true, 'vi': true, 'vii°': true },
-            useAlternateSymbols: false,
-            autoAdvance: true,
-            hideQuality: false,
-        });
+        setInitialSettings({ ...settingsFromSetup, degreeToggles: { 'I': true, 'ii': true, 'iii': true, 'IV': true, 'V': true, 'vi': true, 'vii°': true }, useAlternateNotation: false, autoAdvance: true, hideQuality: false, });
         setScreen('quiz');
     };
-    
-    const handleGoToSetup = () => {
-        if (window.confirm("Are you sure you want to return to the menu? Your session will be lost.")) {
-            setScreen('setup');
-            setInitialSettings(null);
-        }
-    }
-    
-    const handleLogSession = (score, history) => {
-        const remarks = prompt("Enter any remarks for this session:", `Score: ${score}/${history.length}`);
-        if (remarks !== null) { addLogEntry({ game: 'Chord Trainer', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); }
-    };
+    const handleGoToSetup = () => { if (window.confirm("Are you sure you want to return to the menu? Your session will be lost.")) { setScreen('setup'); setInitialSettings(null); } };
+    const handleLogSession = (score, history) => { const remarks = prompt("Enter any remarks for this session:", `Score: ${score}/${history.length}`); if (remarks !== null) { addLogEntry({ game: 'Chord Trainer', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); } };
 
-    if (screen === 'setup') {
-        return <SetupScreen onStart={handleStart} />;
-    }
-    
+    if (screen === 'setup') { return <ChordTrainerSetup onStart={handleStart} />; }
     if (screen === 'quiz' && initialSettings) {
-        return <QuizScreen 
-            key={JSON.stringify(initialSettings)}
-            initialSettings={initialSettings} 
-            onLogSession={handleLogSession} 
-            onGoToSetup={handleGoToSetup}
-            onProgressUpdate={onProgressUpdate}
-            isChallengeMode={!!challengeSettings}
-        />;
+        return <QuizScreen key={JSON.stringify(initialSettings)} initialSettings={initialSettings} onLogSession={handleLogSession} onGoToSetup={handleGoToSetup} onProgressUpdate={onProgressUpdate} isChallengeMode={!!challengeSettings} />;
     }
-
     return null;
 };
 

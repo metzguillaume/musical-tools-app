@@ -122,7 +122,7 @@ export const useIntervalFretboardQuiz = (autoAdvance, playAudio, onProgressUpdat
             playFretboardNotes(currentQuestion.notes);
         }
 
-        if (autoAdvance) {
+        if (autoAdvance && isCorrect) {
             timeoutRef.current = setTimeout(startNewRound, 2000);
         }
     }, [isAnswered, selected, currentQuestion, autoAdvance, startNewRound, playAudio, playFretboardNotes, history.length, onProgressUpdate, score]);

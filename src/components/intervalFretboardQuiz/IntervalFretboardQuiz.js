@@ -33,7 +33,20 @@ const IntervalFretboardQuiz = ({ onProgressUpdate }) => {
         score, currentQuestion, feedback, isAnswered, selected, setSelected, history, reviewIndex, setReviewIndex,
         startNewRound, handleReviewNav, startReview, replayAudioForHistoryItem
     } = useIntervalFretboardQuiz(settings.autoAdvance, settings.playAudio, onProgressUpdate);
-    
+
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            // Get the status of the last answer from history
+            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+            if (event.key === 'Enter' && isAnswered && (!settings.autoAdvance || !wasCorrect)) {
+                event.preventDefault();
+                startNewRound();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isAnswered, settings.autoAdvance, history, startNewRound]);
+
     const isReviewing = reviewIndex !== null;
 
     const handleLogProgress = () => {
@@ -94,6 +107,7 @@ const IntervalFretboardQuiz = ({ onProgressUpdate }) => {
       </>
     );
 
+    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
     const footerContent = isReviewing ? (
       <div className='flex items-center justify-center gap-4 w-full'>
         <button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 p-3 rounded-lg">Prev</button>
@@ -103,8 +117,8 @@ const IntervalFretboardQuiz = ({ onProgressUpdate }) => {
         </div>
         <button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 p-3 rounded-lg">Next</button>
       </div>
-    ) : isAnswered && !settings.autoAdvance ? (
-      <button onClick={startNewRound} className="bg-blue-600 p-3 rounded-lg text-xl animate-pulse">Next Question</button>
+    ) : isAnswered && (!settings.autoAdvance || !wasCorrect) ? (
+      <button onClick={startNewRound} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>
     ) : null;
 
     return (

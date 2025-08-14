@@ -235,7 +235,7 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
             </InfoModal>
 
             <QuizLayout
-                title="Intervals Quiz"
+                title="Interval Practice"
                 score={score}
                 totalAsked={history.length}
                 history={history}

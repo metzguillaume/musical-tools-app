@@ -101,15 +101,20 @@ export const useIntervalsQuiz = (settings, playAudio, audioDirection, onProgress
 
     const playIntervalAudio = useCallback((rootNoteName, targetNoteName, direction = 'above') => {
         const rootMidi = NOTE_TO_MIDI[rootNoteName];
-        const targetMidi = NOTE_TO_MIDI[targetNoteName];
+        let targetMidi = NOTE_TO_MIDI[targetNoteName];
 
         if (rootMidi === undefined || targetMidi === undefined) {
             console.error("Could not find MIDI for notes:", rootNoteName, targetNoteName);
             return;
         }
         
+        // This is the new, corrected logic for handling octaves
         if (rootMidi % 12 === targetMidi % 12 && rootNoteName === targetNoteName) {
-            targetMidi += 12;
+            if (direction === 'below') {
+                targetMidi -= 12;
+            } else { // Handles 'above' and the empty direction for unison
+                targetMidi += 12;
+            }
         }
         // UPDATED: New logic to find a playable interval fingering within frets 0-12
         const findPlayablePositions = () => {

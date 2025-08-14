@@ -8,7 +8,7 @@ export const ACCIDENTALS = [ { id: 'b', display: '♭' }, { id: 'natural', displ
 const NOTE_TO_MIDI_BASE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
 const CHORD_TYPES = { 'Major': [0, 4, 7], 'Minor': [0, 3, 7], 'Diminished': [0, 3, 6], 'Augmented': [0, 4, 8] };
-const SEVENTH_CHORD_TYPES = { 'Major 7th': [0, 4, 7, 11], 'Minor 7th': [0, 3, 7, 10], 'Dominant 7th': [0, 4, 7, 10], 'Half-Diminished 7th': [0, 3, 6, 10], 'Diminished 7th': [0, 3, 6, 9] };
+const SEVENTH_CHORD_TYPES = { 'Major 7': [0, 4, 7, 11], 'Minor 7': [0, 3, 7, 10], 'Dominant 7': [0, 4, 7, 10], 'Half-Diminished 7': [0, 3, 6, 10], 'Diminished 7': [0, 3, 6, 9] };
 
 const getMidiFromNote = (note) => {
     const letter = note.charAt(0).toUpperCase();
@@ -134,7 +134,7 @@ export const useTriadQuiz = (quizMode, include7ths, includeInversions, autoAdvan
             onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
         }
 
-        if (autoAdvance) { 
+        if (autoAdvance && isCorrect) { 
             setTimeout(generateNewQuestion, 2000); 
         }
     }, [isAnswered, userAnswer, currentQuestion, autoAdvance, generateNewQuestion, score, totalAsked, onProgressUpdate]);

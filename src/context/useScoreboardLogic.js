@@ -16,7 +16,7 @@ export const useScoreboardLogic = () => {
     }, [scores]);
 
     const saveChallengeResult = useCallback((result) => {
-        setScores(prevScores => [result, ...prevScores]); // Add new result to the top
+        setScores(prevScores => [result, ...prevScores]);
     }, []);
 
     const clearScoreboard = useCallback(() => {
@@ -25,5 +25,11 @@ export const useScoreboardLogic = () => {
         }
     }, []);
 
-    return { scores, saveChallengeResult, clearScoreboard };
+    const deleteScore = useCallback((scoreId) => {
+        if (window.confirm("Are you sure you want to delete this result?")) {
+            setScores(prevScores => prevScores.filter(s => s.id !== scoreId));
+        }
+    }, []);
+
+    return { scores, saveChallengeResult, clearScoreboard, deleteScore };
 };

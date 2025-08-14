@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useCallback } from 'react';
+import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
 import * as Tone from 'tone';
 import { usePracticeLogLogic } from './usePracticeLogLogic';
 import { useMetronomeLogic } from './useMetronomeLogic';
@@ -8,7 +8,7 @@ import { useStopwatchLogic } from './useStopwatchLogic';
 import { useAudioPlayers } from './useAudioPlayers';
 import { usePresetsLogic } from './usePresetsLogic';
 import { useChallengesLogic } from './useChallengesLogic';
-import { useScoreboardLogic } from './useScoreboardLogic'; // 1. Import the new hook
+import { useScoreboardLogic } from './useScoreboardLogic';
 
 const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
@@ -25,14 +25,13 @@ export const ToolsProvider = ({ children }) => {
     const [activeChallenge, setActiveChallenge] = useState(null);
     const [challengeStepIndex, setChallengeStepIndex] = useState(0);
     const [challengeProgress, setChallengeProgress] = useState(null);
-    const [lastChallengeResultId, setLastChallengeResultId] = useState(null); // 2. Add state for navigation
+    const [lastChallengeResultId, setLastChallengeResultId] = useState(null);
 
     const toggleActiveTool = (tool) => {
         setActiveTool(prevTool => (prevTool === tool ? null : tool));
     };
 
     const unlockAudio = useCallback(async () => {
-        // Always try to resume the context if it's suspended
         if (Tone.context.state === 'suspended') {
             try {
                 await Tone.start();
@@ -42,16 +41,26 @@ export const ToolsProvider = ({ children }) => {
             }
         }
         
-        // This part only runs once on the very first interaction
         if (isAudioUnlocked) return;
         try {
             await Tone.start();
             setIsAudioUnlocked(true);
-            console.log("Audio Context unlocked and running for the first time.");
+            console.log("Audio Context unlocked and running.");
         } catch (e) {
             console.error("Could not start Audio Context", e);
         }
     }, [isAudioUnlocked]);
+
+    // Robust, one-time audio unlock on the first user interaction anywhere on the page
+    useEffect(() => {
+        const oneTimeUnlock = () => {
+            unlockAudio();
+        };
+        window.addEventListener('click', oneTimeUnlock, { once: true });
+        return () => {
+            window.removeEventListener('click', oneTimeUnlock);
+        };
+    }, [unlockAudio]);
     
     // Preset loading logic
     const loadPreset = useCallback((preset) => {
@@ -65,6 +74,7 @@ export const ToolsProvider = ({ children }) => {
 
     // --- Challenge Runner Functions ---
     const startChallenge = useCallback((challenge) => {
+        unlockAudio(); // Ensure audio is ready for the challenge
         setActiveChallenge(challenge);
         setChallengeStepIndex(0);
         setChallengeProgress({
@@ -73,7 +83,7 @@ export const ToolsProvider = ({ children }) => {
             streak: 0,
             stepResults: challenge.steps.map(() => ({ score: 0, asked: 0 })),
         });
-    }, []);
+    }, [unlockAudio]);
 
     const nextChallengeStep = useCallback(() => {
         setChallengeStepIndex(prevIndex => prevIndex + 1);
@@ -88,7 +98,7 @@ export const ToolsProvider = ({ children }) => {
     const updateChallengeProgress = useCallback((stepIndex, quizProgress) => {
         setChallengeProgress(prev => {
             if (!prev || !prev.stepResults || prev.stepResults[stepIndex] === undefined) {
-                return prev; // Safety check
+                return prev;
             }
             const newStepResults = [...prev.stepResults];
             newStepResults[stepIndex] = { score: quizProgress.score, asked: quizProgress.totalAsked };
@@ -113,7 +123,7 @@ export const ToolsProvider = ({ children }) => {
     const audioPlayers = useAudioPlayers(unlockAudio, metronome.bpm);
     const presets = usePresetsLogic();
     const challengesLogic = useChallengesLogic(presets.presets, presets.savePreset);
-    const scoreboard = useScoreboardLogic(); // 3. Instantiate the new hook
+    const scoreboard = useScoreboardLogic();
     
     // Combine all state and functions into a single value object
     const value = {
@@ -128,7 +138,7 @@ export const ToolsProvider = ({ children }) => {
         ...audioPlayers,
         ...presets,
         ...challengesLogic,
-        ...scoreboard, // 4. Add scoreboard functions and state to the context
+        ...scoreboard,
         presetToLoad,
         loadPreset,
         clearPresetToLoad,
@@ -139,7 +149,7 @@ export const ToolsProvider = ({ children }) => {
         nextChallengeStep,
         endChallenge,
         updateChallengeProgress,
-        lastChallengeResultId, // 4. Add state for navigation
+        lastChallengeResultId,
         setLastChallengeResultId,
     };
 

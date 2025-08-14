@@ -30,11 +30,17 @@ const getComponentForPreset = (preset, props) => {
     }
 };
 
-const ChallengeHUD = ({ challenge, stepIndex, progress, timeLeft }) => {
+const ChallengeHUD = ({ challenge, stepIndex, progress, timeLeft, stopwatchTime }) => {
     const currentStep = challenge.steps[stepIndex];
     let goalDisplay = '';
     
-    // Safety check for progress object
+    const formatTime = (ms) => {
+        const minutes = Math.floor(ms / 60000);
+        const seconds = Math.floor((ms % 60000) / 1000);
+        const milliseconds = Math.floor((ms % 1000) / 10);
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(2, '0')}`;
+    };
+    
     const currentProgress = progress || {};
 
     if (challenge.type === 'PracticeRoutine' && currentStep.goalType === 'time') {
@@ -51,9 +57,12 @@ const ChallengeHUD = ({ challenge, stepIndex, progress, timeLeft }) => {
     return (
         <div className="w-full bg-slate-900 border-b-4 border-indigo-500 p-4 mb-8 rounded-lg text-center shadow-lg">
             <h2 className="text-2xl font-bold text-teal-300">{challenge.name}</h2>
-            <div className="flex justify-around items-center mt-2 text-lg">
-                <span className="font-semibold text-gray-300">Step: {stepIndex + 1} / {challenge.steps.length}</span>
+            <div className="grid grid-cols-3 justify-items-center items-center mt-2 text-lg">
+                <span className="font-semibold text-gray-300 justify-self-start">Step: {stepIndex + 1} / {challenge.steps.length}</span>
                 <span className="font-bold text-amber-300">{goalDisplay}</span>
+                {challenge.type === 'Gauntlet' && stopwatchTime !== undefined && (
+                    <span className="font-mono text-xl text-yellow-300 justify-self-end">{formatTime(stopwatchTime)}</span>
+                )}
             </div>
         </div>
     );
@@ -68,6 +77,7 @@ const ChallengeRunner = () => {
     } = useTools();
 
     const [stepTimeLeft, setStepTimeLeft] = useState(0);
+    const [currentStreakPresetId, setCurrentStreakPresetId] = useState(null);
     const timeoutRef = useRef(null);
     const initialStepRender = useRef(true);
 
@@ -89,23 +99,34 @@ const ChallengeRunner = () => {
         };
 
         saveChallengeResult(result);
-        setLastChallengeResultId(result.id); // Triggers navigation in App.js
-        endChallenge(); // Cleans up and unmounts the runner
+        setLastChallengeResultId(result.id);
+        endChallenge();
 
     }, [activeChallenge, challengeProgress, endChallenge, saveChallengeResult, setLastChallengeResultId, stopwatchTime]);
-
 
     useEffect(() => {
         if (!activeChallenge) return;
         const currentStep = activeChallenge.steps[challengeStepIndex];
-        const currentPreset = presets.find(p => p.id === currentStep?.presetId);
+        const presetIdToLoad = activeChallenge.type === 'Streak' 
+            ? currentStreakPresetId || activeChallenge.steps[0]?.presetId
+            : currentStep?.presetId;
+
+        const currentPreset = presets.find(p => p.id === presetIdToLoad);
+
         if (!currentStep || !currentPreset) return;
+        
         initialStepRender.current = true;
         loadPreset(currentPreset);
-        if (activeChallenge.type === 'PracticeRoutine' && currentStep.goalType === 'time') { setStepTimeLeft(currentStep.goalValue); } 
-        else if (activeChallenge.type === 'Gauntlet') { resetStopwatch(); if (!isStopwatchRunning) toggleStopwatch(); }
-    }, [activeChallenge, challengeStepIndex, presets, loadPreset, resetStopwatch, isStopwatchRunning, toggleStopwatch]);
 
+        if (activeChallenge.type === 'PracticeRoutine' && currentStep.goalType === 'time') { 
+            setStepTimeLeft(currentStep.goalValue); 
+        } else if (activeChallenge.type === 'Gauntlet' && challengeStepIndex === 0) {
+            resetStopwatch();
+            toggleStopwatch();
+        } else if (activeChallenge.type === 'Streak' && !currentStreakPresetId) {
+            setCurrentStreakPresetId(activeChallenge.steps[0]?.presetId);
+        }
+    }, [activeChallenge, challengeStepIndex, presets, loadPreset, resetStopwatch, toggleStopwatch, currentStreakPresetId]);
 
     useEffect(() => {
         if (!activeChallenge || activeChallenge.type !== 'PracticeRoutine' || activeChallenge.steps[challengeStepIndex]?.goalType !== 'time') return;
@@ -121,7 +142,6 @@ const ChallengeRunner = () => {
         const intervalId = setInterval(() => setStepTimeLeft(prev => prev - 1), 1000);
         return () => clearInterval(intervalId);
     }, [stepTimeLeft, activeChallenge, challengeStepIndex, nextChallengeStep, finishChallenge]);
-
 
     const handleProgressUpdate = useCallback((progress) => {
         if (!activeChallenge) return;
@@ -140,33 +160,48 @@ const ChallengeRunner = () => {
             }, 2000);
         };
 
-        const questionsAnsweredForStep = progress.totalAsked; // Quiz sends its internal total
+        const questionsAnsweredForStep = progress.totalAsked;
 
         if (activeChallenge.type === 'PracticeRoutine' && currentStep.goalType === 'questions') {
             if (questionsAnsweredForStep >= currentStep.goalValue) advance(isFinalStep);
         } else if (activeChallenge.type === 'Gauntlet') {
-            // Gauntlet goal is based on total questions in the step
-            if (questionsAnsweredForStep >= currentStep.goalValue) advance(true);
+            if (questionsAnsweredForStep >= currentStep.goalValue) advance(isFinalStep);
         } else if (activeChallenge.type === 'Streak') {
-            if (!progress.wasCorrect) advance(true);
+            if (!progress.wasCorrect) {
+                advance(true); // End the challenge on incorrect answer
+            } else {
+                // On correct answer, pick a new random preset for the next question
+                const nextPreset = activeChallenge.steps[Math.floor(Math.random() * activeChallenge.steps.length)];
+                setCurrentStreakPresetId(nextPreset.presetId);
+            }
         }
     }, [activeChallenge, challengeStepIndex, isStopwatchRunning, nextChallengeStep, toggleStopwatch, updateChallengeProgress, finishChallenge]);
     
     useEffect(() => { return () => clearTimeout(timeoutRef.current); }, []);
 
-    const currentPreset = presets.find(p => p.id === activeChallenge?.steps[challengeStepIndex]?.presetId);
+    const presetIdToLoad = activeChallenge.type === 'Streak' ? currentStreakPresetId : activeChallenge?.steps[challengeStepIndex]?.presetId;
+    const currentPreset = presets.find(p => p.id === presetIdToLoad);
+
     if (!activeChallenge || !currentPreset) {
         return ( <div className="text-center p-8"><h2 className="text-2xl font-bold text-gray-400">Loading Challenge...</h2></div> );
     }
     
     return (
-        <div className="w-full">
-            <ChallengeHUD challenge={activeChallenge} stepIndex={challengeStepIndex} progress={challengeProgress} timeLeft={stepTimeLeft} />
+        <div className="w-full relative">
+            <div className="sticky top-0 z-10">
+                <ChallengeHUD 
+                    challenge={activeChallenge} 
+                    stepIndex={challengeStepIndex} 
+                    progress={challengeProgress} 
+                    timeLeft={stepTimeLeft} 
+                    stopwatchTime={stopwatchTime} 
+                />
+            </div>
             <div className="w-full p-4 bg-slate-900/50 rounded-lg">
                 {getComponentForPreset(currentPreset, { onProgressUpdate: handleProgressUpdate })}
             </div>
             <div className="mt-8 flex justify-center">
-                 <button onClick={finishChallenge} className="bg-red-700 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg">End Challenge Manually</button>
+                 <button onClick={() => endChallenge()} className="bg-red-700 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg">End Challenge</button>
             </div>
         </div>
     );

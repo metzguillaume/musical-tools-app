@@ -5,7 +5,7 @@ import DronePlayer from './DronePlayer';
 import Timer from './Timer';
 import Stopwatch from './Stopwatch';
 import PracticeLog from './PracticeLog';
-import Presets from './Presets'; // 1. Import Presets
+import Presets from './Presets';
 
 const GlobalTools = () => {
     const { 
@@ -13,20 +13,24 @@ const GlobalTools = () => {
         isMetronomePlaying, toggleMetronome,
         isDronePlaying, toggleDrone,
         isTimerRunning, toggleTimer,
-        isStopwatchRunning, toggleStopwatch
+        isStopwatchRunning, toggleStopwatch,
+        activeChallenge // Get the active challenge from the context
     } = useTools();
 
     const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>;
     const PauseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6" /></svg>;
 
+    // Determine if the stopwatch should be locked
+    const isStopwatchLocked = activeChallenge?.type === 'Gauntlet';
+
     const tools = [
         { name: 'log', label: 'Practice Log', component: <PracticeLog />, hidePlayPause: true },
-        // 2. Add the new Presets tool to the array
         { name: 'presets', label: 'Presets', component: <Presets />, hidePlayPause: true },
         { name: 'metronome', label: 'Metronome', component: <Metronome />, isPlaying: isMetronomePlaying, toggle: toggleMetronome },
         { name: 'drone', label: 'Drone', component: <DronePlayer />, isPlaying: isDronePlaying, toggle: toggleDrone },
         { name: 'timer', label: 'Timer', component: <Timer />, isPlaying: isTimerRunning, toggle: toggleTimer },
-        { name: 'stopwatch', label: 'Stopwatch', component: <Stopwatch />, isPlaying: isStopwatchRunning, toggle: toggleStopwatch },
+        // Pass the isLocked prop to the Stopwatch component
+        { name: 'stopwatch', label: 'Stopwatch', component: <Stopwatch isLocked={isStopwatchLocked} />, isPlaying: isStopwatchRunning, toggle: toggleStopwatch },
     ];
     
     const activeToolData = tools.find(t => t.name === activeTool);
@@ -36,10 +40,16 @@ const GlobalTools = () => {
         toggleActiveTool(toolName);
     }
 
-    const handlePlayPause = (e, toggleFn) => {
+    const handlePlayPause = (e, tool) => {
         e.stopPropagation();
+
+        // Prevent pausing the stopwatch via the side panel during a Gauntlet
+        if (tool.name === 'stopwatch' && isStopwatchLocked) {
+            return;
+        }
+
         unlockAudio();
-        toggleFn();
+        tool.toggle();
     }
 
     return (
@@ -75,8 +85,10 @@ const GlobalTools = () => {
                             </button>
                             {!tool.hidePlayPause && (
                                 <button 
-                                    onClick={(e) => handlePlayPause(e, tool.toggle)}
-                                    className="p-2 md:p-3 text-white hover:bg-indigo-700 rounded-r-lg"
+                                    onClick={(e) => handlePlayPause(e, tool)}
+                                    // Also disable the small arrow button
+                                    disabled={tool.name === 'stopwatch' && isStopwatchLocked}
+                                    className="p-2 md:p-3 text-white hover:bg-indigo-700 rounded-r-lg disabled:text-gray-500 disabled:cursor-not-allowed"
                                     aria-label={`${tool.isPlaying ? 'Pause' : 'Play'} ${tool.label}`}
                                 >
                                     {tool.isPlaying ? <PauseIcon /> : <PlayIcon />}

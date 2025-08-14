@@ -13,8 +13,8 @@ const shuffle = (array) => {
 };
 
 export const useNoteGenerator = () => {
-    const { bpm, addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode, presetToLoad, clearPresetToLoad } = useTools();
-    
+    const { bpm, addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode, presetToLoad, clearPresetToLoad, setDroneNote } = useTools();
+
     const [settings, setSettings] = useState({
         numNotes: 12,
         noteType: 'chromatic',
@@ -90,7 +90,17 @@ export const useNoteGenerator = () => {
         }
         
         setGeneratedNotes(newNotes);
-    }, [settings.numNotes, settings.noteType, settings.avoidRepeats]);
+
+        if (newNotes.length > 0) {
+            const firstNote = newNotes[0];
+            // This map converts flats to the sharp names the drone player uses
+            const flatToSharpMap = {
+                'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
+            };
+            const droneNote = flatToSharpMap[firstNote] || firstNote;
+            setDroneNote(droneNote);
+        }
+    }, [settings.numNotes, settings.noteType, settings.avoidRepeats, setDroneNote]);
 
     const scheduledGenerate = useCallback(() => {
         setTimeout(generateNotes, 0);

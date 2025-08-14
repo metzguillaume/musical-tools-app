@@ -9,6 +9,9 @@ const DronePlayer = () => {
 
     // New data structure for display purposes
     const droneNoteOptions = [
+        { value: 'A', display: 'A' },
+        { value: 'A#', display: 'A# / Bb' },
+        { value: 'B', display: 'B' },
         { value: 'C', display: 'C' },
         { value: 'C#', display: 'C# / Db' },
         { value: 'D', display: 'D' },
@@ -18,9 +21,6 @@ const DronePlayer = () => {
         { value: 'F#', display: 'F# / Gb' },
         { value: 'G', display: 'G' },
         { value: 'G#', display: 'G# / Ab' },
-        { value: 'A', display: 'A' },
-        { value: 'A#', display: 'A# / Bb' },
-        { value: 'B', display: 'B' },
     ];
 
     const currentNoteDisplay = droneNoteOptions.find(opt => opt.value === droneNote)?.display || droneNote;
@@ -34,7 +34,7 @@ const DronePlayer = () => {
                 </label>
                 <div className="flex items-center gap-2">
                     <select id="drone-note" value={droneNote} onChange={(e) => setDroneNote(e.target.value)}
-                        className="w-full p-2 rounded-lg bg-slate-600 text-white"
+                        className="w-full flex-grow p-2 rounded-lg bg-slate-600 text-white"
                     >
                         {droneNoteOptions.map(option => (
                             <option key={option.value} value={option.value}>
@@ -42,7 +42,7 @@ const DronePlayer = () => {
                             </option>
                         ))}
                     </select>
-                    <button onClick={randomizeDroneNote} className="px-4 py-2 rounded-lg font-semibold bg-blue-600 hover:bg-blue-500 text-white">
+                    <button onClick={randomizeDroneNote} className="px-4 py-2 rounded-lg font-semibold bg-blue-600 hover:bg-blue-500 text-white flex-shrink-0">
                         Random
                     </button>
                 </div>

@@ -91,8 +91,29 @@ const ChallengesPage = () => {
 
     return (
         <>
-            <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Challenge Hub Guide">
-                {/* ... your info text ... */}
+            <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Challenge Hub Guide" verticalAlign="top">
+                <p>Welcome to the Challenge Hub! This is your command center for creating, organizing, and launching structured practice routines.</p>
+                
+                <h4 className="font-bold text-indigo-300 mt-4">Core Concepts</h4>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                    <li>A <strong>Preset</strong> is a saved configuration for a single exercise, like "Major 7th Chords."</li>
+                    <li>A <strong>Challenge</strong> is a sequence of presets that you assemble into a complete workout.</li>
+                    <li>A <strong>Folder</strong> is used to organize your challenges, for example by week or by skill type.</li>
+                </ul>
+
+                <h4 className="font-bold text-indigo-300 mt-4">Challenge Types</h4>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                    <li><strong>Practice Routine (blue):</strong> A standard workout. Set a goal for each step (either time or number of questions).</li>
+                    <li><strong>The Gauntlet (yellow):</strong> A race against the clock. Your goal is to correctly answer a set number of questions as fast as possible.</li>
+                    <li><strong>The Streak (green):</strong> A test of consistency. Answer questions from a random pool of presets—one wrong answer ends the challenge.</li>
+                </ul>
+
+                <h4 className="font-bold text-indigo-300 mt-4">Organizing Your Hub</h4>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                    <li>Use the <strong>"Create Folder"</strong> button to make new categories.</li>
+                    <li>Click <strong>"Manage Folders"</strong> on any challenge to assign it to one or more folders, like using tags.</li>
+                    <li>Use the <strong>Export/Import</strong> buttons to share single challenges or entire folders with others. The exported file includes all the necessary presets!</li>
+                </ul>
             </InfoModal>
 
             <ManageFoldersModal

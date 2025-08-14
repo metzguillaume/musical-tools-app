@@ -108,6 +108,9 @@ export const useIntervalsQuiz = (settings, playAudio, audioDirection, onProgress
             return;
         }
         
+        if (rootMidi % 12 === targetMidi % 12 && rootNoteName === targetNoteName) {
+            targetMidi += 12;
+        }
         // UPDATED: New logic to find a playable interval fingering within frets 0-12
         const findPlayablePositions = () => {
     let diff = targetMidi - rootMidi;
@@ -203,7 +206,7 @@ export const useIntervalsQuiz = (settings, playAudio, audioDirection, onProgress
             }
         }
 
-        if (autoAdvance) {
+        if (autoAdvance && isCorrect) {
             timeoutRef.current = setTimeout(generateNewQuestion, 2000);
         }
     }, [answerChecked, userAnswer, currentQuestion, autoAdvance, generateNewQuestion, playAudio, playIntervalAudio, audioDirection, score, history.length, onProgressUpdate]);

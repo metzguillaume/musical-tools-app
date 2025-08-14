@@ -16,6 +16,7 @@ const AnswerButton = ({ value, type, selectedValue, onClick, isDisabled, childre
 const IntervalsQuiz = ({ onProgressUpdate }) => {
     const { addLogEntry, fretboardVolume, setFretboardVolume, savePreset, presetToLoad, clearPresetToLoad } = useTools();
 
+    
     // Consolidated settings state object
     const allIntervalNames = useMemo(() => intervalData.map(i => i.name), []);
     const [settings, setSettings] = useState({
@@ -65,16 +66,29 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
     
     useEffect(() => {
         const handleKeyDown = (event) => { 
-            if (isReviewing) return;
-            if (event.key === 'Enter') { 
-                if (answerChecked && !settings.autoAdvance) generateNewQuestion();
-                else if (!answerChecked) checkAnswer();
+            if (isReviewing || event.key !== 'Enter') return;
+            
+            if (!answerChecked) {
+                event.preventDefault();
+                checkAnswer();
             } 
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [answerChecked, checkAnswer, generateNewQuestion, settings.autoAdvance, isReviewing]);
+    }, [answerChecked, checkAnswer, isReviewing]);
 
+    // NEW: This useEffect handles "Enter to continue" after a mistake
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+            if (event.key === 'Enter' && answerChecked && (!settings.autoAdvance || !wasCorrect)) {
+                event.preventDefault();
+                generateNewQuestion();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [answerChecked, settings.autoAdvance, history, generateNewQuestion]);
     const handleLogProgress = () => {
         const remarks = prompt("Enter any remarks for this session:", `Score: ${score}/${history.length}`);
         if (remarks !== null) { addLogEntry({ game: 'Interval Practice Quiz', date: new Date().toLocaleDateString(), remarks }); alert("Session logged!"); }
@@ -194,19 +208,22 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
         </>
     );
 
-    const footerContent = isReviewing ? (
+     const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+   
+     const footerContent = isReviewing ? (
         <div className="flex items-center justify-center gap-4 w-full">
             <button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button>
             <div className="flex flex-col gap-2 flex-grow max-w-xs">
                 <button onClick={() => setReviewIndex(null)} className="bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button>
+                {/* This new button uses the function */}
                 <button onClick={() => replayAudioForHistoryItem(reviewIndex)} className="bg-sky-600 hover:bg-sky-500 text-sm p-2 rounded-lg font-semibold">Replay Audio</button>
             </div>
             <button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button>
         </div>
-    ) : !settings.autoAdvance && !answerChecked ? (
+    ) : answerChecked && (!settings.autoAdvance || !wasCorrect) ? (
+        <button onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>
+    ) : !answerChecked ? (
         <button onClick={checkAnswer} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg">Submit</button>
-    ) : !settings.autoAdvance && answerChecked ? (
-        <button onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next</button>
     ) : null;
     
     return (

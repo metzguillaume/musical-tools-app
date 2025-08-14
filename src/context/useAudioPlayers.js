@@ -1,5 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import * as Tone from 'tone';
+import { NOTE_TO_MIDI } from '../utils/musicTheory';
+import { fretboardModel } from '../utils/fretboardUtils';
+
 
 export const useAudioPlayers = (unlockAudio, bpm) => {
     const intervalSynth = useRef(null);
@@ -42,7 +45,6 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
         if (!notes || notes.length < 2 || !intervalSynth.current) return;
         await unlockAudio();
         const now = Tone.now();
-        // Use fixed second values instead of "8n" or "4n"
         intervalSynth.current.triggerAttackRelease(notes[0], 0.4, now);
         intervalSynth.current.triggerAttackRelease(notes[1], 0.4, now + 0.5);
         intervalSynth.current.triggerAttackRelease(notes, 0.8, now + 1.2);
@@ -62,13 +64,73 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
             const player = fretboardPlayers.current.player(noteId);
             player.start(time);
         };
-        // Play notes with fixed timing, not based on BPM
         playNote(rootNoteId, now);
         playNote(targetNoteId, now + 0.4);
-        // Play them together as a chord
         playNote(rootNoteId, now + 0.9);
         playNote(targetNoteId, now + 0.9);
     }, [areFretboardSoundsReady, unlockAudio]);
 
-    return { playInterval, playFretboardNotes, areFretboardSoundsReady, fretboardVolume, setFretboardVolume, intervalSynthVolume, setIntervalSynthVolume, fretboardPlayers };
+    const playChord = useCallback(async (noteNames) => {
+    if (!areFretboardSoundsReady || !noteNames || noteNames.length === 0) return;
+    await unlockAudio();
+
+    let lastMidi = 52; // Start the search one octave higher for a clearer sound
+    const voicing = [];
+
+    // For each note name, find the next highest-pitched fret on the guitar
+    for (const noteName of noteNames) {
+        const targetMidiVal = NOTE_TO_MIDI[noteName] % 12;
+        let foundNote = null;
+
+        // Search the fretboard for the next available note
+        for (let midi = lastMidi + 1; midi < 80; midi++) {
+            if (midi % 12 === targetMidiVal) {
+                // We found a matching note, now find its position
+                for (let s = 1; s <= 6; s++) {
+                    for (let f = 0; f <= 12; f++) {
+                        if (fretboardModel[6 - s][f].midi === midi) {
+                            foundNote = { string: s, fret: f, midi: midi };
+                            break;
+                        }
+                    }
+                    if (foundNote) break;
+                }
+            }
+            if (foundNote) break;
+        }
+
+        if (foundNote) {
+            voicing.push(foundNote);
+            lastMidi = foundNote.midi;
+        }
+    }
+
+    if (voicing.length !== noteNames.length) {
+        console.error("Could not build a full ascending voicing for:", noteNames.join(', '));
+        return;
+    }
+
+    const now = Tone.now();
+    const noteDuration = 0.4;
+
+    // Play as an arpeggio
+    voicing.forEach((note, index) => {
+        const noteId = `${note.string}-${note.fret}`;
+        if (fretboardPlayers.current.has(noteId)) {
+            fretboardPlayers.current.player(noteId).start(now + index * noteDuration);
+        }
+    });
+
+    // Play as a chord
+    const chordTime = now + (voicing.length * noteDuration) + 0.1;
+    voicing.forEach(note => {
+        const noteId = `${note.string}-${note.fret}`;
+        if (fretboardPlayers.current.has(noteId)) {
+            fretboardPlayers.current.player(noteId).start(chordTime);
+        }
+    });
+
+}, [areFretboardSoundsReady, unlockAudio]);
+
+    return { playInterval, playChord, playFretboardNotes, areFretboardSoundsReady, fretboardVolume, setFretboardVolume, intervalSynthVolume, setIntervalSynthVolume, fretboardPlayers };
 };

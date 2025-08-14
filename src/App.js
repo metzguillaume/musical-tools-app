@@ -16,26 +16,23 @@ import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer';
 import MelodicEarTrainer from './components/earTraining/MelodicEarTrainer';
 import ChallengesPage from './components/challenges/ChallengesPage';
 import ChallengeRunner from './components/challenges/ChallengeRunner';
-import ScoreboardPage from './components/challenges/ScoreboardPage'; // 1. Import the new Scoreboard page
+import ScoreboardPage from './components/challenges/ScoreboardPage';
 
 const AppContent = () => {
   const [activeTab, setActiveTab] = useState('welcome');
   const [openCategory, setOpenCategory] = useState(null);
   
-  // 2. Get activeChallenge and the new navigation state from the context
   const { activeTool, unlockAudio, presetToLoad, activeChallenge, lastChallengeResultId } = useTools();
-  // This useEffect handles loading a preset
+  
   useEffect(() => {
     if (presetToLoad) {
       setActiveTab(presetToLoad.gameId);
     }
   }, [presetToLoad]);
 
-  // 3. This new useEffect handles navigating to the scoreboard after a challenge
   useEffect(() => {
     if (lastChallengeResultId) {
       setActiveTab('scoreboard');
-      // The ScoreboardPage component will be responsible for clearing the ID
     }
   }, [lastChallengeResultId]);
 
@@ -75,7 +72,7 @@ const AppContent = () => {
       name: 'Challenges',
       tools: [
         { id: 'challenges-hub', name: 'Challenge Hub' },
-        { id: 'scoreboard', name: 'Scoreboard' }, // 4. Add Scoreboard to the navigation
+        { id: 'scoreboard', name: 'Scoreboard' },
       ],
     },
   ];
@@ -95,7 +92,9 @@ const AppContent = () => {
   return (
     <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-4 pb-32 md:p-6 transition-all duration-300 ${activeTool === 'log' || activeTool === 'presets' ? 'md:pl-96' : 'md:pl-72'}`}>
       <div className="hidden md:block fixed top-5 left-0 z-50 px-5">
-        <img src={`${process.env.PUBLIC_URL}/WillMetz2.png`} alt="Will Metz Academy Logo" className="h-24 w-auto" />
+        <a href="https://www.willmetzacademy.com/library" target="_blank" rel="noopener noreferrer">
+          <img src={`${process.env.PUBLIC_URL}/WillMetz2.png`} alt="Will Metz Academy Logo" className="h-24 w-auto" />
+        </a>
       </div>
 
       <GlobalTools />
@@ -164,7 +163,7 @@ const AppContent = () => {
                   {activeTab === 'interval-ear-trainer' && <IntervalEarTrainer />}
                   {activeTab === 'melodic-ear-trainer' && <MelodicEarTrainer />}
                   {activeTab === 'challenges-hub' && <ChallengesPage />}
-                  {activeTab === 'scoreboard' && <ScoreboardPage />} {/* 5. Add the new component to the render logic */}
+                  {activeTab === 'scoreboard' && <ScoreboardPage />}
               </>
           )}
       </main>

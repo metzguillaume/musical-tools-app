@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTools } from '../../context/ToolsContext';
 
 // --- Data & Helpers ---
 const QUIZ_ROOT_NOTES = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
@@ -44,9 +45,9 @@ const getCorrectEnharmonicNotes = (rootNote, intervals) => {
     return finalNotes;
 };
 
-
-// 1. ADD `onProgressUpdate` to the hook's arguments
-export const useTriadQuiz = (quizMode, include7ths, includeInversions, autoAdvance, onProgressUpdate) => {
+export const useTriadQuiz = (settings, onProgressUpdate) => {
+    const { quizMode, include7ths, includeInversions, autoAdvance, playAudio } = settings;
+    const { playChord } = useTools();
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [userAnswer, setUserAnswer] = useState({});
     const [feedback, setFeedback] = useState({ message: '', type: '' });
@@ -126,18 +127,25 @@ export const useTriadQuiz = (quizMode, include7ths, includeInversions, autoAdvan
         }
         
         setTotalAsked(newTotalAsked);
-        setHistory(prev => [...prev, { question: currentQuestion, userAnswer, wasCorrect: isCorrect }]);
+        setHistory(prev => [...prev, { question: currentQuestion, userAnswer, wasCorrect: isCorrect, settings: { ...settings } }]);
         setIsAnswered(true);
 
-        // 2. If the callback exists, call it with the results
         if (onProgressUpdate) {
             onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
+        }
+
+        if (playAudio) {
+            const isNamingInvertedChord = settings.includeInversions && currentQuestion.mode === 'nameTheTriad';
+            const notesToPlay = isNamingInvertedChord 
+                ? currentQuestion.notes 
+                : currentQuestion.rootPositionNotes;
+            playChord(notesToPlay);
         }
 
         if (autoAdvance && isCorrect) { 
             setTimeout(generateNewQuestion, 2000); 
         }
-    }, [isAnswered, userAnswer, currentQuestion, autoAdvance, generateNewQuestion, score, totalAsked, onProgressUpdate]);
+    }, [isAnswered, userAnswer, currentQuestion, autoAdvance, generateNewQuestion, score, totalAsked, onProgressUpdate, playAudio, playChord, settings]);
 
     useEffect(() => {
         setScore(0);
@@ -163,9 +171,43 @@ export const useTriadQuiz = (quizMode, include7ths, includeInversions, autoAdvan
         }
     }
 
+    const replayAudioForHistoryItem = useCallback((index) => {
+        const historyItem = history[index];
+        if (!historyItem || !playAudio) return;
+        const question = historyItem.question;
+        const settingsWhenAsked = historyItem.settings || settings;
+        const isNamingInvertedChord = settingsWhenAsked.includeInversions && question.mode === 'nameTheTriad';
+        const notesToPlay = isNamingInvertedChord 
+            ? question.notes 
+            : question.rootPositionNotes;
+        playChord(notesToPlay);
+    }, [history, playAudio, playChord, settings]);
+
+    const playUserAnswerForHistoryItem = useCallback((index) => {
+        const historyItem = history[index];
+        if (!historyItem || historyItem.wasCorrect || !playAudio) return;
+        let notesToPlay = [];
+        if (historyItem.question.mode === 'nameTheTriad') {
+            const { noteLetter, accidental, quality } = historyItem.userAnswer;
+            if (noteLetter && quality) {
+                const root = `${noteLetter}${accidental || ''}`;
+                const intervals = questionTypes[quality];
+                if (intervals) {
+                    notesToPlay = getCorrectEnharmonicNotes(root, intervals);
+                }
+            }
+        } else {
+            notesToPlay = historyItem.userAnswer.notes || [];
+        }
+        if (notesToPlay.length > 0) {
+            playChord(notesToPlay);
+        }
+    }, [history, playAudio, playChord, questionTypes]);
+    
     return {
         score, totalAsked, feedback, isAnswered, currentQuestion, userAnswer, setUserAnswer,
         history, reviewIndex, setReviewIndex,
-        questionTypes, checkAnswer, generateNewQuestion, handleReviewNav, startReview
+        questionTypes, checkAnswer, generateNewQuestion, handleReviewNav, startReview,
+        replayAudioForHistoryItem, playUserAnswerForHistoryItem
     };
-};
+}

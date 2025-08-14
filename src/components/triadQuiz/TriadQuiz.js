@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import InfoModal from '../common/InfoModal';
 import QuizLayout from '../common/QuizLayout';
-// The NOTE_LETTERS constant is no longer needed here, so it can be removed from the import
 import { useTriadQuiz, ACCIDENTALS } from './useTriadQuiz';
 import { TriadQuizControls } from './TriadQuizControls';
 
@@ -14,6 +13,7 @@ const TriadQuiz = ({ onProgressUpdate }) => {
         include7ths: false,
         includeInversions: false,
         autoAdvance: true,
+        playAudio: true,
     });
     
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
@@ -29,8 +29,9 @@ const TriadQuiz = ({ onProgressUpdate }) => {
     const {
         score, totalAsked, feedback, isAnswered, currentQuestion, userAnswer, setUserAnswer,
         history, reviewIndex, setReviewIndex, questionTypes,
-        checkAnswer, generateNewQuestion, handleReviewNav, startReview
-    } = useTriadQuiz(settings.quizMode, settings.include7ths, settings.includeInversions, settings.autoAdvance, onProgressUpdate);
+        checkAnswer, generateNewQuestion, handleReviewNav, startReview,
+        replayAudioForHistoryItem, playUserAnswerForHistoryItem
+    } = useTriadQuiz(settings, onProgressUpdate);
 
     const isReviewing = reviewIndex !== null;
 
@@ -127,13 +128,11 @@ const TriadQuiz = ({ onProgressUpdate }) => {
     const renderAnswerArea = () => {
         if (isReviewing) return null;
         if (questionToDisplay.mode === 'nameTheTriad') {
-            // THIS IS THE FIX: A new constant is defined here in the correct order.
             const NOTE_LETTERS_ALPHABETICAL = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
             return (<>
                 <div>
                     <h3 className="text-lg font-semibold text-gray-400 mb-2">Root Note</h3>
                     <div className="grid grid-cols-7 gap-1">
-                        {/* The buttons are now created by mapping over the new alphabetical array */}
                         {NOTE_LETTERS_ALPHABETICAL.map(note => (
                             <button 
                                 key={note} 
@@ -190,13 +189,38 @@ const TriadQuiz = ({ onProgressUpdate }) => {
         return ( <div className={`text-center p-3 rounded-lg ${wasCorrect ? 'bg-green-900/50' : 'bg-red-900/50'}`}><p className="font-bold text-gray-200">Correct Answer: <span className="text-teal-300 font-semibold">{correctAnswerText}</span></p>{!wasCorrect && <p className="mt-1"><span className="font-bold text-gray-300">Your Answer:</span> <span className="text-red-400 font-semibold">{userAnswerText}</span></p>}</div> )
     };
 
-    const topControlsContent = ( <label className="flex items-center gap-2 cursor-pointer font-semibold"><span>Auto-Advance</span><div className="relative"><input type="checkbox" checked={settings.autoAdvance} onChange={() => handleSettingChange('autoAdvance', !settings.autoAdvance)} className="sr-only peer" /><div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div></div></label> );
-
+    const topControlsContent = (
+        <>
+            <label className="flex items-center gap-2 cursor-pointer font-semibold">
+                <span>Play Audio</span>
+                <div className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={settings.playAudio} onChange={() => handleSettingChange('playAudio', !settings.playAudio)} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </div>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer font-semibold">
+                <span>Auto-Advance</span>
+                <div className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={settings.autoAdvance} onChange={() => handleSettingChange('autoAdvance', !settings.autoAdvance)} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </div>
+            </label>
+        </>
+    );
+    
     const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
     const footerContent = isReviewing ? (
         <div className="flex items-center justify-center gap-4 w-full">
             <button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button>
-            <button onClick={() => setReviewIndex(null)} className="flex-grow max-w-xs bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button>
+            <div className="flex flex-col gap-2 flex-grow max-w-xs">
+                <button onClick={() => setReviewIndex(null)} className="bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button onClick={() => replayAudioForHistoryItem(reviewIndex)} className="bg-sky-600 hover:bg-sky-500 text-sm p-2 rounded-lg font-semibold">Replay Correct</button>
+                    {!history[reviewIndex].wasCorrect && (
+                         <button onClick={() => playUserAnswerForHistoryItem(reviewIndex)} className="bg-orange-600 hover:bg-orange-500 text-sm p-2 rounded-lg font-semibold">Replay Your Answer</button>
+                    )}
+                </div>
+            </div>
             <button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button>
         </div>
     ) : !isAnswered ? (

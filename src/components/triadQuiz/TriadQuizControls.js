@@ -36,6 +36,7 @@ export const TriadQuizControls = ({ settings, onSettingChange, onSavePreset }) =
                     <div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-blue-600"></div>
                 </div>
             </label>
+
         </div>
         <div className="border-t border-slate-600 pt-4 mt-4">
             <button onClick={onSavePreset} className="w-full py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white">

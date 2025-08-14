@@ -192,7 +192,7 @@ export const useMelodicEarTrainer = (settings, onProgressUpdate) => {
         }
         setIsAnswered(true);
 
-        if (autoAdvance) {
+        if (autoAdvance && isCorrect) {
             timeoutRef.current = setTimeout(generateNewQuestion, 2500);
         }
     }, [isAnswered, currentQuestion, settings, generateNewQuestion, onProgressUpdate, score, totalAsked]);

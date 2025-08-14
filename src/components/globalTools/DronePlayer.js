@@ -5,8 +5,8 @@ import SilentSwitchNotification from '../common/SilentSwitchNotification';
 
 // This is the Drone Player tool panel.
 const DronePlayer = () => {
-    const { droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady } = useTools();
-    
+    const { droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady, randomizeDroneNote } = useTools();
+
     // New data structure for display purposes
     const droneNoteOptions = [
         { value: 'C', display: 'C' },
@@ -32,15 +32,20 @@ const DronePlayer = () => {
                  <label htmlFor="drone-note" className="block text-gray-200 text-lg font-semibold mb-2">
                     Note: {currentNoteDisplay}
                 </label>
-                <select id="drone-note" value={droneNote} onChange={(e) => setDroneNote(e.target.value)}
-                    className="w-full p-2 rounded-lg bg-slate-600 text-white"
-                >
-                    {droneNoteOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                            {option.display}
-                        </option>
-                    ))}
-                </select>
+                <div className="flex items-center gap-2">
+                    <select id="drone-note" value={droneNote} onChange={(e) => setDroneNote(e.target.value)}
+                        className="w-full p-2 rounded-lg bg-slate-600 text-white"
+                    >
+                        {droneNoteOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                                {option.display}
+                            </option>
+                        ))}
+                    </select>
+                    <button onClick={randomizeDroneNote} className="px-4 py-2 rounded-lg font-semibold bg-blue-600 hover:bg-blue-500 text-white">
+                        Random
+                    </button>
+                </div>
             </div>
 
             <div className="mb-4">

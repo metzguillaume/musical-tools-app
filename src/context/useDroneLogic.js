@@ -34,6 +34,16 @@ export const useDroneLogic = (unlockAudio) => {
         setIsDronePlaying(prev => !prev);
     }, [areDronesReady, unlockAudio]);
 
+    const randomizeDroneNote = useCallback(() => {
+        const notes = Object.keys(dronePlayers.current);
+        if (notes.length === 0) return;
+        let newNote;
+        do {
+            newNote = notes[Math.floor(Math.random() * notes.length)];
+        } while (newNote === droneNote && notes.length > 1);
+        setDroneNote(newNote);
+    }, [droneNote]);
+
     useEffect(() => {
         const currentPlayer = dronePlayers.current[droneNote];
         if (isDronePlaying) {
@@ -49,5 +59,5 @@ export const useDroneLogic = (unlockAudio) => {
         }
     }, [droneNote, isDronePlaying, areDronesReady]);
 
-    return { droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady };
+    return { droneNote, setDroneNote, isDronePlaying, toggleDrone, droneVolume, setDroneVolume, areDronesReady, randomizeDroneNote };
 };

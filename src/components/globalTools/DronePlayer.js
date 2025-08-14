@@ -32,9 +32,9 @@ const DronePlayer = () => {
                  <label htmlFor="drone-note" className="block text-gray-200 text-lg font-semibold mb-2">
                     Note: {currentNoteDisplay}
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-[1fr_auto] items-center gap-2">
                     <select id="drone-note" value={droneNote} onChange={(e) => setDroneNote(e.target.value)}
-                        className="w-full flex-grow p-2 rounded-lg bg-slate-600 text-white"
+                        className="p-2 rounded-lg bg-slate-600 text-white w-full"
                     >
                         {droneNoteOptions.map(option => (
                             <option key={option.value} value={option.value}>
@@ -42,7 +42,8 @@ const DronePlayer = () => {
                             </option>
                         ))}
                     </select>
-                    <button onClick={randomizeDroneNote} className="px-4 py-2 rounded-lg font-semibold bg-blue-600 hover:bg-blue-500 text-white flex-shrink-0">
+                    {/* THIS IS THE FIX: Changed px-4 to px-2 to make the button narrower */}
+                    <button onClick={randomizeDroneNote} className="px-2 py-2 rounded-lg font-semibold bg-blue-600 hover:bg-blue-500 text-white">
                         Random
                     </button>
                 </div>

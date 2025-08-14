@@ -228,6 +228,10 @@ export const useIntervalEarTrainer = (settings, onProgressUpdate) => {
         setTotalAsked(newTotalAsked);
         setHistory(prev => [...prev, { question: currentQuestion, userAnswer: Array.isArray(answer) ? answer.join(', ') : answer, wasCorrect: isCorrect, answerMode: settings.answerMode }]);
         setIsAnswered(true);
+// Replay the correct answer's audio for reinforcement
+        if (settings.replayOnAnswer) {
+    setTimeout(() => playQuestionAudio(currentQuestion), 500);
+}
 
         if (onProgressUpdate) {
             onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
@@ -236,7 +240,7 @@ export const useIntervalEarTrainer = (settings, onProgressUpdate) => {
         if (isCorrect && settings.autoAdvance) {
             timeoutRef.current = setTimeout(generateNewQuestion, 2500);
         }
-    }, [isAnswered, currentQuestion, settings, generateNewQuestion, score, totalAsked, onProgressUpdate]);
+    }, [isAnswered, currentQuestion, settings, generateNewQuestion, score, totalAsked, onProgressUpdate, playQuestionAudio]);
     
     const playUserAnswer = useCallback(async (historyItem) => {
         if (!historyItem || !areFretboardSoundsReady) return;

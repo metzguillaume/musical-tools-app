@@ -34,6 +34,7 @@ const IntervalEarTrainer = ({ onProgressUpdate }) => {
         useDrone: true,
         playRootNote: true,
         showKeyChange: false,
+        replayOnAnswer: true,
     });
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);

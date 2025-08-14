@@ -139,7 +139,6 @@ export const useMelodicEarTrainer = (settings, onProgressUpdate) => {
                 let lowMidi = rootMidi - 12;
                 let highMidi = rootMidi;
 
-                // Adjust octaves to fit within playable range
                 if (lowMidi < PLAYABLE_MIDI_RANGE.min) {
                     lowMidi = rootMidi;
                     highMidi = rootMidi + 12 > PLAYABLE_MIDI_RANGE.max ? PLAYABLE_MIDI_RANGE.max : rootMidi + 12;
@@ -155,7 +154,7 @@ export const useMelodicEarTrainer = (settings, onProgressUpdate) => {
                 if (lowNoteId) fretboardPlayers.current.player(lowNoteId).start(Tone.now());
                 if (highNoteId && highNoteId !== lowNoteId) fretboardPlayers.current.player(highNoteId).start(Tone.now() + 0.4);
                 
-                initialDelay = 2.2; // Increased delay for a clear pause
+                initialDelay = 2.2;
             }
         }
 
@@ -186,16 +185,21 @@ export const useMelodicEarTrainer = (settings, onProgressUpdate) => {
         
         setTotalAsked(newTotalAsked);
         setHistory(h => [...h, { question: currentQuestion, userAnswer: userAnswerArray, wasCorrect: isCorrect, answerMode }]);
+        setIsAnswered(true);
+
+        if (settings.replayOnAnswer) {
+            setTimeout(() => playMelody(currentQuestion), 500);
+        }
 
         if (onProgressUpdate) {
             onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
         }
-        setIsAnswered(true);
 
         if (autoAdvance && isCorrect) {
-            timeoutRef.current = setTimeout(generateNewQuestion, 2500);
+            const advanceDelay = settings.replayOnAnswer ? 5000 : 2000;
+            timeoutRef.current = setTimeout(generateNewQuestion, advanceDelay);
         }
-    }, [isAnswered, currentQuestion, settings, generateNewQuestion, onProgressUpdate, score, totalAsked]);
+    }, [isAnswered, currentQuestion, settings, generateNewQuestion, onProgressUpdate, score, totalAsked, playMelody]);
     
     const playUserAnswer = useCallback(async (userAnswerArray, historyItem) => {
         if (!userAnswerArray || userAnswerArray.length === 0 || !historyItem || !areFretboardSoundsReady) return;

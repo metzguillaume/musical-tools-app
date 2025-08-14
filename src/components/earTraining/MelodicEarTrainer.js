@@ -94,6 +94,7 @@ const MelodicEarTrainer = ({ onProgressUpdate }) => {
         rootNoteMode: 'Roving',
         fixedKey: 'C',
         questionsPerRoot: 5,
+        replayOnAnswer: true,
     });
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);

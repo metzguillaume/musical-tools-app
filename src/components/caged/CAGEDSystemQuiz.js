@@ -80,6 +80,19 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
         }
     }, [userAnswer, autoAdvance, checkAnswer, itemToDisplay.question]);
 
+    // This useEffect is for the new "Enter to continue" feature
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+            if (event.key === 'Enter' && isAnswered && (!autoAdvance || !wasCorrect)) {
+                event.preventDefault();
+                generateNewQuestion();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isAnswered, autoAdvance, history, generateNewQuestion]);
+
     const notesForDiagram = useMemo(() => {
         if (!itemToDisplay?.question) return [];
         const { question, userAnswer: itemUserAnswer } = itemToDisplay;
@@ -144,6 +157,7 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
       </label>
     );
 
+    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
     const footerContent = isReviewing ? (
         <div className="flex items-center justify-center gap-4 w-full">
             <button onClick={() => quizProps.handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button>
@@ -153,7 +167,7 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
             </div>
             <button onClick={() => quizProps.handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button>
         </div>
-    ) : !autoAdvance && isAnswered ? (
+    ) : isAnswered && (!autoAdvance || !wasCorrect) ? (
          <button onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>
     ) : null;
 

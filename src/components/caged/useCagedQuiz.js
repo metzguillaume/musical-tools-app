@@ -102,7 +102,7 @@ export const useCagedQuiz = (quizMode, activeShapes, onProgressUpdate) => {
         
         setHistory(prev => [...prev, { question: currentQuestion, userAnswer, wasCorrect: isCorrect }]);
         setIsAnswered(true);
-        if (autoAdvance) timeoutRef.current = setTimeout(generateNewQuestion, 2000);
+        if (autoAdvance && isCorrect) timeoutRef.current = setTimeout(generateNewQuestion, 2000);
     }, [isAnswered, userAnswer, currentQuestion, generateNewQuestion, onProgressUpdate, score, totalAsked]);
 
     const handleAnswerSelect = (type, value) => {

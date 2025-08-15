@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import InfoModal from '../common/InfoModal';
+import InfoButton from '../common/InfoButton';
 
 // --- UI Constants ---
 const keysInFifthsOrder = [
@@ -48,6 +50,7 @@ export const ChordTrainerSetup = ({ onStart }) => {
         majorWeights: majorDefaultWeights,
     });
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
     const handleKeySelection = (key) => {
         const newKeys = localSettings.selectedKeys.includes(key) ? localSettings.selectedKeys.filter(k => k !== key) : [...localSettings.selectedKeys, key];
@@ -67,7 +70,35 @@ export const ChordTrainerSetup = ({ onStart }) => {
 
     return (
         <div className="w-full">
-            <h2 className="text-3xl font-extrabold mb-6 text-indigo-300 text-center">Chord Trainer Setup</h2>
+            <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Chord Trainer Setup Guide">
+                <div className="space-y-4 text-sm">
+                    <p>Use this screen to configure your Chord Trainer session. Select the keys and game modes you want to practice, then press "Start Practice" to begin.</p>
+                    
+                    <div>
+                        <h4 className="font-bold text-indigo-300 mb-1">Game Modes Explained</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                            <li><b>Name Chord:</b> Given a key and a Roman numeral (e.g., V), provide the correct chord name (e.g., G).</li>
+                            <li><b>Name Numeral:</b> Given a key and a chord (e.g., Am), provide the correct Roman numeral (e.g., vi).</li>
+                            <li><b>Progression:</b> Given a key and a sequence of numerals (e.g., I-V-vi-IV), provide the full chord progression.</li>
+                             <li><b>Transpose:</b> Given a chord progression in a starting key, transpose it to a new key.</li>
+                        </ul>
+                    </div>
+
+                     <div>
+                        <h4 className="font-bold text-indigo-300 mb-1">Advanced Settings</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                            <li><b>Generation Method:</b> Choose "Weighted" to have chords appear based on their commonality (using the sliders below), or "Random" for equal probability.</li>
+                            <li><b>Chord Weights:</b> In "Weighted" mode, these sliders control how frequently each scale degree will appear. Higher numbers mean more frequent appearances.</li>
+                        </ul>
+                    </div>
+                </div>
+            </InfoModal>
+
+            <div className="flex justify-center items-center gap-2 mb-6">
+                <h2 className="text-3xl font-extrabold text-indigo-300 text-center">Chord Trainer Setup</h2>
+                <InfoButton onClick={() => setIsInfoModalOpen(true)} />
+            </div>
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-slate-700 p-4 rounded-lg flex flex-col items-center">
                     <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">Select Keys</h3>

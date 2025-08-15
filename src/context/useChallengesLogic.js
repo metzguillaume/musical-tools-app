@@ -47,7 +47,8 @@ export const useChallengesLogic = (presets, savePreset) => {
                 updatedChallenges[existingIndex] = {
                     ...challenge,
                     createdAt: prevChallenges[existingIndex].createdAt,
-                    folderIds: prevChallenges[existingIndex].folderIds || []
+                    folderIds: prevChallenges[existingIndex].folderIds || [],
+                    lastPlayed: prevChallenges[existingIndex].lastPlayed // Preserve last played date on edit
                 };
                 return updatedChallenges;
             } else {
@@ -97,6 +98,15 @@ export const useChallengesLogic = (presets, savePreset) => {
             }
             return c;
         }));
+    }, []);
+    
+    // Function to update the lastPlayed timestamp
+    const updateChallengeLastPlayed = useCallback((challengeId) => {
+        setChallenges(prev => prev.map(c => 
+            c.id === challengeId 
+                ? { ...c, lastPlayed: new Date().toISOString() } 
+                : c
+        ));
     }, []);
 
     const exportChallenge = useCallback((challengeToExport) => {
@@ -189,6 +199,7 @@ export const useChallengesLogic = (presets, savePreset) => {
 
     return { 
         challenges, saveChallenge, deleteChallenge, exportChallenge, importChallenges, 
-        folders, addFolder, renameFolder, deleteFolder, toggleChallengeInFolder, exportFolder 
+        folders, addFolder, renameFolder, deleteFolder, toggleChallengeInFolder, exportFolder,
+        updateChallengeLastPlayed
     };
 };

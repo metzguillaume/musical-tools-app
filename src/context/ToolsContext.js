@@ -72,9 +72,21 @@ export const ToolsProvider = ({ children }) => {
         setPresetToLoad(null);
     }, []);
 
+    // --- Custom Hooks for each tool's logic ---
+    const log = usePracticeLogLogic();
+    const metronome = useMetronomeLogic(unlockAudio);
+    const drone = useDroneLogic(unlockAudio);
+    const timer = useTimerLogic(unlockAudio);
+    const stopwatch = useStopwatchLogic();
+    const audioPlayers = useAudioPlayers(unlockAudio, metronome.bpm);
+    const presets = usePresetsLogic();
+    const challengesLogic = useChallengesLogic(presets.presets, presets.savePreset);
+    const scoreboard = useScoreboardLogic();
+    
     // --- Challenge Runner Functions ---
     const startChallenge = useCallback((challenge) => {
-        unlockAudio(); // Ensure audio is ready for the challenge
+        unlockAudio();
+        challengesLogic.updateChallengeLastPlayed(challenge.id); // UPDATE: Record last played time
         setActiveChallenge(challenge);
         setChallengeStepIndex(0);
         setChallengeProgress({
@@ -83,7 +95,7 @@ export const ToolsProvider = ({ children }) => {
             streak: 0,
             stepResults: challenge.steps.map(() => ({ score: 0, asked: 0 })),
         });
-    }, [unlockAudio]);
+    }, [unlockAudio, challengesLogic]);
 
     const nextChallengeStep = useCallback(() => {
         setChallengeStepIndex(prevIndex => prevIndex + 1);
@@ -96,6 +108,7 @@ export const ToolsProvider = ({ children }) => {
     }, []);
 
     const updateChallengeProgress = useCallback((stepIndex, quizProgress) => {
+        let newState = null;
         setChallengeProgress(prev => {
             if (!prev || !prev.stepResults || prev.stepResults[stepIndex] === undefined) {
                 return prev;
@@ -104,26 +117,18 @@ export const ToolsProvider = ({ children }) => {
             newStepResults[stepIndex] = { score: quizProgress.score, asked: quizProgress.totalAsked };
             const totalScore = newStepResults.reduce((sum, r) => sum + r.score, 0);
             const totalAsked = newStepResults.reduce((sum, r) => sum + r.asked, 0);
-            return {
+            
+            newState = {
                 ...prev,
                 stepResults: newStepResults,
                 totalScore,
                 totalAsked,
                 streak: quizProgress.wasCorrect ? (prev.streak || 0) + 1 : 0
             };
+            return newState;
         });
+        return newState;
     }, []);
-
-    // --- Custom Hooks for each tool's logic ---
-    const log = usePracticeLogLogic();
-    const metronome = useMetronomeLogic(unlockAudio);
-    const drone = useDroneLogic(unlockAudio);
-    const timer = useTimerLogic(unlockAudio);
-    const stopwatch = useStopwatchLogic();
-    const audioPlayers = useAudioPlayers(unlockAudio, metronome.bpm);
-    const presets = usePresetsLogic();
-    const challengesLogic = useChallengesLogic(presets.presets, presets.savePreset);
-    const scoreboard = useScoreboardLogic();
     
     // Combine all state and functions into a single value object
     const value = {

@@ -20,6 +20,7 @@ const ChallengesPage = () => {
 
     const [nameFilter, setNameFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('All');
+    const [sortOrder, setSortOrder] = useState('newest');
 
     const handleCreateNew = () => { setChallengeToEdit(null); setView('editor'); };
     const handleEdit = (challenge) => { setChallengeToEdit(challenge); setView('editor'); };
@@ -50,7 +51,25 @@ const ChallengesPage = () => {
             const nameMatch = challenge.name.toLowerCase().includes(nameFilter.toLowerCase());
             const typeMatch = typeFilter === 'All' || challenge.type === typeFilter;
             return nameMatch && typeMatch;
-        }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        });
+
+        // Apply sorting based on the selected order
+        switch (sortOrder) {
+            case 'oldest':
+                filtered.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+                break;
+            case 'lastPlayed':
+                filtered.sort((a, b) => {
+                    const dateA = a.lastPlayed ? new Date(a.lastPlayed).getTime() : 0;
+                    const dateB = b.lastPlayed ? new Date(b.lastPlayed).getTime() : 0;
+                    return dateB - dateA;
+                });
+                break;
+            case 'newest':
+            default:
+                filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+                break;
+        }
 
         const categorized = folders.map(folder => ({
             ...folder,
@@ -60,7 +79,7 @@ const ChallengesPage = () => {
         const uncategorized = filtered.filter(c => !c.folderIds || c.folderIds.length === 0);
 
         return { categorized, uncategorized };
-    }, [challenges, folders, nameFilter, typeFilter]);
+    }, [challenges, folders, nameFilter, typeFilter, sortOrder]);
 
     return (
         <>
@@ -112,7 +131,7 @@ const ChallengesPage = () => {
                            </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6 p-4 bg-slate-700/50 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6 p-4 bg-slate-700/50 rounded-lg">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-300 mb-1">Filter by Name</label>
                                 <input 
@@ -130,6 +149,14 @@ const ChallengesPage = () => {
                                     <option value="PracticeRoutine">Practice Routine</option>
                                     <option value="Gauntlet">The Gauntlet</option>
                                     <option value="Streak">The Streak</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-300 mb-1">Sort by</label>
+                                <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="w-full p-2 rounded-md bg-slate-600 text-white">
+                                    <option value="newest">Date Created (Newest)</option>
+                                    <option value="oldest">Date Created (Oldest)</option>
+                                    <option value="lastPlayed">Last Played</option>
                                 </select>
                             </div>
                         </div>

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import React from 'react'; // Add this import for JSX
 
 // Core Data
 const chordData = {
@@ -80,28 +81,9 @@ export const useChordTrainer = (settings, onProgressUpdate) => {
             prompt = { text: "In {key}, what is the numeral for:", keys: [key], content: keyData.chords[degreeIndex] };
             answer = keyData.numerals[degreeIndex];
         } else {
-            let p_indexes;
-            if (generationMethod === 'random') {
-                const counts = {};
-                p_indexes = [];
-                let attempts = 0;
-                while (p_indexes.length < 4 && attempts < 100) {
-                    const randomIndex = selectionPool[Math.floor(Math.random() * selectionPool.length)];
-                    const count = counts[randomIndex] || 0;
-                    if (count < 2) {
-                        p_indexes.push(randomIndex);
-                        counts[randomIndex] = count + 1;
-                    }
-                    attempts++;
-                }
-            } else {
-                // THIS IS THE FIX: This logic is now simplified and correct.
-                // It correctly uses the Major patterns since only major keys can be selected.
-                const basePatterns = COMMON_PATTERNS['Major'];
-                const basePattern = basePatterns[Math.floor(Math.random() * basePatterns.length)];
-                p_indexes = basePattern.map(numeral => keyData.numerals.findIndex(n => n.toLowerCase().replace('°','') === numeral.toLowerCase().replace('°','')));
-            }
-            
+            const basePatterns = COMMON_PATTERNS['Major'];
+            const basePattern = basePatterns[Math.floor(Math.random() * basePatterns.length)];
+            const p_indexes = basePattern.map(numeral => keyData.numerals.findIndex(n => n.toLowerCase().replace('°','') === numeral.toLowerCase().replace('°','')));
             let progressionNumerals = p_indexes.map(idx => keyData.numerals[idx]);
             if (mode === 2) {
                 let displayNumerals = hideQuality ? progressionNumerals.map(neutralizeNumeral) : progressionNumerals;
@@ -120,8 +102,37 @@ export const useChordTrainer = (settings, onProgressUpdate) => {
             }
         }
         
-        if (use7thChords) { reminder = "Tetrad mode is active. Answers should be 7th chords (e.g., Cmaj7, Dm7, Bm7b5)."; }
-        if (useAlternateNotation) { reminder = (reminder ? reminder + " " : "") + "Type answers using standard notation (e.g., m7, maj7)."; }
+        // --- UPDATED DYNAMIC REMINDER LOGIC ---
+        let baseMessage = '';
+        switch (mode) {
+            case 1: // Name Chord
+            case 2: // Progression
+            case 3: // Transpose
+                if (use7thChords) {
+                    baseMessage = "Tetrad mode is active. Correct answers look like this: Cmaj7 G#7 Bbm7b5";
+                } else {
+                    baseMessage = "Correct answers look like this: C G#m Bbdim";
+                }
+                break;
+            case 4: // Name Numeral
+                if (use7thChords) {
+                    baseMessage = "Provide the Roman numeral (e.g., I ii vii°). The '7' is implied and should not be written.";
+                } else {
+                    baseMessage = "Provide the Roman numeral (e.g., I ii vii°). Case and the ° symbol are important!";
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (useAlternateNotation && baseMessage) {
+            const mainMessage = baseMessage;
+            const note = "Note: Type answers using standard notation (m, maj7, etc.), not symbols.";
+            reminder = <>{mainMessage}<br />{note}</>;
+        } else {
+            reminder = baseMessage;
+        }
+        // --- END UPDATED LOGIC ---
 
         setCurrentQuestion({ prompt, answer, key, mode, reminder });
         setUserAnswer('');

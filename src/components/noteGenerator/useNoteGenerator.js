@@ -136,7 +136,7 @@ export const useNoteGenerator = () => {
     const handleLogProgress = () => {
         const remarks = prompt("Enter any remarks for this session:", `Practiced ${settings.noteType} notes.`);
         if (remarks !== null) {
-            const newEntry = { game: 'Note Generator', bpm: bpm || 'N/A', date: new Date().toLocaleDateDateString(), remarks: remarks || "No remarks." };
+            const newEntry = { game: 'Note Generator', bpm: bpm || 'N/A', date: new Date().toLocaleDateString(), remarks: remarks || "No remarks." };
             addLogEntry(newEntry);
             alert("Session logged!");
         }

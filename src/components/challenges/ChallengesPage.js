@@ -6,42 +6,11 @@ import SectionHeader from '../common/SectionHeader';
 import ChallengeList from './ChallengeList';
 import ChallengeEditor from './ChallengeEditor';
 
-// A modal component for assigning challenges to folders
-const ManageFoldersModal = ({ challenge, folders, onClose, onToggleFolder }) => {
-    if (!challenge) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50" onClick={onClose}>
-            <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-sm w-11/12" onClick={e => e.stopPropagation()}>
-                <h3 className="text-xl font-bold text-indigo-300 mb-1">Manage Folders for:</h3>
-                <p className="text-lg text-gray-200 mb-4 truncate">{challenge.name}</p>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                    {folders.map(folder => (
-                        <label key={folder.id} className="flex items-center gap-3 p-2 bg-slate-800 rounded-md cursor-pointer">
-                            <input
-                                type="checkbox"
-                                className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                checked={challenge.folderIds.includes(folder.id)}
-                                onChange={() => onToggleFolder(challenge.id, folder.id)}
-                            />
-                            <span className="font-semibold">{folder.name}</span>
-                        </label>
-                    ))}
-                </div>
-                <button onClick={onClose} className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
-                    Done
-                </button>
-            </div>
-        </div>
-    );
-};
-
-
 const ChallengesPage = () => {
     const [view, setView] = useState('list');
     const [challengeToEdit, setChallengeToEdit] = useState(null);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-    const [managingFoldersFor, setManagingFoldersFor] = useState(null);
+    const [managingFoldersForId, setManagingFoldersForId] = useState(null);
     const fileInputRef = useRef(null);
 
     const { 
@@ -55,6 +24,10 @@ const ChallengesPage = () => {
     const handleCreateNew = () => { setChallengeToEdit(null); setView('editor'); };
     const handleEdit = (challenge) => { setChallengeToEdit(challenge); setView('editor'); };
     const handleSave = (challengeData) => { saveChallenge(challengeData); setView('list'); };
+
+    const handleToggleManageFolders = (challengeId) => {
+        setManagingFoldersForId(prevId => (prevId === challengeId ? null : challengeId));
+    };
 
     const handleCreateFolder = () => {
         const name = prompt("Enter a name for the new folder:");
@@ -115,13 +88,6 @@ const ChallengesPage = () => {
                     <li>Use the <strong>Export/Import</strong> buttons to share single challenges or entire folders with others. The exported file includes all the necessary presets!</li>
                 </ul>
             </InfoModal>
-
-            <ManageFoldersModal
-                challenge={managingFoldersFor}
-                folders={folders}
-                onClose={() => setManagingFoldersFor(null)}
-                onToggleFolder={toggleChallengeInFolder}
-            />
 
             <div className="w-full max-w-4xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
@@ -187,8 +153,12 @@ const ChallengesPage = () => {
                                     <div className="p-4 border border-t-0 border-slate-700 rounded-b-lg">
                                         <ChallengeList 
                                             challenges={folder.challenges}
+                                            folders={folders}
                                             onStart={startChallenge} onEdit={handleEdit} onDelete={deleteChallenge}
-                                            onExport={exportChallenge} onManageFolders={setManagingFoldersFor}
+                                            onExport={exportChallenge} 
+                                            onToggleManageFolders={handleToggleManageFolders}
+                                            onToggleFolder={toggleChallengeInFolder}
+                                            managingFoldersForId={managingFoldersForId}
                                         />
                                     </div>
                                 </details>
@@ -199,9 +169,12 @@ const ChallengesPage = () => {
                                 <div className="mt-6">
                                     <ChallengeList 
                                         challenges={uncategorized}
+                                        folders={folders}
                                         onStart={startChallenge} onEdit={handleEdit} onDelete={deleteChallenge}
                                         onExport={exportChallenge} onShowCreator={handleCreateNew}
-                                        onManageFolders={setManagingFoldersFor}
+                                        onToggleManageFolders={handleToggleManageFolders}
+                                        onToggleFolder={toggleChallengeInFolder}
+                                        managingFoldersForId={managingFoldersForId}
                                     />
                                 </div>
                             </div>

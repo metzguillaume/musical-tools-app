@@ -4,20 +4,22 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// New component for a single sortable step
-const SortableStepItem = ({ step, index, onRemove, getPresetName }) => {
+// This component now displays more preset info for clarity
+const SortableStepItem = ({ step, index, onRemove, getPresetInfo }) => {
     const {
         attributes,
         listeners,
         setNodeRef,
         transform,
         transition,
-    } = useSortable({ id: step.id }); // Use a unique ID for each step
+    } = useSortable({ id: step.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
     };
+
+    const presetInfo = getPresetInfo(step.presetId);
 
     return (
         <div ref={setNodeRef} style={style} {...attributes} className="bg-slate-800 p-3 rounded-md flex items-center justify-between touch-none">
@@ -27,10 +29,12 @@ const SortableStepItem = ({ step, index, onRemove, getPresetName }) => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
-                <span className="font-semibold text-gray-200">{index + 1}. {getPresetName(step.presetId)}</span>
+                <div>
+                    <span className="font-semibold text-gray-200">{index + 1}. {presetInfo.name}</span>
+                    <p className="text-xs text-gray-400">{presetInfo.gameName}</p>
+                </div>
             </div>
             <div className="flex items-center gap-4">
-                {/* Conditionally render goal text */}
                 {step.goalType && (
                     <span className="text-sm text-gray-400">
                         {step.goalType === 'time' ? `${step.goalValue / 60} min` : `${step.goalValue} questions`}
@@ -48,14 +52,12 @@ const ChallengeEditor = ({ challengeToEdit, onSave, onCancel }) => {
     const [name, setName] = useState('');
     const [type, setType] = useState('PracticeRoutine');
     const [steps, setSteps] = useState([]);
-    const [executionOrder, setExecutionOrder] = useState('sequential'); // 'sequential' or 'random'
+    const [executionOrder, setExecutionOrder] = useState('sequential');
 
-    // State for the "Add Step" form
     const [newStepPresetId, setNewStepPresetId] = useState(presets.length > 0 ? presets[0].id : '');
     const [newStepGoalType, setNewStepGoalType] = useState('time');
     const [newStepGoalValue, setNewStepGoalValue] = useState(5);
 
-    // Dnd-kit sensors and handler
     const sensors = useSensors(useSensor(PointerSensor, {
         activationConstraint: {
           distance: 8,
@@ -77,13 +79,11 @@ const ChallengeEditor = ({ challengeToEdit, onSave, onCancel }) => {
         if (challengeToEdit) {
             setName(challengeToEdit.name);
             setType(challengeToEdit.type);
-            // Ensure steps have unique IDs for dnd-kit if they are from older versions
             setSteps(challengeToEdit.steps.map(s => ({ ...s, id: s.id || `step_${Math.random()}` })));
             setExecutionOrder(challengeToEdit.executionOrder || 'sequential');
         }
     }, [challengeToEdit]);
 
-    // Effect to reset goal type when challenge type changes
     useEffect(() => {
         if (type === 'Gauntlet') {
             setNewStepGoalType('questions');
@@ -109,7 +109,6 @@ const ChallengeEditor = ({ challengeToEdit, onSave, onCancel }) => {
             goalTypeForStep = 'questions';
             goalValueForStep = newStepGoalValue;
         }
-        // For 'Streak', goalType and goalValue remain null
 
         const newStep = {
             id: `step_${Date.now()}`,
@@ -143,7 +142,9 @@ const ChallengeEditor = ({ challengeToEdit, onSave, onCancel }) => {
         onSave(challengeData);
     };
 
-    const getPresetName = (presetId) => presets.find(p => p.id === presetId)?.name || 'Unknown Preset';
+    const getPresetInfo = (presetId) => {
+        return presets.find(p => p.id === presetId) || { name: 'Unknown Preset', gameName: 'N/A' };
+    };
 
     return (
         <div className="bg-slate-700/50 p-6 rounded-lg space-y-6">
@@ -183,7 +184,7 @@ const ChallengeEditor = ({ challengeToEdit, onSave, onCancel }) => {
                                     step={step}
                                     index={index}
                                     onRemove={handleRemoveStep}
-                                    getPresetName={getPresetName}
+                                    getPresetInfo={getPresetInfo}
                                 />
                             ))}
                         </SortableContext>

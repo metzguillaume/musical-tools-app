@@ -4,7 +4,8 @@ import { fretboardModel, getDegree } from '../../utils/fretboardUtils.js';
 
 export const quizData = {
     qualities: ['Diminished', 'Minor', 'Perfect', 'Major', 'Augmented'],
-    numericButtons: ['Unison / Octave', '2nd', '3rd', '4th', 'Tritone', '5th', '6th', '7th'],
+    // This label is now shorter
+    numericButtons: ['Uni/Oct', '2nd', '3rd', '4th', 'Tritone', '5th', '6th', '7th'],
     intervalsToTest: [
         { name: { quality: 'Perfect', number: 'Unison' }, semitones: 0 }, { name: { quality: 'Minor', number: '2nd' }, semitones: 1 },
         { name: { quality: 'Major', number: '2nd' }, semitones: 2 }, { name: { quality: 'Minor', number: '3rd' }, semitones: 3 },

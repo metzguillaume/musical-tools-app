@@ -130,7 +130,7 @@ const ChordProgressionGenerator = () => {
 
             <div className="w-full flex-1 flex flex-col">
                 <div className="bg-slate-800 p-4 rounded-lg">
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
                         <div className="flex-1"></div>
                         <div className="flex-1 flex justify-center items-center gap-2"><h2 className="text-2xl text-center font-bold text-indigo-300">Chord Progression Generator</h2><InfoButton onClick={() => setIsInfoModalOpen(true)} /></div>
                         <div className="flex-1 flex justify-end items-center gap-2"><button onClick={handleLogSession} className="bg-green-600 hover:bg-green-500 text-white font-bold py-1 px-3 rounded-lg text-sm">Log Session</button><button onClick={() => setIsControlsOpen(p => !p)} className="p-2 rounded-md bg-slate-700 hover:bg-slate-600 text-sm font-semibold" title="Toggle Controls">Controls</button></div>

@@ -95,7 +95,7 @@ export const useIntervalFretboardQuiz = (autoAdvance, playAudio, onProgressUpdat
 
         if (selected.number === 'Tritone') {
             isCorrect = correct.number === 'Tritone';
-        } else if (selected.number === 'Unison / Octave') {
+        } else if (selected.number === 'Uni/Oct') {
             isCorrect = selected.quality === 'Perfect' && (correct.number === 'Unison' || correct.number === 'Octave');
         } else {
             isCorrect = selected.quality === correct.quality && selected.number === correct.number;

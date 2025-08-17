@@ -109,7 +109,7 @@ const ChallengesPage = () => {
             </InfoModal>
 
             <div className="w-full max-w-4xl mx-auto">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
                     <div className="flex items-center gap-2">
                         <h1 className="text-3xl font-extrabold text-indigo-300">Challenge Hub</h1>
                         <InfoButton onClick={() => setIsInfoModalOpen(true)} />

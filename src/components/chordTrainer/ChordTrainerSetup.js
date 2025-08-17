@@ -102,17 +102,27 @@ export const ChordTrainerSetup = ({ onStart }) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-slate-700 p-4 rounded-lg flex flex-col items-center">
                     <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">Select Keys</h3>
-                    <div className="relative w-[350px] h-[350px] mx-auto mb-4">
+                    {/* This container now scales down on small screens to prevent overflow */}
+                    <div className="relative w-80 h-80 sm:w-[350px] sm:h-[350px] mx-auto mb-4">
                         {keysInFifthsOrder.map(([majorKey], index) => {
                             const angle = index * (360 / 12) - 90;
-                            const radius = 150;
-                            const style = { transform: `translate(-50%, -50%) rotate(${angle}deg) translate(${radius}px) rotate(${-angle}deg)` };
+                            const radius = 130; 
+                            const smRadius = 150;
                             return (
-                                <div key={majorKey} style={style} className="absolute top-1/2 left-1/2">
-                                    <button onClick={() => handleKeySelection(majorKey)} className={`p-2 rounded-md min-w-[50px] ${localSettings.selectedKeys.includes(majorKey) ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}>
-                                        {majorKey}
-                                    </button>
-                                </div>
+                                <React.Fragment key={majorKey}>
+                                    {/* Mobile-specific position */}
+                                    <div style={{ transform: `translate(-50%, -50%) rotate(${angle}deg) translate(${radius}px) rotate(${-angle}deg)` }} className="absolute top-1/2 left-1/2 sm:hidden">
+                                        <button onClick={() => handleKeySelection(majorKey)} className={`p-2 rounded-md min-w-[50px] text-sm ${localSettings.selectedKeys.includes(majorKey) ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}>
+                                            {majorKey}
+                                        </button>
+                                    </div>
+                                    {/* Desktop-specific position */}
+                                    <div style={{ transform: `translate(-50%, -50%) rotate(${angle}deg) translate(${smRadius}px) rotate(${-angle}deg)` }} className="absolute top-1/2 left-1/2 hidden sm:block">
+                                        <button onClick={() => handleKeySelection(majorKey)} className={`p-2 rounded-md min-w-[50px] ${localSettings.selectedKeys.includes(majorKey) ? 'bg-blue-600 text-white' : 'bg-slate-600 hover:bg-slate-500'}`}>
+                                            {majorKey}
+                                        </button>
+                                    </div>
+                                </React.Fragment>
                             );
                         })}
                     </div>

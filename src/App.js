@@ -90,8 +90,8 @@ const AppContent = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-4 pb-32 md:p-6 transition-all duration-300 ${activeTool === 'log' || activeTool === 'presets' ? 'md:pl-96' : 'md:pl-72'}`}>
-      <div className="hidden md:block fixed top-5 left-0 z-50 px-5">
+    <div className={`min-h-screen bg-slate-900 font-inter text-gray-200 p-4 pb-32 md:p-6 transition-all duration-300 ${activeTool === 'log' || activeTool === 'presets' ? 'lg:pl-96' : 'lg:pl-72'}`}>
+      <div className="hidden lg:block fixed top-5 left-0 z-50 px-5">
         <a href="https://www.willmetzacademy.com/library" target="_blank" rel="noopener noreferrer">
           <img src={`${process.env.PUBLIC_URL}/WillMetz2.png`} alt="Will Metz Academy Logo" className="h-24 w-auto" />
         </a>
@@ -109,8 +109,8 @@ const AppContent = () => {
       </header>
       
       <nav className="w-full max-w-5xl mx-auto bg-slate-800 shadow-md rounded-xl p-4 md:p-6 mb-8">
-        <div className="flex flex-col md:flex-row justify-around gap-y-4 md:gap-x-6">
-            <div className="flex-1 text-center">
+        <div className="flex flex-col md:flex-row justify-around gap-y-4 md:gap-x-6 flex-wrap">
+            <div className="flex-1 text-center min-w-[150px]">
                  <button
                     onClick={() => handleTabClick('welcome')}
                     className={`px-6 py-3 rounded-lg text-lg font-bold transition-all duration-300 ease-in-out w-full ${activeTab === 'welcome' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-700 text-blue-300 hover:bg-slate-600'}`}
@@ -119,7 +119,7 @@ const AppContent = () => {
                 </button>
             </div>
             {toolCategories.map(category => (
-                <div key={category.name} className="flex-1 flex flex-col items-center gap-2">
+                <div key={category.name} className="flex-1 flex flex-col items-center gap-2 min-w-[150px]">
                     <button 
                         onClick={() => handleCategoryClick(category.name)}
                         className="w-full bg-slate-700 hover:bg-slate-600 rounded-lg p-3 flex justify-between items-center transition-all"

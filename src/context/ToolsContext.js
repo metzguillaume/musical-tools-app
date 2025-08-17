@@ -33,14 +33,8 @@ export const ToolsProvider = ({ children }) => {
 
     const unlockAudio = useCallback(async () => {
         if (Tone.context.state === 'suspended') {
-            try {
-                await Tone.start();
-                console.log("Audio Context resumed successfully.");
-            } catch (e) {
-                console.error("Could not resume Audio Context", e);
-            }
+            await Tone.start();
         }
-        
         if (isAudioUnlocked) return;
         try {
             await Tone.start();
@@ -51,7 +45,6 @@ export const ToolsProvider = ({ children }) => {
         }
     }, [isAudioUnlocked]);
 
-    // Robust, one-time audio unlock on the first user interaction anywhere on the page
     useEffect(() => {
         const oneTimeUnlock = () => {
             unlockAudio();
@@ -62,7 +55,6 @@ export const ToolsProvider = ({ children }) => {
         };
     }, [unlockAudio]);
     
-    // Preset loading logic
     const loadPreset = useCallback((preset) => {
         setPresetToLoad(preset);
         toggleActiveTool(null); 
@@ -86,7 +78,7 @@ export const ToolsProvider = ({ children }) => {
     // --- Challenge Runner Functions ---
     const startChallenge = useCallback((challenge) => {
         unlockAudio();
-        challengesLogic.updateChallengeLastPlayed(challenge.id); // UPDATE: Record last played time
+        challengesLogic.updateChallengeLastPlayed(challenge.id);
         setActiveChallenge(challenge);
         setChallengeStepIndex(0);
         setChallengeProgress({
@@ -102,31 +94,35 @@ export const ToolsProvider = ({ children }) => {
     }, []);
 
     const endChallenge = useCallback(() => {
+        // If a challenge ends and the stopwatch is running (e.g., a Gauntlet), stop it.
+        if (stopwatch.isStopwatchRunning) {
+            stopwatch.toggleStopwatch();
+        }
         setActiveChallenge(null);
         setChallengeStepIndex(0);
         setChallengeProgress(null);
-    }, []);
+    }, [stopwatch]);
 
-    const updateChallengeProgress = useCallback((stepIndex, quizProgress) => {
-        let newState = null;
-        setChallengeProgress(prev => {
-            if (!prev || !prev.stepResults || prev.stepResults[stepIndex] === undefined) {
-                return prev;
-            }
-            const newStepResults = [...prev.stepResults];
-            newStepResults[stepIndex] = { score: quizProgress.score, asked: quizProgress.totalAsked };
-            const totalScore = newStepResults.reduce((sum, r) => sum + r.score, 0);
-            const totalAsked = newStepResults.reduce((sum, r) => sum + r.asked, 0);
-            
-            newState = {
-                ...prev,
-                stepResults: newStepResults,
-                totalScore,
-                totalAsked,
-                streak: quizProgress.wasCorrect ? (prev.streak || 0) + 1 : 0
-            };
-            return newState;
-        });
+    const updateChallengeProgress = useCallback((stepIndex, quizProgress, currentProgress) => {
+        if (!currentProgress || !currentProgress.stepResults || currentProgress.stepResults[stepIndex] === undefined) {
+            return currentProgress;
+        }
+        
+        const newStepResults = [...currentProgress.stepResults];
+        newStepResults[stepIndex] = { score: quizProgress.score, asked: quizProgress.totalAsked };
+        
+        const totalScore = newStepResults.reduce((sum, r) => sum + r.score, 0);
+        const totalAsked = newStepResults.reduce((sum, r) => sum + r.asked, 0);
+        
+        const newState = {
+            ...currentProgress,
+            stepResults: newStepResults,
+            totalScore,
+            totalAsked,
+            streak: quizProgress.wasCorrect ? (currentProgress.streak || 0) + 1 : 0
+        };
+        
+        setChallengeProgress(newState);
         return newState;
     }, []);
     

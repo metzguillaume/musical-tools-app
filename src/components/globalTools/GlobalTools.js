@@ -14,23 +14,21 @@ const GlobalTools = () => {
         isDronePlaying, toggleDrone,
         isTimerRunning, toggleTimer,
         isStopwatchRunning, toggleStopwatch,
-        activeChallenge // Get the active challenge from the context
+        activeChallenge
     } = useTools();
 
-    const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>;
-    const PauseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6" /></svg>;
+    const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>;
+    const PauseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6" /></svg>;
 
-    // Determine if the stopwatch should be locked
     const isStopwatchLocked = activeChallenge?.type === 'Gauntlet';
 
     const tools = [
         { name: 'log', label: 'Practice Log', component: <PracticeLog />, hidePlayPause: true },
         { name: 'presets', label: 'Presets', component: <Presets />, hidePlayPause: true },
-        { name: 'metronome', label: 'Metronome', component: <Metronome />, isPlaying: isMetronomePlaying, toggle: toggleMetronome },
-        { name: 'drone', label: 'Drone', component: <DronePlayer />, isPlaying: isDronePlaying, toggle: toggleDrone },
-        { name: 'timer', label: 'Timer', component: <Timer />, isPlaying: isTimerRunning, toggle: toggleTimer },
-        // Pass the isLocked prop to the Stopwatch component
-        { name: 'stopwatch', label: 'Stopwatch', component: <Stopwatch isLocked={isStopwatchLocked} />, isPlaying: isStopwatchRunning, toggle: toggleStopwatch },
+        { name: 'metronome', label: 'Metronome', component: <Metronome />, isPlaying: isMetronomePlaying },
+        { name: 'drone', label: 'Drone', component: <DronePlayer />, isPlaying: isDronePlaying },
+        { name: 'timer', label: 'Timer', component: <Timer />, isPlaying: isTimerRunning },
+        { name: 'stopwatch', label: 'Stopwatch', component: <Stopwatch isLocked={isStopwatchLocked} />, isPlaying: isStopwatchRunning },
     ];
     
     const activeToolData = tools.find(t => t.name === activeTool);
@@ -40,16 +38,31 @@ const GlobalTools = () => {
         toggleActiveTool(toolName);
     }
 
-    const handlePlayPause = (e, tool) => {
+    const handlePlayPause = async (e, toolName) => {
         e.stopPropagation();
-
-        // Prevent pausing the stopwatch via the side panel during a Gauntlet
-        if (tool.name === 'stopwatch' && isStopwatchLocked) {
+        
+        if (toolName === 'stopwatch' && isStopwatchLocked) {
             return;
         }
 
-        unlockAudio();
-        tool.toggle();
+        await unlockAudio();
+
+        switch (toolName) {
+            case 'metronome':
+                toggleMetronome();
+                break;
+            case 'drone':
+                toggleDrone();
+                break;
+            case 'timer':
+                toggleTimer();
+                break;
+            case 'stopwatch':
+                toggleStopwatch();
+                break;
+            default:
+                break;
+        }
     }
 
     return (
@@ -85,8 +98,7 @@ const GlobalTools = () => {
                             </button>
                             {!tool.hidePlayPause && (
                                 <button 
-                                    onClick={(e) => handlePlayPause(e, tool)}
-                                    // Also disable the small arrow button
+                                    onClick={(e) => handlePlayPause(e, tool.name)}
                                     disabled={tool.name === 'stopwatch' && isStopwatchLocked}
                                     className="p-2 md:p-3 text-white hover:bg-indigo-700 rounded-r-lg disabled:text-gray-500 disabled:cursor-not-allowed"
                                     aria-label={`${tool.isPlaying ? 'Pause' : 'Play'} ${tool.label}`}

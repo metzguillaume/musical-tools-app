@@ -31,7 +31,7 @@ const DIATONIC_CHORD_QUALITIES = {
 };
 
 export const QUALITY_TO_SUFFIX = {
-    'Major': '', 'Minor': 'm', 'Diminished': 'dim', 'Augmented': '+',
+    'Major': '', 'Minor': 'm', 'Diminished': 'dim', 'Augmented': 'aug', // CHANGED: '+' is now 'aug'
     'Major 7th': 'maj7', 'Minor 7th': 'm7', 'Dominant 7th': '7', 'Half-Diminished 7th': 'm7b5',
     'Diminished 7th': '°7', 'Minor-Major 7th': 'm(maj7)', 'Augmented Major 7th': '+maj7',
     'Sus2': 'sus2', 'Sus4': 'sus4',

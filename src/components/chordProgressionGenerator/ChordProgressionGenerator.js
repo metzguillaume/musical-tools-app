@@ -8,24 +8,18 @@ import { ChordProgressionGeneratorControls } from './ChordProgressionGeneratorCo
 const rootNoteOptions = ['C', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'F#', 'B', 'E', 'A', 'D', 'G'];
 
 const ALTERNATE_SYMBOLS = {
-    'm': '-',
-    'maj7': '△7',
-    'm7': '-7',
-    'dim': '°',
-    'm7b5': 'ø7',
-    '7': '7'
+    'm': '-', 'maj7': '△7', 'm7': '-7',
+    'dim': '°', 'aug': '+', 'm7b5': 'ø7', '7': '7'
 };
 
-/**
- * FINAL VERSION: Uses precise relative/absolute positioning for perfect, consistent alignment.
- */
 const ChordDisplay = ({ name, fontSize, useAlternateNotation }) => {
-    const match = name.match(/^([A-G])([#b]?)(.*)/);
+    const match = name.match(/^([A-G])([#b]?)(sus[24]|m\(maj7\)|m7b5|maj7|m7|dim|aug|m|7|\+|°7)?/);
     if (!match) {
         return <div style={{ fontSize: `${fontSize}rem` }} className="font-bold text-teal-300 whitespace-nowrap">{name}</div>;
     }
     
     let [, root, accidental, quality] = match;
+    quality = quality || '';
 
     if (accidental === '#') accidental = '♯';
     if (accidental === 'b') accidental = '♭';
@@ -35,42 +29,19 @@ const ChordDisplay = ({ name, fontSize, useAlternateNotation }) => {
     }
     
     return (
-        <span 
-            style={{ fontSize: `${fontSize}rem` }} 
-            className="font-bold text-teal-300 whitespace-nowrap inline-flex items-baseline"
-        >
+        <span style={{ fontSize: `${fontSize}rem` }} className="font-bold text-teal-300 whitespace-nowrap inline-flex items-baseline">
             <span>{root}</span>
-            <span 
-                className="relative"
-                style={{ marginLeft: '0.1em', display: 'inline-block' }}
-            >
-                {/* The quality provides the baseline. It now has a small margin to prevent overlap. */}
-                <span 
-                    style={{ 
-                        fontSize: `${fontSize * 0.7}rem`, 
-                        marginLeft: accidental ? `${fontSize * 0.25}rem` : '0' 
-                    }}
-                >
-                    {/* Render an invisible placeholder if quality is empty to maintain alignment */}
+            <span className="relative" style={{ marginLeft: '0.1em', display: 'inline-block' }}>
+                <span style={{ fontSize: `${fontSize * 0.7}rem`, marginLeft: accidental ? `${fontSize * 0.25}rem` : '0' }}>
                     {quality || <span className="opacity-0">&nbsp;</span>}
                 </span>
-
-                {/* The accidental is positioned absolutely within the container */}
-                <span 
-                    className="absolute left-0"
-                    style={{
-                        fontSize: `${fontSize * 0.6}rem`,
-                        // This position is now stable regardless of whether 'quality' exists
-                        bottom: `${fontSize * 0.45}rem`,
-                    }}
-                >
+                <span className="absolute left-0" style={{ fontSize: `${fontSize * 0.6}rem`, bottom: `${fontSize * 0.45}rem`}}>
                     {accidental}
                 </span>
             </span>
         </span>
     );
 };
-
 
 const ChordProgressionGenerator = () => {
     const { savePreset } = useTools();
@@ -138,22 +109,27 @@ const ChordProgressionGenerator = () => {
 
                     <div className="w-full flex flex-col items-center space-y-4 p-4 rounded-lg min-h-[10rem]">
                         {progressions.map((prog, progIndex) => (
-                            <div key={progIndex} className="w-full flex flex-wrap justify-center items-center gap-x-8 gap-y-6">
+                            <div key={progIndex} className="w-full flex flex-wrap justify-center items-center gap-x-2 gap-y-6">
                                 {prog.map((chord, chordIndex) => {
-                                    // THIS IS THE FIX: Choose which name to display
                                     const chordName = settings.chordComplexity === 'Tetrads' ? chord.tetradName : chord.name;
-                                    
+                                    const showBarLine = settings.showBarLines && chordIndex > 0 && chordIndex % settings.chordsPerBar === 0;
+
                                     return (
-                                        <div key={chordIndex} className="text-center flex-shrink-0 p-2 min-w-[6rem]">
-                                            {(settings.displayMode === 'chords' || settings.displayMode === 'both') && (
-                                                <ChordDisplay name={chordName} fontSize={settings.fontSize} useAlternateNotation={settings.useAlternateNotation} />
+                                        <React.Fragment key={chordIndex}>
+                                            {showBarLine && (
+                                                <div className="w-px h-16 bg-slate-500 mx-3 self-center" />
                                             )}
-                                            {(settings.displayMode === 'degrees' || settings.displayMode === 'both') && (
-                                                <div style={{ fontSize: `${settings.displayMode === 'both' ? settings.fontSize * 0.6 : settings.fontSize}rem` }} className={`whitespace-nowrap ${settings.displayMode === 'both' ? 'text-gray-200 mt-2' : 'font-bold text-teal-300'}`}>
-                                                    {chord.roman}
-                                                </div>
-                                            )}
-                                        </div>
+                                            <div className="text-center flex-shrink-0 p-2 min-w-[6rem]">
+                                                {(settings.displayMode === 'chords' || settings.displayMode === 'both' || settings.generationMode === 'random') && (
+                                                    <ChordDisplay name={chordName} fontSize={settings.fontSize} useAlternateNotation={settings.useAlternateNotation} />
+                                                )}
+                                                {(settings.displayMode === 'degrees' || settings.displayMode === 'both') && settings.generationMode === 'diatonic' && (
+                                                    <div style={{ fontSize: `${settings.displayMode === 'both' ? settings.fontSize * 0.6 : settings.fontSize}rem` }} className={`whitespace-nowrap ${settings.displayMode === 'both' ? 'text-gray-200 mt-2' : 'font-bold text-teal-300'}`}>
+                                                        {chord.roman}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </React.Fragment>
                                     );
                                 })}
                             </div>
@@ -173,7 +149,8 @@ const ChordProgressionGenerator = () => {
                 </div>
             </div>
             
-            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
+            {/* FIX #2: Added sticky positioning and vertical overflow to the desktop controls panel */}
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out sticky top-6 max-h-[calc(100vh-3rem)] ${isControlsOpen ? 'w-80 p-4 overflow-y-auto' : 'w-0 p-0 overflow-hidden'}`}>
                 <div className={`${!isControlsOpen && 'hidden'}`}>
                     <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
                     <ChordProgressionGeneratorControls

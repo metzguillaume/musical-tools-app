@@ -182,7 +182,7 @@ export const useChordProgressionGenerator = () => {
         handleGenerate();
     }, [handleGenerate]);
 
-    useEffect(() => { setAutoGenerateInterval(settings.numChords); }, [settings.numChords]);
+    
 
     useEffect(() => {
         if (isAutoGenerateOn) {

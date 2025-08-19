@@ -93,9 +93,7 @@ export const useIntervalGenerator = () => {
         generateIntervals();
     }, [generateIntervals]);
 
-    useEffect(() => {
-        setAutoGenerateInterval(settings.numIntervals);
-    }, [settings.numIntervals]);
+    
 
     useEffect(() => {
         if (isAutoGenerateOn) {

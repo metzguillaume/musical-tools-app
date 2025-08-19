@@ -114,10 +114,7 @@ export const useNoteGenerator = () => {
         generateNotes();
     }, [generateNotes]);
 
-    useEffect(() => {
-        setAutoGenerateInterval(settings.numNotes);
-    }, [settings.numNotes]);
-
+    
     useEffect(() => {
         if (isAutoGenerateOn) {
             setMetronomeSchedule({ callback: scheduledGenerate, interval: autoGenerateInterval });

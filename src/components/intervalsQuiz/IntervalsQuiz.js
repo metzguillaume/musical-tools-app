@@ -66,13 +66,18 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
     
     useEffect(() => {
         const handleKeyDown = (event) => { 
-            if (isReviewing || event.key !== 'Enter') return;
-            
-            if (!answerChecked) {
-                event.preventDefault();
-                checkAnswer();
-            } 
-        };
+    const targetTagName = event.target.tagName.toLowerCase();
+    if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+        return;
+    }
+
+    if (isReviewing || event.key !== 'Enter') return;
+
+    if (!answerChecked) {
+        event.preventDefault();
+        checkAnswer();
+    } 
+};
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [answerChecked, checkAnswer, isReviewing]);
@@ -80,12 +85,17 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
     // NEW: This useEffect handles "Enter to continue" after a mistake
     useEffect(() => {
         const handleKeyDown = (event) => {
-            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
-            if (event.key === 'Enter' && answerChecked && (!settings.autoAdvance || !wasCorrect)) {
-                event.preventDefault();
-                generateNewQuestion();
-            }
-        };
+    const targetTagName = event.target.tagName.toLowerCase();
+    if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+        return;
+    }
+
+    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+    if (event.key === 'Enter' && answerChecked && (!settings.autoAdvance || !wasCorrect)) {
+        event.preventDefault();
+        generateNewQuestion();
+    }
+};
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [answerChecked, settings.autoAdvance, history, generateNewQuestion]);

@@ -41,15 +41,20 @@ const TriadQuiz = ({ onProgressUpdate }) => {
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (event.key !== 'Enter' || isReviewing) return;
-            event.preventDefault();
-            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
-            if (isAnswered && (!settings.autoAdvance || !wasCorrect)) {
-                generateNewQuestion();
-            } else if (!isAnswered) {
-                checkAnswer();
-            }
-        };
+    const targetTagName = event.target.tagName.toLowerCase();
+    if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+        return;
+    }
+
+    if (event.key !== 'Enter' || isReviewing) return;
+    event.preventDefault();
+    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+    if (isAnswered && (!settings.autoAdvance || !wasCorrect)) {
+        generateNewQuestion();
+    } else if (!isAnswered) {
+        checkAnswer();
+    }
+};
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isAnswered, settings.autoAdvance, history, isReviewing, checkAnswer, generateNewQuestion]);

@@ -128,11 +128,17 @@ export const useNoteGenerator = () => {
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                generateNotes();
-            }
-        };
+    // Check if the user is typing in an input field.
+    const targetTagName = event.target.tagName.toLowerCase();
+    if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+        return; // If so, do nothing and let the browser handle the typing.
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        generateNotes();
+    }
+};
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [generateNotes]);

@@ -83,12 +83,17 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
     // This useEffect is for the new "Enter to continue" feature
     useEffect(() => {
         const handleKeyDown = (event) => {
-            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
-            if (event.key === 'Enter' && isAnswered && (!autoAdvance || !wasCorrect)) {
-                event.preventDefault();
-                generateNewQuestion();
-            }
-        };
+    const targetTagName = event.target.tagName.toLowerCase();
+    if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+        return;
+    }
+
+    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+    if (event.key === 'Enter' && isAnswered && (!autoAdvance || !wasCorrect)) {
+        event.preventDefault();
+        generateNewQuestion();
+    }
+};
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isAnswered, autoAdvance, history, generateNewQuestion]);

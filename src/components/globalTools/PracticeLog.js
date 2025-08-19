@@ -4,6 +4,7 @@ import { useTools } from '../../context/ToolsContext';
 const PracticeLog = () => {
     const { practiceLog, clearLog, addLogEntry, importLog } = useTools();
     const [filter, setFilter] = useState('All');
+    const [sortOrder, setSortOrder] = useState('date-desc'); // Add this state for sorting
     const [customRemarks, setCustomRemarks] = useState("");
     const [isCustomLogOpen, setIsCustomLogOpen] = useState(false);
     const fileInputRef = useRef(null);
@@ -13,12 +14,31 @@ const PracticeLog = () => {
         return ['All', ...Array.from(names)];
     }, [practiceLog]);
 
-    const filteredLog = useMemo(() => {
-        if (filter === 'All') {
-            return practiceLog;
+    const sortedAndFilteredLog = useMemo(() => {
+        let filtered = filter === 'All'
+            ? [...practiceLog]
+            : practiceLog.filter(entry => entry.game === filter);
+
+        // Add sorting logic here
+        switch (sortOrder) {
+            case 'name-asc':
+                filtered.sort((a, b) => a.game.localeCompare(b.game));
+                break;
+            case 'name-desc':
+                filtered.sort((a, b) => b.game.localeCompare(a.game));
+                break;
+            case 'date-asc':
+                // The log is already in date-asc order, so we just return it
+                return filtered;
+            case 'date-desc':
+            default:
+                // Reverse the array to get newest first
+                return filtered.slice().reverse();
         }
-        return practiceLog.filter(entry => entry.game === filter);
-    }, [practiceLog, filter]);
+
+        // For name sorting, we return the mutated array
+        return filtered;
+    }, [practiceLog, filter, sortOrder]); // Add sortOrder to dependencies
 
     const handleSaveCustomLog = () => {
         if (customRemarks.trim() === "") {
@@ -32,7 +52,7 @@ const PracticeLog = () => {
             remarks: customRemarks.trim(),
         };
         addLogEntry(newEntry);
-        setCustomRemarks(""); 
+        setCustomRemarks("");
         setIsCustomLogOpen(false);
     };
 
@@ -56,7 +76,7 @@ const PracticeLog = () => {
     const handleImportClick = () => {
         fileInputRef.current.click();
     };
-    
+
     const handleFileSelected = (event) => {
         const file = event.target.files[0];
         if (file) {
@@ -65,15 +85,11 @@ const PracticeLog = () => {
         event.target.value = null;
     };
 
-
     return (
-        // UPDATED: The component is a flex column, but no longer has a max-height.
-        // It will now correctly fill the height of its parent container.
         <div className="bg-slate-700 p-4 rounded-b-lg w-full flex flex-col h-full">
-            {/* Header Section (will not scroll) */}
             <div className="flex-shrink-0">
                 <div className="mb-4">
-                    <button 
+                    <button
                         onClick={() => setIsCustomLogOpen(prev => !prev)}
                         className="w-full flex justify-between items-center p-3 bg-slate-800/50 rounded-lg text-left font-bold text-lg text-white hover:bg-slate-800 transition-colors"
                     >
@@ -85,7 +101,7 @@ const PracticeLog = () => {
 
                     {isCustomLogOpen && (
                          <div className="mt-2 p-3 bg-slate-800/50 rounded-lg animate-fade-in-down">
-                            <textarea 
+                            <textarea
                                 value={customRemarks}
                                 onChange={(e) => setCustomRemarks(e.target.value)}
                                 placeholder="Practiced scales for 20 minutes..."
@@ -99,25 +115,39 @@ const PracticeLog = () => {
                     )}
                 </div>
 
-                <div className="flex justify-between items-center mb-3 pt-4 border-t border-slate-600">
+                <div className="flex justify-between items-center mb-3 pt-4 border-t border-slate-600 gap-2">
                     <h4 className="font-bold text-lg text-white">History</h4>
-                    <select 
-                        value={filter} 
+                    {/* Filter by Game */}
+                    <select
+                        value={filter}
                         onChange={(e) => setFilter(e.target.value)}
-                        className="bg-slate-600 text-white rounded-md p-1 border border-slate-500"
+                        className="bg-slate-600 text-white rounded-md p-1 border border-slate-500 w-full"
+                        title="Filter by tool"
                     >
                         {gameNames.map(name => (
                             <option key={name} value={name}>{name}</option>
                         ))}
                     </select>
+
+                    {/* Sort by Name/Date */}
+                    <select
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value)}
+                        className="bg-slate-600 text-white rounded-md p-1 border border-slate-500 w-full"
+                        title="Sort logs"
+                    >
+                        <option value="date-desc">Newest First</option>
+                        <option value="date-asc">Oldest First</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                    </select>
                 </div>
             </div>
-            
-            {/* Scrollable Log List */}
+
             <div className="flex-grow overflow-y-auto pr-2">
-                {filteredLog.length > 0 ? (
+                {sortedAndFilteredLog.length > 0 ? (
                     <ul className="space-y-3">
-                        {filteredLog.slice().reverse().map((entry, index) => (
+                        {sortedAndFilteredLog.map((entry, index) => (
                             <li key={index} className="bg-slate-600 p-3 rounded-lg text-sm">
                                 <div className="flex justify-between items-start mb-1">
                                     <div className="flex flex-col">
@@ -134,8 +164,7 @@ const PracticeLog = () => {
                     <p className="text-center text-gray-400 py-4">No practice sessions logged.</p>
                 )}
             </div>
-            
-            {/* Footer Section with Buttons (will not scroll) */}
+
             <div className="flex-shrink-0 mt-4 pt-4 border-t border-slate-600">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                     <button onClick={handleImportClick} className="w-full py-2 rounded-lg font-bold bg-blue-700 hover:bg-blue-600 text-white">
@@ -149,13 +178,13 @@ const PracticeLog = () => {
                     </button>
                 </div>
             </div>
-            
-            <input 
-                type="file" 
-                ref={fileInputRef} 
+
+            <input
+                type="file"
+                ref={fileInputRef}
                 onChange={handleFileSelected}
                 accept=".json"
-                style={{ display: 'none' }} 
+                style={{ display: 'none' }}
             />
         </div>
     );

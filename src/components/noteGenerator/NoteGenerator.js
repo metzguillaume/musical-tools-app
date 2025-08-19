@@ -35,7 +35,7 @@ const NoteGenerator = () => {
                 id: Date.now().toString(), name: name.trim(),
                 gameId: 'note-generator', gameName: 'Note Generator',
                 settings: settings, // The entire settings object, including fontSize, is saved
-                automation: { isAutoGenerateOn, autoGenerateInterval, countdownClicks, countdownMode }
+                automation: { isAutoGenerateOn,  autoGenerateInterval, countdownClicks, countdownMode }
             };
             savePreset(newPreset);
             alert(`Preset "${name.trim()}" saved!`);

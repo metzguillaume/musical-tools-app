@@ -35,6 +35,12 @@ const DiagramMaker = () => {
         { name: 'D', value: 'D' }, { name: 'G', value: 'G' },
     ];
     
+    // In "None" mode, we want to treat all notes as non-roots so they get the default blue color.
+    // We nullify the degree to prevent the colorMap from highlighting the root.
+    const notesForDiagram = labelType === 'none' 
+        ? displayedNotes.map(n => ({ ...n, isRoot: false, degree: null })) 
+        : displayedNotes;
+
     return (
         <div className="flex flex-col items-center w-full">
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Fretboard Diagram Maker Guide">
@@ -52,7 +58,7 @@ const DiagramMaker = () => {
                      <div><h4 className="font-bold text-indigo-300 mb-1">Display & Export</h4>
                         <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
                             <li><strong className="text-teal-300">Sliders:</strong> Use the "Start Fret" and "Fret Count" sliders to focus on a specific area of the fretboard.</li>
-                             <li><strong className="text-teal-300">Advanced Options:</strong> Expand this section to toggle between "Name" and "Degree" labels, highlight specific degrees, or choose a white background for your PNG export (great for printing).</li>
+                             <li><strong className="text-teal-300">Advanced Options:</strong> Expand this section to highlight specific degrees or choose a white background for your PNG export (great for printing).</li>
                             <li><strong className="text-teal-300">Export/Print:</strong> Use the buttons in the header to export your diagram as a high-resolution PNG image or to print it directly.</li>
                         </ul>
                     </div>
@@ -93,8 +99,8 @@ const DiagramMaker = () => {
             
             <div className="w-full mb-8" id="printable-diagram">
                 <FretboardDiagram
-                    notesToDisplay={displayedNotes} startFret={startFret} fretCount={fretCount}
-                    showLabels={true} labelType={labelType} colorMap={colorMap}
+                    notesToDisplay={notesForDiagram} startFret={startFret} fretCount={fretCount}
+                    showLabels={labelType !== 'none'} labelType={labelType} colorMap={colorMap}
                     onNoteMouseDown={isManualMode ? handleNoteMouseDown : null}
                     onBoardMouseMove={draggingNote && !editingNote ? handleBoardMouseMove : null}
                     onBoardMouseUp={draggingNote && !editingNote ? handleBoardMouseUp : null}
@@ -116,16 +122,26 @@ const DiagramMaker = () => {
                 </div>
                 {isManualMode && <p className="text-xs text-center text-gray-400">In Customize Mode: Click an empty spot to add, single-click to delete, double-click to edit, or drag to move.</p>}
 
-                <div className="flex justify-between items-center gap-4 w-full pt-4 border-t border-slate-600 mt-4">
-                    <div className="flex-1"><label htmlFor="start-fret" className="block text-sm font-medium text-gray-300 mb-1">Start Fret: <span className="font-bold text-teal-300">{startFret}</span></label><input id="start-fret" type="range" min="0" max="12" value={startFret} onChange={e => setStartFret(Number(e.target.value))} className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer" /></div>
-                    <div className="flex-1"><label htmlFor="fret-count" className="block text-sm font-medium text-gray-300 mb-1">Fret Count: <span className="font-bold text-teal-300">{fretCount}</span></label><input id="fret-count" type="range" min="3" max="22" value={fretCount} onChange={e => setFretCount(Number(e.target.value))} className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer" /></div>
+                <div className="w-full pt-4 border-t border-slate-600 mt-4">
+                    <div className="flex justify-between items-center gap-4 w-full">
+                        <div className="flex-1"><label htmlFor="start-fret" className="block text-sm font-medium text-gray-300 mb-1">Start Fret: <span className="font-bold text-teal-300">{startFret}</span></label><input id="start-fret" type="range" min="0" max="12" value={startFret} onChange={e => setStartFret(Number(e.target.value))} className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer" /></div>
+                        <div className="flex-1"><label htmlFor="fret-count" className="block text-sm font-medium text-gray-300 mb-1">Fret Count: <span className="font-bold text-teal-300">{fretCount}</span></label><input id="fret-count" type="range" min="3" max="22" value={fretCount} onChange={e => setFretCount(Number(e.target.value))} className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer" /></div>
+                    </div>
+                    <div className="mt-4">
+                        <label className="block text-sm text-center font-medium text-gray-300 mb-1">Label Display</label>
+                        <div className="flex bg-slate-600 rounded-md p-1">
+                            <button onClick={() => setLabelType('degree')} className={`flex-1 rounded-md text-sm py-1 ${labelType === 'degree' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Degree</button>
+                            <button onClick={() => setLabelType('name')} className={`flex-1 rounded-md text-sm py-1 ${labelType === 'name' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Name</button>
+                            <button onClick={() => setLabelType('none')} className={`flex-1 rounded-md text-sm py-1 ${labelType === 'none' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>None</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <details className="w-full" open={false}>
                     <summary className="text-lg font-semibold text-teal-300 cursor-pointer hover:text-teal-200 transition-colors py-2 border-t border-slate-600 mt-4">Advanced Display Options</summary>
                     <div className="w-full pt-4">
                         <div className="flex justify-between items-center gap-4 mb-2">
-                            <div className="flex-1"><label className="block text-sm font-medium text-gray-300 mb-1">Label Display</label><div className="flex bg-slate-600 rounded-md p-1"><button onClick={() => setLabelType('name')} className={`flex-1 rounded-md text-sm py-1 ${labelType === 'name' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Name</button><button onClick={() => setLabelType('degree')} className={`flex-1 rounded-md text-sm py-1 ${labelType === 'degree' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Degree</button></div></div>
+                             <h3 className="text-sm font-medium text-gray-300">Highlight Degrees</h3>
                             <div className="flex-1 flex justify-end gap-2"><button onClick={() => handleHighlightAll(true)} className="text-sm bg-slate-600 hover:bg-slate-500 py-1 px-3 rounded-md">All</button><button onClick={() => handleHighlightAll(false)} className="text-sm bg-slate-600 hover:bg-slate-500 py-1 px-3 rounded-md">None</button></div>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 bg-slate-800/50 p-2 rounded-md">

@@ -74,7 +74,7 @@ export const useDiagramMaker = () => {
     const deleteNote = (noteToDelete) => setDisplayedNotes(prev => prev.filter(note => !(note.string === noteToDelete.string && note.fret === noteToDelete.fret)));
     const openEditModal = (noteToEdit) => {
         setEditingNote(noteToEdit);
-        setEditLabel(noteToEdit.overrideLabel || (labelType === 'degree' ? noteToEdit.degree : noteToEdit.label));
+        setEditLabel(noteToEdit.overrideLabel || (labelType === 'name' ? noteToEdit.label : noteToEdit.degree));
         const colorMapEntry = colorMap[noteToEdit.degree];
         const defaultColor = noteToEdit.isRoot ? '#ef4444' : '#3b82f6';
         const activeColor = (colorMapEntry && colorMapEntry.active) ? colorMapEntry.color : defaultColor;
@@ -151,7 +151,16 @@ export const useDiagramMaker = () => {
             const interval = (noteData.midi - rootMidi) % 12;
             const positiveInterval = interval < 0 ? interval + 12 : interval;
             const degree = SEMITONE_TO_DEGREE[positiveInterval] || '?';
-            const newNote = { string, fret, ...noteData, isRoot: noteData.midi % 12 === rootMidi % 12, degree, overrideColor: null, overrideLabel: null };
+            const newNote = { 
+                string, 
+                fret, 
+                label: noteData.note,
+                midi: noteData.midi,
+                isRoot: noteData.midi % 12 === rootMidi % 12, 
+                degree, 
+                overrideColor: null, 
+                overrideLabel: null 
+            };
             setDisplayedNotes(prev => [...prev, newNote]);
         }
     };
@@ -169,7 +178,12 @@ export const useDiagramMaker = () => {
         if (isManualMode) {
             setDisplayedNotes(prev => prev.map(note => {
                 const interval = (note.midi - rootMidi) % 12;
-                return { ...note, degree: SEMITONE_TO_DEGREE[interval < 0 ? interval + 12 : interval] || '?', isRoot: note.midi % 12 === rootMidi % 12 };
+                return { 
+                    ...note, 
+                    degree: SEMITONE_TO_DEGREE[interval < 0 ? interval + 12 : interval] || '?', 
+                    isRoot: note.midi % 12 === rootMidi % 12,
+                    label: fretboardModel[6 - note.string][note.fret].note // FIX: ensure note name is always correct
+                };
             }));
         } else {
             const intervals = (selectedType === 'Scale' ? SCALES : CHORDS)[selectedName]?.intervals;

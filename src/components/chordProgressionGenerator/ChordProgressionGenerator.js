@@ -61,7 +61,18 @@ const ChordProgressionGenerator = () => {
     const handleSavePreset = () => {
         const name = prompt("Enter a name for your preset:", `CPG - ${settings.rootNote} ${settings.keyType}`);
         if (name && name.trim() !== "") {
-            const newPreset = { id: Date.now().toString(), name: name.trim(), gameId: 'chord-progression-generator', gameName: 'Chord Progression Generator', settings: settings, };
+            const newPreset = { 
+                id: Date.now().toString(), 
+                name: name.trim(), 
+                gameId: 'chord-progression-generator', 
+                gameName: 'Chord Progression Generator', 
+                settings: settings,
+                automation: {
+                    isAutoGenerateOn,
+                    autoGenerateInterval,
+                    countdownClicks
+                }
+            };
             savePreset(newPreset);
             alert(`Preset "${name.trim()}" saved!`);
         }
@@ -149,7 +160,6 @@ const ChordProgressionGenerator = () => {
                 </div>
             </div>
             
-            {/* FIX #2: Added sticky positioning and vertical overflow to the desktop controls panel */}
             <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out sticky top-6 max-h-[calc(100vh-3rem)] ${isControlsOpen ? 'w-80 p-4 overflow-y-auto' : 'w-0 p-0 overflow-hidden'}`}>
                 <div className={`${!isControlsOpen && 'hidden'}`}>
                     <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>

@@ -19,23 +19,30 @@ export const useNoteGenerator = () => {
         numNotes: 12,
         noteType: 'chromatic',
         showBarlines: true,
-        fontSize: 4,
+        fontSize: 2.7, // Changed to a safer default that should fit on one line
         barlineFrequency: 4,
         avoidRepeats: true,
     });
-
-    useEffect(() => {
-        if (presetToLoad && presetToLoad.gameId === 'note-generator') {
-            setSettings(presetToLoad.settings);
-            clearPresetToLoad();
-        }
-    }, [presetToLoad, clearPresetToLoad]);
 
     const [generatedNotes, setGeneratedNotes] = useState([]);
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
     const [autoGenerateInterval, setAutoGenerateInterval] = useState(settings.numNotes);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'note-generator') {
+            setSettings(prevSettings => ({ ...prevSettings, ...presetToLoad.settings }));
+            
+            if (presetToLoad.automation) {
+                setIsAutoGenerateOn(presetToLoad.automation.isAutoGenerateOn);
+                setAutoGenerateInterval(presetToLoad.automation.autoGenerateInterval);
+                setCountdownClicks(presetToLoad.automation.countdownClicks);
+                setCountdownMode(presetToLoad.automation.countdownMode);
+            }
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad, setCountdownClicks, setCountdownMode]);
 
     const generateNotes = useCallback(() => {
         const naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -59,8 +66,6 @@ export const useNoteGenerator = () => {
                 newNotes = [...shuffledChromatic];
                 for (let i = 12; i < settings.numNotes; i++) {
                     let randomNote;
-                    // THIS IS THE FIX: This loop ensures the new random note
-                    // is not the same as the previously added note.
                     do {
                         let potentialNote = chromaticSource[Math.floor(Math.random() * chromaticSource.length)];
                         if (typeof potentialNote === 'object') {
@@ -83,7 +88,7 @@ export const useNoteGenerator = () => {
                         potentialNote = Math.random() < 0.5 ? potentialNote.sharp : potentialNote.flat;
                     }
                     note = potentialNote;
-                } while (note === lastNote && sourceArray.length > 1);
+                } while (settings.avoidRepeats && note === lastNote && sourceArray.length > 1);
                 newNotes.push(note);
                 lastNote = note;
             }
@@ -93,7 +98,6 @@ export const useNoteGenerator = () => {
 
         if (newNotes.length > 0) {
             const firstNote = newNotes[0];
-            // This map converts flats to the sharp names the drone player uses
             const flatToSharpMap = {
                 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'
             };

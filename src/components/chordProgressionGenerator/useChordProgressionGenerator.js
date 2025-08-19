@@ -40,19 +40,24 @@ export const useChordProgressionGenerator = () => {
         chordsPerBar: 4,
     });
     
-    useEffect(() => {
-        if (presetToLoad && presetToLoad.gameId === 'chord-progression-generator') {
-            setSettings(currentSettings => ({ ...currentSettings, ...presetToLoad.settings }));
-            clearPresetToLoad();
-        }
-    }, [presetToLoad, clearPresetToLoad]);
-
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
     const [autoGenerateInterval, setAutoGenerateInterval] = useState(settings.numChords);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [progressions, setProgressions] = useState([]);
     const [openSections, setOpenSections] = useState({ general: true, options: false, display: false, automation: false });
+
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'chord-progression-generator') {
+            setSettings(presetToLoad.settings);
+            if (presetToLoad.automation) {
+                setIsAutoGenerateOn(presetToLoad.automation.isAutoGenerateOn);
+                setAutoGenerateInterval(presetToLoad.automation.autoGenerateInterval);
+                setCountdownClicks(presetToLoad.automation.countdownClicks);
+            }
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad, setCountdownClicks]);
 
     const toggleSection = (section) => {
         setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -167,7 +172,6 @@ export const useChordProgressionGenerator = () => {
         settings.rootNote, settings.keyType, settings.numChords, settings.numProgressions,
         settings.useCommonPatterns, settings.includeDiminished, settings.qualityFilter,
         settings.generationMode, settings.allowedQualities, settings.includeSusChords,
-        // settings.chordComplexity // REMOVED: This dependency was unnecessary
     ]);
     
     const scheduledGenerate = useCallback(() => {

@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React from 'react';
 import { useTools } from '../../context/ToolsContext';
+import { useIntervalGenerator } from './useIntervalGenerator';
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
 import { IntervalGeneratorControls } from './IntervalGeneratorControls';
 
-// A mapping for the new shorthand feature
 const INTERVAL_SHORTHAND = {
     'Perfect Unison': 'P1', 'Minor 2nd': 'm2', 'Major 2nd': 'M2',
     'Minor 3rd': 'm3', 'Major 3rd': 'M3', 'Perfect 4th': 'P4',
@@ -14,36 +14,20 @@ const INTERVAL_SHORTHAND = {
 };
 
 const IntervalGenerator = () => {
-    const { addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode, savePreset, presetToLoad, clearPresetToLoad } = useTools();
-    
-    // Add new display options to the settings state
-    const [settings, setSettings] = useState({
-        numIntervals: 1,
-        selectedQualities: {
-            'Perfect': true,
-            'Major': true,
-            'Minor': true,
-            'Augmented': false,
-            'Diminished': false,
-        },
-        useShorthand: false,
-        displayMode: 'stacked',
-    });
-
-    // Non-preset state
-    const [generatedIntervals, setGeneratedIntervals] = useState([]);
-    const [fontSize, setFontSize] = useState(4); 
-    const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
-    const [autoGenerateInterval, setAutoGenerateInterval] = useState(1);
-    const [isControlsOpen, setIsControlsOpen] = useState(false);
-    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-    
-    useEffect(() => {
-        if (presetToLoad && presetToLoad.gameId === 'interval-generator') {
-            setSettings(presetToLoad.settings);
-            clearPresetToLoad();
-        }
-    }, [presetToLoad, clearPresetToLoad]);
+    const { savePreset } = useTools();
+    const {
+        settings, setSettings,
+        generatedIntervals,
+        fontSize, setFontSize,
+        isAutoGenerateOn, setIsAutoGenerateOn,
+        autoGenerateInterval, setAutoGenerateInterval,
+        isControlsOpen, setIsControlsOpen,
+        isInfoModalOpen, setIsInfoModalOpen,
+        countdownClicks, setCountdownClicks,
+        countdownMode, setCountdownMode,
+        generateIntervals,
+        handleLogSession,
+    } = useIntervalGenerator();
 
     const handleSavePreset = () => {
         const qualities = Object.keys(settings.selectedQualities).filter(q => settings.selectedQualities[q]).join('/');
@@ -55,90 +39,18 @@ const IntervalGenerator = () => {
                 gameId: 'interval-generator',
                 gameName: 'Interval Generator',
                 settings: settings,
+                automation: {
+                    isAutoGenerateOn,
+                    autoGenerateInterval,
+                    countdownClicks,
+                    countdownMode
+                },
+                display: {
+                    fontSize
+                }
             };
             savePreset(newPreset);
             alert(`Preset "${name.trim()}" saved!`);
-        }
-    };
-
-    const intervalData = useMemo(() => ({
-        "Unison/Octave": [{ name: 'Perfect Unison', quality: 'Perfect'}, { name: 'Perfect Octave', quality: 'Perfect'}],
-        "2nd": [{ name: 'Minor 2nd', quality: 'Minor' }, { name: 'Major 2nd', quality: 'Major' }],
-        "3rd": [{ name: 'Minor 3rd', quality: 'Minor' }, { name: 'Major 3rd', quality: 'Major' }],
-        "4th": [{ name: 'Perfect 4th', quality: 'Perfect' }, { name: 'Augmented 4th', quality: 'Augmented' }],
-        "5th": [{ name: 'Diminished 5th', quality: 'Diminished' }, { name: 'Perfect 5th', quality: 'Perfect' }],
-        "6th": [{ name: 'Minor 6th', quality: 'Minor' }, { name: 'Major 6th', quality: 'Major' }],
-        "7th": [{ name: 'Minor 7th', quality: 'Minor' }, { name: 'Major 7th', quality: 'Major' }],
-    }), []);
-
-    const allIntervals = useMemo(() => Object.values(intervalData).flat(), [intervalData]);
-
-    const generateIntervals = useCallback(() => {
-        const activeIntervals = allIntervals.filter(interval => settings.selectedQualities[interval.quality]);
-        if (activeIntervals.length === 0) {
-            setGeneratedIntervals(["Select a quality"]);
-            return;
-        }
-        let newIntervals = [];
-        let lastInterval = null;
-        for (let i = 0; i < settings.numIntervals; i++) {
-            let interval;
-            let attempts = 0;
-            do {
-                interval = activeIntervals[Math.floor(Math.random() * activeIntervals.length)];
-                attempts++;
-            } while (interval.name === lastInterval && activeIntervals.length > 1 && attempts < 20);
-            
-            newIntervals.push(interval.name);
-            lastInterval = interval.name;
-        }
-        setGeneratedIntervals(newIntervals);
-    }, [settings.numIntervals, settings.selectedQualities, allIntervals]);
-    
-    const scheduledGenerate = useCallback(() => {
-        setTimeout(generateIntervals, 0);
-    }, [generateIntervals]);
-
-    useEffect(() => {
-        generateIntervals();
-    }, [generateIntervals]);
-
-    useEffect(() => {
-        setAutoGenerateInterval(settings.numIntervals);
-    }, [settings.numIntervals]);
-
-    useEffect(() => {
-        if (isAutoGenerateOn) {
-            setMetronomeSchedule({
-                callback: scheduledGenerate,
-                interval: autoGenerateInterval,
-            });
-        } else {
-            setMetronomeSchedule(null);
-        }
-    }, [isAutoGenerateOn, autoGenerateInterval, scheduledGenerate, setMetronomeSchedule]);
-
-    useEffect(() => {
-        const handleKeyDown = (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                generateIntervals();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [generateIntervals]);
-
-    const handleLogSession = () => {
-        const remarks = prompt("Enter any remarks for this session:", "Practiced random intervals.");
-        if (remarks !== null) {
-            addLogEntry({
-                game: 'Interval Generator',
-                bpm: 'N/A',
-                date: new Date().toLocaleDateString(),
-                remarks: remarks || "No remarks."
-            });
-            alert("Session logged!");
         }
     };
     
@@ -175,6 +87,7 @@ const IntervalGenerator = () => {
                     </div>
                 </div>
 
+                {/* THIS BLOCK IS NOW CORRECTED */}
                 <div className={`w-full p-6 rounded-lg text-center min-h-[150px] flex justify-center items-center gap-y-4 ${
                     settings.useShorthand && settings.displayMode === 'single-line' 
                     ? 'flex-row flex-wrap gap-x-8' 
@@ -193,7 +106,7 @@ const IntervalGenerator = () => {
 
                 <div className="flex items-center justify-center gap-4 mt-6 mb-8">
                     <label htmlFor="font-size" className="font-semibold text-lg">Font Size:</label>
-                    <input type="range" id="font-size" min="1.5" max="8" step="0.1" value={fontSize} onChange={(e) => setFontSize(e.target.value)} className="w-1/2 max-w-xs" />
+                    <input type="range" id="font-size" min="1.5" max="8" step="0.1" value={fontSize} onChange={(e) => setFontSize(parseFloat(e.target.value))} className="w-1/2 max-w-xs" />
                 </div>
 
                 <div className="w-full flex justify-center">
@@ -203,7 +116,7 @@ const IntervalGenerator = () => {
                 </div>
             </div>
 
-            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
+            <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out sticky top-6 max-h-[calc(100vh-3rem)] ${isControlsOpen ? 'w-80 p-4 overflow-y-auto' : 'w-0 p-0 overflow-hidden'}`}>
                 <div className={`${!isControlsOpen && 'hidden'}`}>
                     <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>
                      <IntervalGeneratorControls

@@ -2,8 +2,55 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
 
 export const useIntervalGenerator = () => {
-    const { addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode } = useTools();
+    // Get preset and automation tools from context
+    const { 
+        addLogEntry, 
+        setMetronomeSchedule, 
+        countdownClicks, 
+        setCountdownClicks, 
+        countdownMode, 
+        setCountdownMode,
+        presetToLoad,
+        clearPresetToLoad
+    } = useTools();
     
+    // State for generator-specific settings
+    const [settings, setSettings] = useState({
+        numIntervals: 1,
+        selectedQualities: {
+            'Perfect': true, 'Major': true, 'Minor': true,
+            'Augmented': false, 'Diminished': false,
+        },
+        useShorthand: false,
+        displayMode: 'stacked',
+    });
+
+    // State for non-setting values (display, automation, etc.)
+    const [generatedIntervals, setGeneratedIntervals] = useState([]);
+    const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
+    const [autoGenerateInterval, setAutoGenerateInterval] = useState(1);
+    const [isControlsOpen, setIsControlsOpen] = useState(false);
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    const [fontSize, setFontSize] = useState(4); 
+
+    // Load preset data when it becomes available
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'interval-generator') {
+            setSettings(presetToLoad.settings);
+            if (presetToLoad.automation) {
+                setIsAutoGenerateOn(presetToLoad.automation.isAutoGenerateOn);
+                setAutoGenerateInterval(presetToLoad.automation.autoGenerateInterval);
+                setCountdownClicks(presetToLoad.automation.countdownClicks);
+                setCountdownMode(presetToLoad.automation.countdownMode);
+            }
+            // Also load display settings like font size
+            if (presetToLoad.display) {
+                setFontSize(presetToLoad.display.fontSize);
+            }
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad, setCountdownClicks, setCountdownMode]);
+
     const intervalData = useMemo(() => ({
         "Unison/Octave": [{ name: 'Perfect Unison', quality: 'Perfect'}, { name: 'Perfect Octave', quality: 'Perfect'}],
         "2nd": [{ name: 'Minor 2nd', quality: 'Minor' }, { name: 'Major 2nd', quality: 'Major' }],
@@ -15,26 +62,16 @@ export const useIntervalGenerator = () => {
     }), []);
 
     const allIntervals = useMemo(() => Object.values(intervalData).flat(), [intervalData]);
-    const [numIntervals, setNumIntervals] = useState(1);
-    const [generatedIntervals, setGeneratedIntervals] = useState([]);
-    const [fontSize, setFontSize] = useState(4);
-    const [selectedQualities, setSelectedQualities] = useState({
-        'Perfect': true, 'Major': true, 'Minor': true, 'Augmented': false, 'Diminished': false,
-    });
-    const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
-    const [autoGenerateInterval, setAutoGenerateInterval] = useState(1);
-    const [isControlsOpen, setIsControlsOpen] = useState(false);
-    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
     const generateIntervals = useCallback(() => {
-        const activeIntervals = allIntervals.filter(interval => selectedQualities[interval.quality]);
+        const activeIntervals = allIntervals.filter(interval => settings.selectedQualities[interval.quality]);
         if (activeIntervals.length === 0) {
             setGeneratedIntervals(["Select a quality"]);
             return;
         }
         let newIntervals = [];
         let lastInterval = null;
-        for (let i = 0; i < numIntervals; i++) {
+        for (let i = 0; i < settings.numIntervals; i++) {
             let interval;
             let attempts = 0;
             do {
@@ -46,7 +83,7 @@ export const useIntervalGenerator = () => {
             lastInterval = interval.name;
         }
         setGeneratedIntervals(newIntervals);
-    }, [numIntervals, selectedQualities, allIntervals]);
+    }, [settings.numIntervals, settings.selectedQualities, allIntervals]);
     
     const scheduledGenerate = useCallback(() => {
         setTimeout(generateIntervals, 0);
@@ -57,8 +94,8 @@ export const useIntervalGenerator = () => {
     }, [generateIntervals]);
 
     useEffect(() => {
-        setAutoGenerateInterval(numIntervals);
-    }, [numIntervals]);
+        setAutoGenerateInterval(settings.numIntervals);
+    }, [settings.numIntervals]);
 
     useEffect(() => {
         if (isAutoGenerateOn) {
@@ -89,16 +126,11 @@ export const useIntervalGenerator = () => {
             alert("Session logged!");
         }
     };
-    
-    const handleQualitySelection = (quality) => {
-        setSelectedQualities(prev => ({...prev, [quality]: !prev[quality]}));
-    };
 
     return {
-        numIntervals, setNumIntervals,
+        settings, setSettings,
         generatedIntervals,
         fontSize, setFontSize,
-        selectedQualities, handleQualitySelection,
         isAutoGenerateOn, setIsAutoGenerateOn,
         autoGenerateInterval, setAutoGenerateInterval,
         isControlsOpen, setIsControlsOpen,

@@ -66,7 +66,7 @@ const PracticeLog = () => {
         const href = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = href;
-        link.download = `practice_log_${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `practice_log_${new Date().toISOString().split('T')[0]}.log.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

@@ -164,7 +164,7 @@ export const usePresetsLogic = (challenges) => {
         const href = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = href;
-        link.download = `musical_tools_presets_${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `musical_tools_presets_${new Date().toISOString().split('T')[0]}.preset.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

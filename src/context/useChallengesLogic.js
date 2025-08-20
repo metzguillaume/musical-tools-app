@@ -125,7 +125,7 @@ export const useChallengesLogic = () => {
         const href = URL.createObjectURL(blob);
         const link = document.createElement('a');
         const safeName = challengeToExport.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        link.download = `challenge_${safeName}.json`;
+        link.download = `challenge_${safeName}.challenge.json`;
         link.href = href;
         document.body.appendChild(link);
         link.click();
@@ -153,7 +153,7 @@ export const useChallengesLogic = () => {
         const href = URL.createObjectURL(blob);
         const link = document.createElement('a');
         const safeName = folder.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        link.download = `challenge_folder_${safeName}.json`;
+        link.download = `challenge_folder_${safeName}.challenge.json`;
         link.href = href;
         document.body.appendChild(link);
         link.click();

@@ -1,12 +1,14 @@
+// src/context/useChallengesLogic.js
+
 import { useState, useCallback, useEffect } from 'react';
 
-export const useChallengesLogic = (presets, savePreset) => {
+// The hook no longer needs arguments for initialization
+export const useChallengesLogic = () => {
     // State to hold all created challenges
     const [challenges, setChallenges] = useState(() => {
         try {
             const saved = localStorage.getItem('challenges');
             const parsed = saved ? JSON.parse(saved) : [];
-            // One-time migration for old data structure
             return parsed.map(c => {
                 if (c.folderId && !c.folderIds) {
                     c.folderIds = [c.folderId];
@@ -48,7 +50,7 @@ export const useChallengesLogic = (presets, savePreset) => {
                     ...challenge,
                     createdAt: prevChallenges[existingIndex].createdAt,
                     folderIds: prevChallenges[existingIndex].folderIds || [],
-                    lastPlayed: prevChallenges[existingIndex].lastPlayed // Preserve last played date on edit
+                    lastPlayed: prevChallenges[existingIndex].lastPlayed
                 };
                 return updatedChallenges;
             } else {
@@ -80,7 +82,6 @@ export const useChallengesLogic = (presets, savePreset) => {
     const deleteFolder = useCallback((folderId) => {
         if (window.confirm("Are you sure you want to delete this folder? This will not delete the challenges inside it.")) {
             setFolders(prev => prev.filter(f => f.id !== folderId));
-            // Remove the folderId from any challenges that have it
             setChallenges(prev => prev.map(c => ({
                 ...c,
                 folderIds: c.folderIds.filter(id => id !== folderId)
@@ -92,15 +93,14 @@ export const useChallengesLogic = (presets, savePreset) => {
         setChallenges(prev => prev.map(c => {
             if (c.id === challengeId) {
                 const newFolderIds = c.folderIds.includes(folderId)
-                    ? c.folderIds.filter(id => id !== folderId) // Remove it
-                    : [...c.folderIds, folderId]; // Add it
+                    ? c.folderIds.filter(id => id !== folderId)
+                    : [...c.folderIds, folderId];
                 return { ...c, folderIds: newFolderIds };
             }
             return c;
         }));
     }, []);
     
-    // Function to update the lastPlayed timestamp
     const updateChallengeLastPlayed = useCallback((challengeId) => {
         setChallenges(prev => prev.map(c => 
             c.id === challengeId 
@@ -109,13 +109,12 @@ export const useChallengesLogic = (presets, savePreset) => {
         ));
     }, []);
 
-    const exportChallenge = useCallback((challengeToExport) => {
-        if (!challengeToExport) {
-            alert("Could not find the challenge to export.");
-            return;
-        }
+    // MODIFIED: Functions now accept dependencies as arguments
+    const exportChallenge = useCallback((challengeToExport, allPresets) => {
+        if (!challengeToExport) return alert("Could not find the challenge to export.");
+        
         const requiredPresetIds = new Set(challengeToExport.steps.map(step => step.presetId));
-        const requiredPresets = presets.filter(p => requiredPresetIds.has(p.id));
+        const requiredPresets = allPresets.filter(p => requiredPresetIds.has(p.id));
         const challengeBundle = {
             type: 'MusicToolsChallengeBundle',
             challenge: challengeToExport,
@@ -132,18 +131,17 @@ export const useChallengesLogic = (presets, savePreset) => {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(href);
-    }, [presets]);
+    }, []);
 
-    const exportFolder = useCallback((folderId) => {
+    const exportFolder = useCallback((folderId, allPresets) => {
         const folder = folders.find(f => f.id === folderId);
         if (!folder) return alert("Folder not found.");
         const challengesInFolder = challenges.filter(c => c.folderIds.includes(folderId));
         if (challengesInFolder.length === 0) return alert("This folder is empty. Nothing to export.");
-        const requiredPresetIds = new Set();
-        challengesInFolder.forEach(c => {
-            c.steps.forEach(s => requiredPresetIds.add(s.presetId));
-        });
-        const requiredPresets = presets.filter(p => requiredPresetIds.has(p.id));
+
+        const requiredPresetIds = new Set(challengesInFolder.flatMap(c => c.steps.map(s => s.presetId)));
+        const requiredPresets = allPresets.filter(p => requiredPresetIds.has(p.id));
+        
         const folderBundle = {
             type: 'MusicToolsChallengeFolderBundle',
             folderName: folder.name,
@@ -161,30 +159,31 @@ export const useChallengesLogic = (presets, savePreset) => {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(href);
-    }, [challenges, folders, presets]);
+    }, [challenges, folders]);
     
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const importChallenges = useCallback((file) => {
-        if (!file) return;
+    const importChallenges = useCallback((file, savePresetFn) => {
+        if (!file || !savePresetFn) return;
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
                 const data = JSON.parse(event.target.result);
                 if (data.type === 'MusicToolsChallengeFolderBundle') {
-                    if (!data.folderName || !data.challenges || !data.requiredPresets) {
-                        return alert("Import failed: Invalid folder bundle file.");
-                    }
+                    if (!data.folderName || !data.challenges || !data.requiredPresets) return alert("Import failed: Invalid folder bundle file.");
                     if (!window.confirm(`Import the "${data.folderName}" folder and its ${data.challenges.length} challenges?`)) return;
-                    data.requiredPresets.forEach(savePreset);
+                    
+                    data.requiredPresets.forEach(savePresetFn);
                     let folder = folders.find(f => f.name.toLowerCase() === data.folderName.toLowerCase());
                     if (!folder) {
                         folder = { id: `folder_${Date.now()}`, name: data.folderName };
                         setFolders(prev => [...prev, folder]);
                     }
-                    data.challenges.forEach(c => saveChallenge({ ...c, folderIds: [folder.id] }));
+                    const challengesWithFolderId = data.challenges.map(c => ({...c, folderIds: [folder.id]}));
+                    challengesWithFolderId.forEach(saveChallenge);
+
                     alert(`Folder "${data.folderName}" imported successfully!`);
+
                 } else if (data.type === 'MusicToolsChallengeBundle') {
-                    data.requiredPresets.forEach(savePreset);
+                    data.requiredPresets.forEach(savePresetFn);
                     saveChallenge(data.challenge);
                     alert(`Challenge "${data.challenge.name}" imported successfully!`);
                 } else {
@@ -195,7 +194,7 @@ export const useChallengesLogic = (presets, savePreset) => {
             }
         };
         reader.readAsText(file);
-    }, [savePreset, saveChallenge, folders]);
+    }, [saveChallenge, folders]);
 
     return { 
         challenges, saveChallenge, deleteChallenge, exportChallenge, importChallenges, 

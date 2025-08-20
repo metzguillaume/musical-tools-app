@@ -9,8 +9,6 @@ export const IntervalGeneratorControls = ({
     onIntervalChange,
     countdownClicks,
     onCountdownChange,
-    countdownMode,
-    onCountdownModeChange,
     onSavePreset
 }) => (
     <div className="flex flex-col gap-4">
@@ -49,7 +47,6 @@ export const IntervalGeneratorControls = ({
             </div>
         </div>
 
-        {/* --- NEW SECTION: Display Options --- */}
         <div className="pt-4 border-t border-slate-600 space-y-4">
             <h3 className="font-semibold text-lg text-teal-300">Display Options</h3>
             <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
@@ -76,14 +73,12 @@ export const IntervalGeneratorControls = ({
                 <label htmlFor="auto-generate-int" className="font-semibold">Auto-Generate:</label>
                 <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="auto-generate-int" checked={isAutoGenerateOn} onChange={onAutoGenerateToggle} className="sr-only peer" />
-                    {/* FIXED: Full class string for the toggle */}
                     <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
                 </label>
             </div>
             <div className="flex items-center justify-between">
                 <label htmlFor="auto-generate-interval-int" className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>Generate every:</label>
                 <div className="flex items-center gap-2">
-                    {/* FIXED: Full class string for the number input */}
                     <input type="number" id="auto-generate-interval-int" value={autoGenerateInterval} onChange={(e) => onIntervalChange(Math.max(1, parseInt(e.target.value, 10) || 1))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} />
                     <span className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
                 </div>
@@ -91,16 +86,8 @@ export const IntervalGeneratorControls = ({
              <div className="flex items-center justify-between">
                 <label htmlFor="countdown-clicks-int" className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown:</label>
                 <div className="flex items-center gap-2">
-                    {/* FIXED: Full class string for the number input */}
-                    <input type="number" id="countdown-clicks-int" value={countdownClicks} onChange={(e) => onCountdownChange(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="0" max="7" disabled={!isAutoGenerateOn} />
+                    <input type="number" id="countdown-clicks-int" value={countdownClicks} onChange={(e) => onCountdownChange(Math.max(0, parseInt(e.target.value, 10)) || 0)} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="0" max="7" disabled={!isAutoGenerateOn} />
                      <span className={`font-semibold ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span>
-                </div>
-            </div>
-            <div>
-                <label className={`font-semibold block mb-2 ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown Mode:</label>
-                <div className="flex bg-slate-600 rounded-md p-1">
-                    <button disabled={!isAutoGenerateOn} onClick={() => onCountdownModeChange('every')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'every' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Every Time</button>
-                    <button disabled={!isAutoGenerateOn} onClick={() => onCountdownModeChange('first')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'first' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>First Time Only</button>
                 </div>
             </div>
         </div>

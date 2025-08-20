@@ -13,13 +13,13 @@ const shuffle = (array) => {
 };
 
 export const useNoteGenerator = () => {
-    const { bpm, addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode, presetToLoad, clearPresetToLoad, setDroneNote } = useTools();
+    const { bpm, addLogEntry, setMetronomeSchedule, countdownClicks, setCountdownClicks, presetToLoad, clearPresetToLoad, setDroneNote } = useTools();
 
     const [settings, setSettings] = useState({
         numNotes: 12,
         noteType: 'chromatic',
         showBarlines: true,
-        fontSize: 2.7, // Changed to a safer default that should fit on one line
+        fontSize: 2.7,
         barlineFrequency: 4,
         avoidRepeats: true,
     });
@@ -38,11 +38,11 @@ export const useNoteGenerator = () => {
                 setIsAutoGenerateOn(presetToLoad.automation.isAutoGenerateOn);
                 setAutoGenerateInterval(presetToLoad.automation.autoGenerateInterval);
                 setCountdownClicks(presetToLoad.automation.countdownClicks);
-                setCountdownMode(presetToLoad.automation.countdownMode);
+                // The non-functional countdownMode setting is safely ignored here
             }
             clearPresetToLoad();
         }
-    }, [presetToLoad, clearPresetToLoad, setCountdownClicks, setCountdownMode]);
+    }, [presetToLoad, clearPresetToLoad, setCountdownClicks]);
 
     const generateNotes = useCallback(() => {
         const naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -125,17 +125,16 @@ export const useNoteGenerator = () => {
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-    // Check if the user is typing in an input field.
-    const targetTagName = event.target.tagName.toLowerCase();
-    if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
-        return; // If so, do nothing and let the browser handle the typing.
-    }
+            const targetTagName = event.target.tagName.toLowerCase();
+            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+                return;
+            }
 
-    if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        generateNotes();
-    }
-};
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                generateNotes();
+            }
+        };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [generateNotes]);
@@ -157,7 +156,6 @@ export const useNoteGenerator = () => {
         isControlsOpen, setIsControlsOpen,
         isInfoModalOpen, setIsInfoModalOpen,
         countdownClicks, setCountdownClicks,
-        countdownMode, setCountdownMode,
         handleLogProgress,
         generateNotes
     };

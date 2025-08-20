@@ -7,7 +7,6 @@ export const useMetronomeLogic = (unlockAudio) => {
     const [metronomeVolume, setMetronomeVolume] = useState(-10);
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
     const [countdownClicks, setCountdownClicks] = useState(4);
-    const [countdownMode, setCountdownMode] = useState('every');
     const [isCountdownReady, setIsCountdownReady] = useState(false);
     
     const metronomePlayer = useRef(null);
@@ -50,7 +49,6 @@ export const useMetronomeLogic = (unlockAudio) => {
         transport.bpm.value = bpm;
         if (transportEventRef.current.id) transport.clear(transportEventRef.current.id);
         
-        // This check is important if stop() wasn't called properly
         if (transport.state === 'stopped') {
             transportEventRef.current.beatCounter = 0;
         }
@@ -65,7 +63,9 @@ export const useMetronomeLogic = (unlockAudio) => {
             const countIn = countdownClicks > 0 ? countdownClicks : 0;
             const cycleLength = mainInterval + countIn;
             const positionInCycle = transportEventRef.current.beatCounter % cycleLength;
+            
             if (positionInCycle === 0) task.callback();
+            
             if (positionInCycle < countIn) {
                 const countdownNumber = positionInCycle;
                 if (countdownNumber < countdownPlayers.current.length && countdownPlayers.current[countdownNumber]?.loaded) {
@@ -87,7 +87,6 @@ export const useMetronomeLogic = (unlockAudio) => {
         const transport = Tone.getTransport();
         transport.stop();
         transport.cancel(); 
-        // THIS IS THE KEY FIX: Force the timeline position back to zero.
         transport.position = 0; 
         transportEventRef.current.id = null;
         transportEventRef.current.beatCounter = 0;
@@ -97,7 +96,7 @@ export const useMetronomeLogic = (unlockAudio) => {
     const setMetronomeSchedule = useCallback((task) => {
         const wasPlaying = Tone.getTransport().state === 'started';
         if (wasPlaying) {
-            stopMetronome(); // Use the unified stop function
+            stopMetronome();
         }
         scheduledTaskRef.current = task;
         if (wasPlaying) {
@@ -115,5 +114,5 @@ export const useMetronomeLogic = (unlockAudio) => {
         if (isMetronomePlaying) Tone.getTransport().bpm.value = bpm;
     }, [bpm, isMetronomePlaying]);
 
-    return { bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady, setMetronomeSchedule, countdownClicks, setCountdownClicks, countdownMode, setCountdownMode };
+    return { bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady, setMetronomeSchedule, countdownClicks, setCountdownClicks };
 };

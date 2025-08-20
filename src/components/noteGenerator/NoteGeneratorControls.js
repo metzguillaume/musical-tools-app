@@ -9,8 +9,6 @@ export const NoteGeneratorControls = ({
     onIntervalChange,
     countdownClicks,
     onCountdownChange,
-    countdownMode,
-    onCountdownModeChange,
     onSavePreset
 }) => (
     <div className="flex flex-col gap-4">
@@ -42,7 +40,6 @@ export const NoteGeneratorControls = ({
             </div>
         </div>
 
-        {/* NEW: Avoid Repeats Toggle */}
         <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
             <span className="font-semibold text-lg">Avoid Repeats</span>
             <div className="relative inline-flex items-center cursor-pointer">
@@ -60,7 +57,6 @@ export const NoteGeneratorControls = ({
                 </div>
             </label>
 
-            {/* NEW: Barline Frequency Input (conditional) */}
             {settings.showBarlines && (
                 <div className="flex items-center justify-between pl-4">
                     <label htmlFor="barline-freq" className="font-semibold text-md">Every:</label>
@@ -80,7 +76,6 @@ export const NoteGeneratorControls = ({
         </div>
         
         <div className="pt-4 border-t border-slate-600 space-y-4">
-           {/* ... Automation controls remain the same ... */}
             <div className="flex items-center justify-between">
                 <label htmlFor="auto-generate" className="font-semibold text-lg text-teal-300">Auto-Generate:</label>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -94,11 +89,7 @@ export const NoteGeneratorControls = ({
             </div>
             <div className="flex items-center justify-between">
                 <label htmlFor="countdown-clicks" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown:</label>
-                <div className="flex items-center gap-2"><input type="number" id="countdown-clicks" value={countdownClicks} onChange={(e) => onCountdownChange(Math.max(0, parseInt(e.target.value, 10) || 0))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="0" max="7" disabled={!isAutoGenerateOn} /><span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span></div>
-            </div>
-            <div>
-                <label className={`font-semibold block mb-2 text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown Mode:</label>
-                <div className="flex bg-slate-600 rounded-md p-1"><button disabled={!isAutoGenerateOn} onClick={() => onCountdownModeChange('every')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'every' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Every Time</button><button disabled={!isAutoGenerateOn} onClick={() => onCountdownModeChange('first')} className={`flex-1 rounded-md text-sm py-1 disabled:cursor-not-allowed ${countdownMode === 'first' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>First Time Only</button></div>
+                <div className="flex items-center gap-2"><input type="number" id="countdown-clicks" value={countdownClicks} onChange={(e) => onCountdownChange(Math.max(0, parseInt(e.target.value, 10)) || 0)} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="0" max="7" disabled={!isAutoGenerateOn} /><span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span></div>
             </div>
         </div>
         <div className="border-t border-slate-600 pt-4 mt-4">

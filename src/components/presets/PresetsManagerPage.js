@@ -5,6 +5,29 @@ import SectionHeader from '../common/SectionHeader';
 import PresetEditorModal from './PresetEditorModal';
 import InfoButton from '../common/InfoButton';
 
+// A mapping to group each tool/game into a larger category
+const gameToCategoryMap = {
+    'Note Generator': 'Generators',
+    'Interval Generator': 'Generators',
+    'Chord Progression Generator': 'Generators',
+    'Diagram Maker': 'Generators',
+    'Interval Practice': 'Theory',
+    'Triad & Tetrads Quiz': 'Theory',
+    'Chord Trainer': 'Theory',
+    'Fretboard Intervals': 'Fretboard',
+    'CAGED System Quiz': 'Fretboard',
+    'Interval Recognition': 'Ear Training',
+    'Melodic Recognition': 'Ear Training',
+};
+
+// Defines the desired rendering order for categories and modules
+const categoryOrder = [
+    { name: 'Generators', modules: ['Note Generator', 'Interval Generator', 'Chord Progression Generator', 'Diagram Maker'] },
+    { name: 'Theory', modules: ['Interval Practice', 'Triad & Tetrads Quiz', 'Chord Trainer'] },
+    { name: 'Fretboard', modules: ['Fretboard Intervals', 'CAGED System Quiz'] },
+    { name: 'Ear Training', modules: ['Interval Recognition', 'Melodic Recognition'] }
+];
+
 const ImportSelectionModal = ({ presetsFromFile, onImport, onCancel }) => {
     const [selectedIds, setSelectedIds] = useState(() => presetsFromFile.map(p => p.id));
 
@@ -73,7 +96,7 @@ const PresetsManagerPage = () => {
         return names;
     }, [presets, cleanupGame]);
 
-    const groupedPresets = useMemo(() => {
+    const categorizedPresets = useMemo(() => {
         let processed = [...presets];
         if (searchQuery) processed = processed.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
         if (gameFilter !== 'All') processed = processed.filter(p => p.gameName === gameFilter);
@@ -81,7 +104,10 @@ const PresetsManagerPage = () => {
         else if (typeFilter === 'Custom') processed = processed.filter(p => !p.isDefault);
         
         return processed.reduce((acc, preset) => {
-            (acc[preset.gameName] = acc[preset.gameName] || []).push(preset);
+            const category = gameToCategoryMap[preset.gameName] || 'Other';
+            if (!acc[category]) acc[category] = {};
+            if (!acc[category][preset.gameName]) acc[category][preset.gameName] = [];
+            acc[category][preset.gameName].push(preset);
             return acc;
         }, {});
     }, [presets, searchQuery, gameFilter, typeFilter]);
@@ -95,16 +121,15 @@ const PresetsManagerPage = () => {
         });
     };
 
-    const handleToggleFolder = (gameName) => {
-        const folderPresetIds = groupedPresets[gameName].map(p => p.id);
-        const allInFolderSelected = folderPresetIds.every(id => selection.has(id));
-
+    const handleToggleFolder = (presetsInFolder) => {
+        const folderIds = presetsInFolder.map(p => p.id);
+        const allSelected = folderIds.every(id => selection.has(id));
         setSelection(prev => {
             const newSelection = new Set(prev);
-            if (allInFolderSelected) {
-                folderPresetIds.forEach(id => newSelection.delete(id));
+            if (allSelected) {
+                folderIds.forEach(id => newSelection.delete(id));
             } else {
-                folderPresetIds.forEach(id => newSelection.add(id));
+                folderIds.forEach(id => newSelection.add(id));
             }
             return newSelection;
         });
@@ -248,65 +273,95 @@ const PresetsManagerPage = () => {
             </div>
             
             <div className="space-y-4">
-                {Object.keys(groupedPresets).sort().map(gameName => {
-                    const folderPresets = groupedPresets[gameName];
-                    const allInFolderSelected = folderPresets.length > 0 && folderPresets.every(p => selection.has(p.id));
+                {categoryOrder.map(category => {
+                    const categoryName = category.name;
+                    const modules = categorizedPresets[categoryName];
+
+                    if (!modules) return null;
+
+                    const allPresetsInCategory = Object.values(modules).flat();
+                    const allInCategorySelected = allPresetsInCategory.length > 0 && allPresetsInCategory.every(p => selection.has(p.id));
 
                     return (
-                        <details key={gameName} className="group">
+                        <details key={categoryName} className="bg-slate-800 rounded-lg">
                             <summary className="list-none">
-                                <div className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-700/50">
+                                <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-700/50 rounded-t-lg">
                                     <span className="transform transition-transform duration-200 group-open:rotate-90">▶</span>
-                                    <h3 className="flex-grow text-xl font-bold text-indigo-300">{gameName} <span className="text-gray-400 font-normal">({groupedPresets[gameName].length})</span></h3>
+                                    <h2 className="flex-grow text-2xl font-bold text-teal-300">{categoryName}</h2>
                                     {isSelectionMode && (
                                         <button
-                                            onClick={(e) => {
-                                                e.preventDefault(); 
-                                                handleToggleFolder(gameName);
-                                            }}
+                                            onClick={(e) => { e.preventDefault(); handleToggleFolder(allPresetsInCategory); }}
                                             className="text-sm font-semibold bg-slate-600 hover:bg-slate-500 px-3 py-1 rounded-md flex-shrink-0"
                                         >
-                                            {allInFolderSelected ? 'Deselect All' : 'Select All'}
+                                            {allInCategorySelected ? 'Deselect All' : 'Select All'}
                                         </button>
                                     )}
                                 </div>
                             </summary>
-                            <div className="p-2 border border-t-0 border-slate-700 rounded-b-lg space-y-2">
-                                {folderPresets.map(preset => {
-                                    const isSelected = selection.has(preset.id);
+                            <div className="p-2 md:p-4 border-t border-slate-700 space-y-3">
+                                {category.modules.map(gameName => {
+                                    const folderPresets = modules[gameName];
+                                    
+                                    if (!folderPresets) return null;
+
+                                    const allInFolderSelected = folderPresets.length > 0 && folderPresets.every(p => selection.has(p.id));
+
                                     return (
-                                     <div 
-                                        key={preset.id} 
-                                        onClick={isSelectionMode ? () => toggleSelection(preset.id) : undefined}
-                                        className={`p-3 rounded-lg flex items-center gap-4 transition-all duration-150 
-                                            ${isSelectionMode ? 'cursor-pointer' : ''}
-                                            ${isSelected ? 'bg-indigo-800 ring-2 ring-indigo-400' : (preset.isDefault ? 'bg-slate-900/50' : 'bg-slate-700')}
-                                        `}>
-                                        <div className="flex-grow">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-teal-300">{preset.name}</span>
-                                                {preset.isDefault && (<span className="text-xs bg-gray-600 text-gray-300 font-semibold px-2 py-0.5 rounded-full">Default</span>)}
+                                        <details key={gameName} className="group bg-slate-900/50 rounded-lg">
+                                            <summary className="list-none">
+                                                <div className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-800/50 rounded-t-lg">
+                                                    <span className="transform transition-transform duration-200 group-open:rotate-90 text-sm">▶</span>
+                                                    <h3 className="flex-grow text-lg font-semibold text-indigo-300">{gameName} <span className="text-gray-400 font-normal text-sm">({folderPresets.length})</span></h3>
+                                                    {isSelectionMode && (
+                                                        <button
+                                                            onClick={(e) => { e.preventDefault(); handleToggleFolder(folderPresets); }}
+                                                            className="text-xs font-semibold bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded-md flex-shrink-0"
+                                                        >
+                                                            {allInFolderSelected ? 'Deselect All' : 'Select All'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </summary>
+                                            <div className="p-2 space-y-2">
+                                                {folderPresets.map(preset => {
+                                                    const isSelected = selection.has(preset.id);
+                                                    return (
+                                                     <div 
+                                                        key={preset.id} 
+                                                        onClick={isSelectionMode ? () => toggleSelection(preset.id) : undefined}
+                                                        className={`p-3 rounded-lg flex items-center gap-4 transition-all duration-150 
+                                                            ${isSelectionMode ? 'cursor-pointer' : ''}
+                                                            ${isSelected ? 'bg-indigo-800 ring-2 ring-indigo-400' : 'bg-slate-700'}
+                                                        `}>
+                                                        <div className="flex-grow">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-teal-300">{preset.name}</span>
+                                                                {preset.isDefault && (<span className="text-xs bg-gray-600 text-gray-300 font-semibold px-2 py-0.5 rounded-full">Default</span>)}
+                                                            </div>
+                                                            {preset.lastUsed && !preset.isDefault && (<span className="text-xs text-gray-500 italic mt-1 block">Used: {new Date(preset.lastUsed).toLocaleDateString()}</span>)}
+                                                        </div>
+                                                        {!isSelectionMode && (
+                                                            <div className="flex-shrink-0 flex gap-2">
+                                                                <button onClick={() => loadPreset(preset)} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded text-sm">Load</button>
+                                                                {!preset.isDefault && (
+                                                                    <>
+                                                                        <button onClick={() => setEditingPreset(preset)} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-3 rounded text-sm">Edit</button>
+                                                                        <button onClick={() => deleteSelectedPresets([preset.id])} className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-3 rounded text-sm">Delete</button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )})}
                                             </div>
-                                            {preset.lastUsed && !preset.isDefault && (<span className="text-xs text-gray-500 italic mt-1 block">Used: {new Date(preset.lastUsed).toLocaleDateString()}</span>)}
-                                        </div>
-                                        {!isSelectionMode && (
-                                            <div className="flex-shrink-0 flex gap-2">
-                                                <button onClick={() => loadPreset(preset)} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded text-sm">Load</button>
-                                                {!preset.isDefault && (
-                                                    <>
-                                                        <button onClick={() => setEditingPreset(preset)} className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 px-3 rounded text-sm">Edit</button>
-                                                        <button onClick={() => deleteSelectedPresets([preset.id])} className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-3 rounded text-sm">Delete</button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )})}
+                                        </details>
+                                    );
+                                })}
                             </div>
                         </details>
                     );
                 })}
-                 {Object.keys(groupedPresets).length === 0 && <p className="text-center text-gray-400 py-4">No presets match your filters.</p>}
+                 {Object.keys(categorizedPresets).length === 0 && <p className="text-center text-gray-400 py-4">No presets match your filters.</p>}
             </div>
 
             <input type="file" ref={fileInputRef} onChange={handleFileSelected} accept=".json" className="hidden" />

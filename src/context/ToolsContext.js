@@ -18,7 +18,7 @@ export const ToolsProvider = ({ children }) => {
     const [activeTool, setActiveTool] = useState(null);
     const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
     
-    // NAVIGATION STATE & HANDLERS ARE NOW MANAGED BY THE CONTEXT
+    // Navigation state is now managed by the context
     const [activeTab, setActiveTab] = useState('welcome');
     const [openCategory, setOpenCategory] = useState(null);
     
@@ -77,7 +77,7 @@ export const ToolsProvider = ({ children }) => {
         toggleActiveTool(null); 
     }, [presets]);
     
-    // --- Challenge Runner Functions (no changes needed here) ---
+    // --- Challenge Runner Functions ---
     const startChallenge = useCallback((challenge) => {
         unlockAudio();
         challengesLogic.updateChallengeLastPlayed(challenge.id);
@@ -107,7 +107,6 @@ export const ToolsProvider = ({ children }) => {
     const value = {
         unlockAudio,
         activeTool, toggleActiveTool,
-        // Provide navigation state and handlers to all components
         activeTab, navigate, openCategory, handleCategoryClick,
         ...log,
         ...metronome,
@@ -117,7 +116,6 @@ export const ToolsProvider = ({ children }) => {
         ...audioPlayers,
         ...presets,
         ...challengesLogic,
-        // Wrapper functions to pass dependencies at call time
         exportChallenge: (c) => challengesLogic.exportChallenge(c, presets.presets),
         exportFolder: (id) => challengesLogic.exportFolder(id, presets.presets),
         importChallenges: (f) => challengesLogic.importChallenges(f, presets.savePreset),

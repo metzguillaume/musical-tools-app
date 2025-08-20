@@ -2,19 +2,15 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
 
 export const useIntervalGenerator = () => {
-    // Get preset and automation tools from context
     const { 
         addLogEntry, 
         setMetronomeSchedule, 
         countdownClicks, 
         setCountdownClicks, 
-        countdownMode, 
-        setCountdownMode,
         presetToLoad,
         clearPresetToLoad
     } = useTools();
     
-    // State for generator-specific settings
     const [settings, setSettings] = useState({
         numIntervals: 1,
         selectedQualities: {
@@ -25,7 +21,6 @@ export const useIntervalGenerator = () => {
         displayMode: 'stacked',
     });
 
-    // State for non-setting values (display, automation, etc.)
     const [generatedIntervals, setGeneratedIntervals] = useState([]);
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
     const [autoGenerateInterval, setAutoGenerateInterval] = useState(1);
@@ -33,7 +28,6 @@ export const useIntervalGenerator = () => {
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [fontSize, setFontSize] = useState(4); 
 
-    // Load preset data when it becomes available
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'interval-generator') {
             setSettings(presetToLoad.settings);
@@ -41,15 +35,14 @@ export const useIntervalGenerator = () => {
                 setIsAutoGenerateOn(presetToLoad.automation.isAutoGenerateOn);
                 setAutoGenerateInterval(presetToLoad.automation.autoGenerateInterval);
                 setCountdownClicks(presetToLoad.automation.countdownClicks);
-                setCountdownMode(presetToLoad.automation.countdownMode);
+                // The non-functional countdownMode setting is safely ignored here
             }
-            // Also load display settings like font size
             if (presetToLoad.display) {
                 setFontSize(presetToLoad.display.fontSize);
             }
             clearPresetToLoad();
         }
-    }, [presetToLoad, clearPresetToLoad, setCountdownClicks, setCountdownMode]);
+    }, [presetToLoad, clearPresetToLoad, setCountdownClicks]);
 
     const intervalData = useMemo(() => ({
         "Unison/Octave": [{ name: 'Perfect Unison', quality: 'Perfect'}, { name: 'Perfect Octave', quality: 'Perfect'}],
@@ -93,8 +86,6 @@ export const useIntervalGenerator = () => {
         generateIntervals();
     }, [generateIntervals]);
 
-    
-
     useEffect(() => {
         if (isAutoGenerateOn) {
             setMetronomeSchedule({ callback: scheduledGenerate, interval: autoGenerateInterval });
@@ -105,16 +96,16 @@ export const useIntervalGenerator = () => {
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-    const targetTagName = event.target.tagName.toLowerCase();
-    if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
-        return;
-    }
+            const targetTagName = event.target.tagName.toLowerCase();
+            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+                return;
+            }
 
-    if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        generateIntervals();
-    }
-};
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                generateIntervals();
+            }
+        };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [generateIntervals]);
@@ -139,7 +130,6 @@ export const useIntervalGenerator = () => {
         isControlsOpen, setIsControlsOpen,
         isInfoModalOpen, setIsInfoModalOpen,
         countdownClicks, setCountdownClicks,
-        countdownMode, setCountdownMode,
         generateIntervals,
         handleLogSession,
     };

@@ -5,10 +5,8 @@ import InfoModal from '../common/InfoModal';
 import { NoteGeneratorControls } from '../noteGenerator/NoteGeneratorControls';
 import { IntervalGeneratorControls } from '../intervalGenerator/IntervalGeneratorControls';
 import { ChordProgressionGeneratorControls } from '../chordProgressionGenerator/ChordProgressionGeneratorControls';
-// --- FIX: The import for IntervalsQuizControls now points to the correct file ---
 import { IntervalsQuizControls } from '../intervalsQuiz/IntervalsQuizControls';
 import { intervalData } from '../intervalsQuiz/useIntervalsQuiz';
-// --- END FIX ---
 import { TriadQuizControls } from '../triadQuiz/TriadQuizControls';
 import { IntervalFretboardQuizControls } from '../intervalFretboardQuiz/IntervalFretboardQuizControls';
 import { CagedQuizControls } from '../caged/CagedQuizControls';
@@ -115,15 +113,13 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                  };
             
             case 'chord-progression-generator':
-                // This component has many specific handlers that need to be mapped
                 return {
                     ...baseProps,
                     openSections: openSections,
                     onToggleSection: toggleSection,
                     onSettingChange: (key, value) => setEditedPreset(p => ({...p, settings: {...p.settings, [key]: value}})),
                     onQualityFilterChange: (filter) => setEditedPreset(p => ({ ...p, settings: { ...p.settings, qualityFilter: filter, useCommonPatterns: filter !== 'all' ? false : p.settings.useCommonPatterns }})),
-                    onRandomRootNote: () => {}, // Not used in editor
-                    // Automation settings are stored differently for this component, so we map them
+                    onRandomRootNote: () => {},
                     isAutoGenerateOn: editedPreset.automation?.isAutoGenerateOn || false,
                     onAutoGenerateToggle: () => setEditedPreset(p => ({...p, automation: {...p.automation, isAutoGenerateOn: !p.automation?.isAutoGenerateOn }})),
                     autoGenerateInterval: editedPreset.automation?.autoGenerateInterval || 1,
@@ -131,9 +127,21 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                     countdownClicks: editedPreset.automation?.countdownClicks || 0,
                     onCountdownChange: (val) => setEditedPreset(p => ({...p, automation: {...p.automation, countdownClicks: val }})),
                 };
-
+            
+            // This default case handles NoteGenerator, IntervalGenerator, and others with similar automation props
             default:
-                // Most other controls components use a simple props structure
+                const hasAutomation = preset.gameId === 'note-generator' || preset.gameId === 'interval-generator';
+                if (hasAutomation) {
+                    return {
+                        ...baseProps,
+                        isAutoGenerateOn: editedPreset.automation?.isAutoGenerateOn || false,
+                        onAutoGenerateToggle: () => setEditedPreset(p => ({...p, automation: {...p.automation, isAutoGenerateOn: !p.automation?.isAutoGenerateOn }})),
+                        autoGenerateInterval: editedPreset.automation?.autoGenerateInterval || 1,
+                        onIntervalChange: (val) => setEditedPreset(p => ({...p, automation: {...p.automation, autoGenerateInterval: val }})),
+                        countdownClicks: editedPreset.automation?.countdownClicks || 0,
+                        onCountdownChange: (val) => setEditedPreset(p => ({...p, automation: {...p.automation, countdownClicks: val }})),
+                    };
+                }
                 return baseProps;
         }
     };

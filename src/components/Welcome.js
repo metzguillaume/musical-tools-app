@@ -78,21 +78,16 @@ const Welcome = () => {
                     <SectionHeader title="Master Your Workflow" />
                     <div className="bg-slate-700/50 p-6 rounded-lg mt-6 space-y-6">
                         <div>
-                            <h4 className="font-bold text-xl text-amber-300 mb-2">Build Your Library in the Preset Manager</h4>
+                            <h4 className="font-bold text-xl text-amber-300 mb-2">The Global Toolkit: Your Practice Companion</h4>
                             <p className="text-lg text-gray-300">
-                                The **Preset Manager** is where you build your personal library of exercises. You can create and save presets, edit their parameters, and organize them. You can also import and export preset files to share them with others.
+                                The floating toolbar on the side of the screen is your command center, accessible at any time. Use it to accompany any practice session with essential utilities like the Metronome, a pitch Drone, a Timer, or a Stopwatch. It also provides quick access to your Practice Log and saved Presets.
                             </p>
                         </div>
                         <div className="border-t border-slate-600 pt-6">
-                            <h4 className="font-bold text-xl text-amber-300 mb-2">Unleash Your Potential with the Challenge Hub</h4>
+                            <h4 className="font-bold text-xl text-amber-300 mb-2">Unleash Your Potential with Presets & Challenges</h4>
                             <p className="text-lg text-gray-300">
-                                This is where the app comes together. The **Challenge Hub** allows you to combine your saved presets into powerful, multi-step workout routines. Create custom folders to organize your challenges and choose from different challenge types:
+                                The **Preset Manager** is where you build your personal library of exercises. After configuring a module, you can save its settings as a named preset. Then, visit the **Challenge Hub** to combine these presets into powerful, multi-step workout routines, complete with custom goals and scoring.
                             </p>
-                            <ul className="list-disc list-inside text-gray-300 mt-4 pl-4 space-y-2">
-                                <li><strong>Practice Routine:</strong> A standard workout with time-based or question-based goals for each step.</li>
-                                <li><strong>The Gauntlet:</strong> A race against the clock to answer a set number of questions as fast as possible.</li>
-                                <li><strong>The Streak:</strong> A test of consistency where one wrong answer ends the challenge.</li>
-                            </ul>
                         </div>
                         <div className="border-t border-slate-600 pt-6">
                             <h4 className="font-bold text-xl text-amber-300 mb-2">Track Everything in the Scoreboard & Log</h4>

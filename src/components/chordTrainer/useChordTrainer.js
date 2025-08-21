@@ -31,6 +31,15 @@ const COMMON_PATTERNS = {
     ]
 };
 
+const normalizeAnswer = (str) => {
+    if (typeof str !== 'string') return '';
+    return str
+        .toLowerCase()
+        .replace(/min/g, 'm')
+        .replace(/[,\s-]+/g, ' ')
+        .trim();
+};
+
 export const useChordTrainer = (settings, onProgressUpdate) => {
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [userAnswer, setUserAnswer] = useState('');
@@ -102,19 +111,18 @@ export const useChordTrainer = (settings, onProgressUpdate) => {
             }
         }
         
-        // --- UPDATED DYNAMIC REMINDER LOGIC ---
         let baseMessage = '';
         switch (mode) {
-            case 1: // Name Chord
-            case 2: // Progression
-            case 3: // Transpose
+            case 1:
+            case 2:
+            case 3:
                 if (use7thChords) {
                     baseMessage = "Tetrad mode is active. Correct answers look like this: Cmaj7 G#7 Bbm7b5";
                 } else {
                     baseMessage = "Correct answers look like this: C G#m Bbdim";
                 }
                 break;
-            case 4: // Name Numeral
+            case 4:
                 if (use7thChords) {
                     baseMessage = "Provide the Roman numeral (e.g., I ii vii°). The '7' is implied and should not be written.";
                 } else {
@@ -132,7 +140,6 @@ export const useChordTrainer = (settings, onProgressUpdate) => {
         } else {
             reminder = baseMessage;
         }
-        // --- END UPDATED LOGIC ---
 
         setCurrentQuestion({ prompt, answer, key, mode, reminder });
         setUserAnswer('');
@@ -145,7 +152,10 @@ export const useChordTrainer = (settings, onProgressUpdate) => {
 
     const checkAnswer = useCallback((answer, autoAdvance) => {
         if (feedback || !currentQuestion || currentQuestion.type === 'error') return;
-        const isCorrect = answer.trim().replace(/\s+/g, ' ').toLowerCase() === currentQuestion.answer.toLowerCase();
+        
+        const normalizedUserAnswer = normalizeAnswer(answer);
+        const normalizedCorrectAnswer = normalizeAnswer(currentQuestion.answer);
+        const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
         
         const newScore = isCorrect ? score + 1 : score;
         const newTotalAsked = history.length + 1;

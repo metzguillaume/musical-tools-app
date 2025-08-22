@@ -73,43 +73,34 @@ const GlobalTools = () => {
                 </div>
             </div>
 
-            {/* --- MODIFIED DESKTOP SIDEBAR CONTAINER --- */}
             <div className={`fixed z-30 bg-slate-900/80 backdrop-blur-sm
                          bottom-0 left-0 right-0 p-2 flex flex-row items-center justify-start gap-2 border-t border-slate-700 overflow-x-auto
-                         md:left-5 md:top-48 md:bottom-6
-                         md:flex-col md:items-stretch md:p-3 md:gap-3 md:border-t-0 md:rounded-lg md:border
-                         transition-all duration-300 ${activeTool === 'log' || activeTool === 'presets' ? 'md:w-96' : 'md:w-80'}`}>
-                
-                <h2 className="hidden md:block text-center pb-2 font-bold text-xl text-teal-300 flex-shrink-0">
-                    General Tools
-                </h2>
-
-                <div className="md:flex-grow md:overflow-y-auto md:flex md:flex-col md:gap-3 md:min-h-0">
-                    {tools.map(tool => {
-                        const ToolComponent = tool.Component;
-                        return (
-                            <div key={tool.name} className="bg-slate-800 rounded-lg shadow-lg border border-slate-700 flex-shrink-0 md:flex md:flex-col">
-                                <div className="flex items-center flex-shrink-0">
-                                    <button onClick={() => handleToggleTool(tool.name)} className="flex-grow text-left font-bold py-2 px-3 md:py-3 md:px-4 text-white hover:bg-indigo-700 rounded-l-lg text-sm md:text-base">
-                                        {tool.label}
+                         md:top-1/4 md:left-5 md:right-auto md:bottom-5 md:flex-col md:items-stretch md:p-3 md:gap-2 md:border-t-0 md:rounded-lg md:border
+                         transition-all duration-300 ${activeTool === 'log' || activeTool === 'presets' ? 'md:w-96' : 'md:w-64'}`}>
+                {tools.map(tool => {
+                    const ToolComponent = tool.Component;
+                    return (
+                        <div key={tool.name} className="bg-slate-800 rounded-lg shadow-lg border border-slate-700 flex-shrink-0 md:flex md:flex-col">
+                            <div className="flex items-center flex-shrink-0">
+                                <button onClick={() => handleToggleTool(tool.name)} className="flex-grow text-left font-bold py-2 px-3 md:py-3 md:px-4 text-white hover:bg-indigo-700 rounded-l-lg text-sm md:text-base">
+                                    {tool.label}
+                                </button>
+                                {!tool.hidePlayPause && (
+                                    <button onClick={(e) => handlePlayPause(e, tool.name)} disabled={tool.name === 'stopwatch' && isStopwatchLocked} className="p-2 md:p-3 text-white hover:bg-indigo-700 rounded-r-lg disabled:text-gray-500">
+                                        {tool.isPlaying ? <PauseIcon /> : <PlayIcon />}
                                     </button>
-                                    {!tool.hidePlayPause && (
-                                        <button onClick={(e) => handlePlayPause(e, tool.name)} disabled={tool.name === 'stopwatch' && isStopwatchLocked} className="p-2 md:p-3 text-white hover:bg-indigo-700 rounded-r-lg disabled:text-gray-500">
-                                            {tool.isPlaying ? <PauseIcon /> : <PlayIcon />}
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="hidden md:block md:flex-grow md:overflow-y-auto">
-                                    {activeTool === tool.name && (
-                                        <div className="border-t border-slate-700 h-full">
-                                           {tool.name === 'stopwatch' ? <ToolComponent isLocked={isStopwatchLocked} /> : <ToolComponent />}
-                                        </div>
-                                    )}
-                                </div>
+                                )}
                             </div>
-                        );
-                    })}
-                </div>
+                            <div className="hidden md:block md:flex-grow md:overflow-y-auto">
+                                {activeTool === tool.name && (
+                                    <div className="border-t border-slate-700 h-full">
+                                       {tool.name === 'stopwatch' ? <ToolComponent isLocked={isStopwatchLocked} /> : <ToolComponent />}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </>
     );

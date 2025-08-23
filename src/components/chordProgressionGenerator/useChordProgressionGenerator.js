@@ -8,14 +8,44 @@ const rootNoteOptions = ['C', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'F#', 'B', 'E', 'A', 
 
 const COMMON_PATTERNS = {
     'Major': [
-        ['I', 'V', 'vi', 'IV'], ['I', 'IV', 'V', 'IV'], ['vi', 'IV', 'I', 'V'], ['I', 'vi', 'ii', 'V'],
-        ['I', 'iii', 'vi', 'IV'], ['ii', 'V', 'I', 'vi'], ['I', 'V', 'ii', 'IV'], ['vi', 'ii', 'V', 'I'],
-        ['I', 'IV', 'vi', 'V'], ['iii', 'vi', 'IV', 'V']
+        ['I', 'V', 'vi', 'IV'],           // Pop classic (Axis of Awesome)
+        ['I', 'IV', 'V', 'IV'],           // Folk/rock
+        ['vi', 'IV', 'I', 'V'],           // 90s pop
+        ['I', 'vi', 'ii', 'V'],           // Standard jazz turnaround
+        ['I', 'iii', 'vi', 'IV'],         // Ballad-style
+        ['ii', 'V', 'I', 'vi'],           // Circle of fifths
+        ['I', 'V', 'ii', 'IV'],           // Folk/pop
+        ['vi', 'ii', 'V', 'I'],           // Jazz-pop turnaround
+        ['I', 'IV', 'vi', 'V'],           // 50s progression variant
+        ['iii', 'vi', 'IV', 'V'],         // 80s pop
+        // New additions
+        ['I', 'V', 'IV', 'I'],            // Hymn/Gospel cadence
+        ['IV', 'I', 'V', 'I'],            // Classical plagal/half cadence
+        ['I', 'vi', 'IV', 'V'],           // Doo-wop progression
+        ['ii', 'V', 'I', 'IV'],           // Standard jazz/pop
+        ['I', 'IV', 'V', 'I'],            // Classical/rock
+        ['iii', 'vi', 'ii', 'V'],         // Jazz/extended cycle
+        ['vi', 'I', 'V', 'IV']            // Pop-folk ballad
     ],
     'Minor': [
-        ['i', 'VI', 'III', 'VII'], ['i', 'iv', 'v', 'iv'], ['i', 'iv', 'VII', 'III'], ['ii°', 'v', 'i', 'VI'],
-        ['i', 'VII', 'VI', 'V'], ['i', 'iv', 'V', 'i'], ['iv', 'i', 'VII', 'III'], ['i', 'VI', 'iv', 'V'],
-        ['v', 'VI', 'III', 'VII'], ['i', 'III', 'VII', 'iv']
+        ['i', 'VI', 'III', 'VII'],        // Natural minor
+        ['i', 'iv', 'v', 'iv'],           // Aeolian feel
+        ['i', 'iv', 'VII', 'III'],        // Folk/cinematic
+        ['ii°', 'v', 'i', 'VI'],          // Functional cadence
+        ['i', 'VII', 'VI', 'V'],          // Andalusian cadence
+        ['i', 'iv', 'V', 'i'],            // Minor w/ harmonic V
+        ['iv', 'i', 'VII', 'III'],        // Dark folk
+        ['i', 'VI', 'iv', 'V'],           // Minor pop/rock
+        ['v', 'VI', 'III', 'VII'],        // Modal color
+        ['i', 'III', 'VII', 'iv'],        // Melancholic folk
+        // New additions
+        ['i', 'iv', 'i', 'V'],            // Classical minor cadence
+        ['i', 'VI', 'III', 'iv'],         // Film score feel
+        ['iv', 'VII', 'i', 'V'],          // Rock/metal minor
+        ['i', 'VII', 'i', 'iv'],          // Aeolian loop
+        ['ii°', 'V', 'i', 'VII'],         // Functional minor turnaround
+        ['i', 'iv', 'VI', 'VII'],         // Dramatic/suspense
+        ['i', 'v', 'VI', 'III']           // Common in Baroque minor
     ]
 };
 

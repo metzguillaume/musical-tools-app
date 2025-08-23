@@ -1,3 +1,5 @@
+// src/components/chordProgressionGenerator/ChordProgressionGenerator.js
+
 import React from 'react';
 import { useTools } from '../../context/ToolsContext';
 import { useChordProgressionGenerator } from './useChordProgressionGenerator';
@@ -10,6 +12,15 @@ const rootNoteOptions = ['C', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'F#', 'B', 'E', 'A', 
 const ALTERNATE_SYMBOLS = {
     'm': '-', 'maj7': '△7', 'm7': '-7',
     'dim': '°', 'aug': '+', 'm7b5': 'ø7', '7': '7'
+};
+
+const chunkArray = (arr, size) => {
+    const chunkedArr = [];
+    if (size <= 0) return [arr];
+    for (let i = 0; i < arr.length; i += size) {
+        chunkedArr.push(arr.slice(i, i + size));
+    }
+    return chunkedArr;
 };
 
 const ChordDisplay = ({ name, fontSize, useAlternateNotation }) => {
@@ -94,6 +105,25 @@ const ChordProgressionGenerator = () => {
         handleSettingChange('rootNote', newRootNote);
     };
 
+    const renderChord = (chord, key) => {
+        const chordName = settings.chordComplexity === 'Tetrads' ? chord.tetradName : chord.name;
+        const chordDegreeView = (settings.chordDegreeView === 'degrees' || settings.chordDegreeView === 'both') && settings.generationMode === 'diatonic';
+        const chordNameView = (settings.chordDegreeView === 'chords' || settings.chordDegreeView === 'both' || settings.generationMode === 'random');
+        
+        return (
+            <div key={key} className="text-center flex-shrink-0 p-2 min-w-[6rem]">
+                {chordNameView && (
+                    <ChordDisplay name={chordName} fontSize={settings.fontSize} useAlternateNotation={settings.useAlternateNotation} />
+                )}
+                {chordDegreeView && (
+                    <div style={{ fontSize: `${settings.chordDegreeView === 'both' ? settings.fontSize * 0.6 : settings.fontSize}rem` }} className={`whitespace-nowrap ${settings.chordDegreeView === 'both' ? 'text-gray-200 mt-2' : 'font-bold text-teal-300'}`}>
+                        {chord.roman}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Chord Progression Generator Guide">
@@ -102,9 +132,9 @@ const ChordProgressionGenerator = () => {
                     <div><h4 className="font-bold text-indigo-300 mb-1">How It Works</h4><p>Use the collapsible "Settings & Controls" panel to customize your progression. You can choose a root note and key, how many chords to generate, and filter the types of chords used.</p></div>
                     <div><h4 className="font-bold text-indigo-300 mb-1">Features</h4>
                         <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
+                            <li><strong className="text-teal-300">Layout Mode:</strong> Choose "Flow" for a simple wrapping list, or "Measures" to arrange chords in a grid with aligned barlines.</li>
                             <li><strong className="text-teal-300">Complexity:</strong> Switch between basic 3-note triads and richer 4-note tetrads.</li>
-                            <li><strong className="text-teal-300">Filtering:</strong> You can choose to include or exclude diminished chords, or even limit the generator to only use major or minor chords. Note: Filtering by quality will disable "Common" patterns.</li>
-                            <li><strong className="text-teal-300">Display:</strong> Change the font size with the slider and switch the display to show chord names, Roman numeral degrees, or both.</li>
+                            <li><strong className="text-teal-300">Filtering:</strong> You can choose to include or exclude diminished chords, or even limit the generator to only use major or minor chords.</li>
                         </ul>
                     </div>
                 </div>
@@ -120,30 +150,33 @@ const ChordProgressionGenerator = () => {
 
                     <div className="w-full flex flex-col items-center space-y-4 p-4 rounded-lg min-h-[10rem]">
                         {progressions.map((prog, progIndex) => (
-                            <div key={progIndex} className="w-full flex flex-wrap justify-center items-center gap-x-2 gap-y-6">
-                                {prog.map((chord, chordIndex) => {
-                                    const chordName = settings.chordComplexity === 'Tetrads' ? chord.tetradName : chord.name;
-                                    const showBarLine = settings.showBarLines && chordIndex > 0 && chordIndex % settings.chordsPerBar === 0;
-
-                                    return (
+                             settings.displayMode === 'measure' ? (
+                                <div key={progIndex} className="w-full flex flex-col items-center gap-y-6">
+                                    {chunkArray(chunkArray(prog, settings.chordsPerBar), settings.barsPerLine).map((line, lineIndex) => (
+                                        <div key={lineIndex} className="w-full flex justify-center items-center">
+                                            {line.map((bar, barIndex) => (
+                                                <React.Fragment key={barIndex}>
+                                                    {barIndex > 0 && <div className="w-px h-16 bg-slate-500 self-center" />}
+                                                    <div className="flex-1 flex justify-around items-center p-2">
+                                                        {bar.map((chord, chordIndex) => renderChord(chord, `${barIndex}-${chordIndex}`))}
+                                                    </div>
+                                                </React.Fragment>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div key={progIndex} className="w-full flex flex-wrap justify-center items-center gap-x-2 gap-y-6">
+                                    {prog.map((chord, chordIndex) => (
                                         <React.Fragment key={chordIndex}>
-                                            {showBarLine && (
+                                            {settings.flowBarlineFrequency > 0 && chordIndex > 0 && chordIndex % settings.flowBarlineFrequency === 0 && (
                                                 <div className="w-px h-16 bg-slate-500 mx-3 self-center" />
                                             )}
-                                            <div className="text-center flex-shrink-0 p-2 min-w-[6rem]">
-                                                {(settings.displayMode === 'chords' || settings.displayMode === 'both' || settings.generationMode === 'random') && (
-                                                    <ChordDisplay name={chordName} fontSize={settings.fontSize} useAlternateNotation={settings.useAlternateNotation} />
-                                                )}
-                                                {(settings.displayMode === 'degrees' || settings.displayMode === 'both') && settings.generationMode === 'diatonic' && (
-                                                    <div style={{ fontSize: `${settings.displayMode === 'both' ? settings.fontSize * 0.6 : settings.fontSize}rem` }} className={`whitespace-nowrap ${settings.displayMode === 'both' ? 'text-gray-200 mt-2' : 'font-bold text-teal-300'}`}>
-                                                        {chord.roman}
-                                                    </div>
-                                                )}
-                                            </div>
+                                            {renderChord(chord, chordIndex)}
                                         </React.Fragment>
-                                    );
-                                })}
-                            </div>
+                                    ))}
+                                </div>
+                            )
                         ))}
                     </div>
                 </div>

@@ -1,3 +1,5 @@
+// src/hooks/useChordProgressionGenerator.js
+
 import { useState, useEffect, useCallback } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import { getDiatonicChords, ROMAN_NUMERALS } from '../../utils/musicTheory';
@@ -30,14 +32,17 @@ export const useChordProgressionGenerator = () => {
         useCommonPatterns: true,
         includeDiminished: false,
         qualityFilter: 'all',
-        displayMode: 'both',
         fontSize: 3,
         useAlternateNotation: false,
         generationMode: 'diatonic',
         allowedQualities: { major: true, minor: true, diminished: false, augmented: false },
         includeSusChords: false,
-        showBarLines: true,
-        chordsPerBar: 4,
+        // Updated display settings
+        displayMode: 'measure',      // 'flow' or 'measure'
+        chordDegreeView: 'both',   // New setting: 'chords', 'degrees', or 'both'
+        chordsPerBar: 1,           // For 'measure' mode
+        barsPerLine: 4,            // For 'measure' mode
+        flowBarlineFrequency: 4    // For 'flow' mode
     });
     
     const [isAutoGenerateOn, setIsAutoGenerateOn] = useState(false);
@@ -49,7 +54,20 @@ export const useChordProgressionGenerator = () => {
 
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'chord-progression-generator') {
-            setSettings(presetToLoad.settings);
+            const presetSettings = { ...presetToLoad.settings };
+            // Handle migration for older presets
+            if (!presetSettings.chordDegreeView) {
+                presetSettings.chordDegreeView = presetSettings.displayMode || 'both';
+            }
+            if (presetSettings.showBarLines === true && !presetSettings.displayMode) {
+                presetSettings.displayMode = 'measure';
+            } else if (presetSettings.showBarLines === false && !presetSettings.displayMode) {
+                presetSettings.displayMode = 'flow';
+            }
+            delete presetSettings.showBarLines;
+
+            setSettings(s => ({...s, ...presetSettings}));
+            
             if (presetToLoad.automation) {
                 setIsAutoGenerateOn(presetToLoad.automation.isAutoGenerateOn);
                 setAutoGenerateInterval(presetToLoad.automation.autoGenerateInterval);
@@ -181,8 +199,6 @@ export const useChordProgressionGenerator = () => {
     useEffect(() => {
         handleGenerate();
     }, [handleGenerate]);
-
-    
 
     useEffect(() => {
         if (isAutoGenerateOn) {

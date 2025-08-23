@@ -1,3 +1,5 @@
+// src/components/chordProgressionGenerator/ChordProgressionGeneratorControls.js
+
 import React from 'react';
 
 const CollapsibleSection = ({ title, isOpen, onToggle, children }) => (
@@ -141,12 +143,45 @@ export const ChordProgressionGeneratorControls = ({
         </CollapsibleSection>
 
         <CollapsibleSection title="Display Settings" isOpen={openSections.display} onToggle={() => onToggleSection('display')}>
-            <div className={`${!isDiatonic && 'opacity-50 pointer-events-none'}`}>
-                <label className="font-semibold block mb-1">Display Mode</label>
+            <div>
+                <label className="font-semibold block mb-1">Layout Mode</label>
                 <div className="flex bg-slate-600 rounded-md p-1">
-                    <button onClick={() => onSettingChange('displayMode', 'chords')} className={`flex-1 rounded-md text-sm py-1 ${settings.displayMode === 'chords' ? 'bg-blue-600' : 'text-gray-300'}`} disabled={!isDiatonic}>Chords</button>
-                    <button onClick={() => onSettingChange('displayMode', 'degrees')} className={`flex-1 rounded-md text-sm py-1 ${settings.displayMode === 'degrees' ? 'bg-blue-600' : 'text-gray-300'}`} disabled={!isDiatonic}>Degrees</button>
-                    <button onClick={() => onSettingChange('displayMode', 'both')} className={`flex-1 rounded-md text-sm py-1 ${settings.displayMode === 'both' ? 'bg-blue-600' : 'text-gray-300'}`} disabled={!isDiatonic}>Both</button>
+                    <button onClick={() => onSettingChange('displayMode', 'flow')} className={`flex-1 rounded-md text-sm py-1 ${settings.displayMode === 'flow' ? 'bg-blue-600' : 'text-gray-300'}`}>Flow</button>
+                    <button onClick={() => onSettingChange('displayMode', 'measure')} className={`flex-1 rounded-md text-sm py-1 ${settings.displayMode === 'measure' ? 'bg-blue-600' : 'text-gray-300'}`}>Measures</button>
+                </div>
+            </div>
+            
+            {settings.displayMode === 'measure' && (
+                <div className="pl-2 pt-2 space-y-2 animate-fade-in-down border-l-2 border-slate-600">
+                    <div className="flex items-center justify-between">
+                        <label className="font-semibold">Chords per Bar</label>
+                        <input type="number" value={settings.chordsPerBar} onChange={e => onSettingChange('chordsPerBar', Math.max(1, parseInt(e.target.value, 10)) || 1)} className="w-20 p-2 rounded-md bg-slate-800 text-white text-center" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <label className="font-semibold">Bars per Line</label>
+                        <input type="number" value={settings.barsPerLine} onChange={e => onSettingChange('barsPerLine', Math.max(1, parseInt(e.target.value, 10)) || 1)} className="w-20 p-2 rounded-md bg-slate-800 text-white text-center" />
+                    </div>
+                </div>
+            )}
+
+            {settings.displayMode === 'flow' && (
+                 <div className="pl-2 pt-2 space-y-2 animate-fade-in-down border-l-2 border-slate-600">
+                    <div className="flex items-center justify-between">
+                        <label className="font-semibold">Barline Every</label>
+                        <div className="flex items-center gap-2">
+                            <input type="number" value={settings.flowBarlineFrequency} onChange={e => onSettingChange('flowBarlineFrequency', Math.max(0, parseInt(e.target.value, 10)) || 0)} className="w-20 p-2 rounded-md bg-slate-800 text-white text-center" />
+                             <span>chords</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            <div className={`mt-4 pt-4 border-t border-slate-700 ${!isDiatonic && 'opacity-50 pointer-events-none'}`}>
+                <label className="font-semibold block mb-1">Chord/Degree View</label>
+                <div className="flex bg-slate-600 rounded-md p-1">
+                    <button onClick={() => onSettingChange('chordDegreeView', 'chords')} className={`flex-1 rounded-md text-sm py-1 ${settings.chordDegreeView === 'chords' ? 'bg-blue-600' : 'text-gray-300'}`} disabled={!isDiatonic}>Chords</button>
+                    <button onClick={() => onSettingChange('chordDegreeView', 'degrees')} className={`flex-1 rounded-md text-sm py-1 ${settings.chordDegreeView === 'degrees' ? 'bg-blue-600' : 'text-gray-300'}`} disabled={!isDiatonic}>Degrees</button>
+                    <button onClick={() => onSettingChange('chordDegreeView', 'both')} className={`flex-1 rounded-md text-sm py-1 ${settings.chordDegreeView === 'both' ? 'bg-blue-600' : 'text-gray-300'}`} disabled={!isDiatonic}>Both</button>
                 </div>
             </div>
             <ToggleSwitch
@@ -154,15 +189,6 @@ export const ChordProgressionGeneratorControls = ({
                 isChecked={settings.useAlternateNotation}
                 onChange={() => onSettingChange('useAlternateNotation', !settings.useAlternateNotation)}
             />
-            <ToggleSwitch
-                label="Show Bar Lines"
-                isChecked={settings.showBarLines}
-                onChange={() => onSettingChange('showBarLines', !settings.showBarLines)}
-            />
-             <div className={`flex items-center justify-between ${!settings.showBarLines && 'opacity-50'}`}>
-                <label className="font-semibold">Chords per Bar</label>
-                <input type="number" value={settings.chordsPerBar} onChange={e => onSettingChange('chordsPerBar', Math.max(1, parseInt(e.target.value, 10)) || 1)} className="w-20 p-2 rounded-md bg-slate-600 text-white text-center" disabled={!settings.showBarLines} />
-            </div>
         </CollapsibleSection>
 
         <CollapsibleSection title="Automation" isOpen={openSections.automation} onToggle={() => onToggleSection('automation')}>

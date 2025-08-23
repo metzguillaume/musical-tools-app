@@ -49,28 +49,56 @@ export const NoteGeneratorControls = ({
         </label>
         
         <div className="pt-4 border-t border-slate-600 space-y-2">
-            <label className="flex items-center justify-between">
-                <span className="font-semibold text-lg">Show Barlines:</span>
-                <div className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked={settings.showBarlines} onChange={() => onSettingChange('showBarlines', !settings.showBarlines)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-gray-500 rounded-full peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </div>
-            </label>
+            <h4 className="font-semibold text-lg">Display Mode</h4>
+            <div className="flex bg-slate-600 rounded-md p-1">
+                <button onClick={() => onSettingChange('displayMode', 'flow')} className={`flex-1 rounded-md text-sm py-1 ${settings.displayMode === 'flow' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Flow</button>
+                <button onClick={() => onSettingChange('displayMode', 'measure')} className={`flex-1 rounded-md text-sm py-1 ${settings.displayMode === 'measure' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Measures</button>
+            </div>
 
-            {settings.showBarlines && (
-                <div className="flex items-center justify-between pl-4">
-                    <label htmlFor="barline-freq" className="font-semibold text-md">Every:</label>
-                    <div className="flex items-center gap-2">
+            {settings.displayMode === 'measure' && (
+                <div className="pl-2 pt-2 space-y-2 animate-fade-in-down border-l-2 border-slate-600">
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="notes-per-bar" className="font-semibold text-md">Notes per Bar:</label>
                         <input 
                             type="number" 
-                            id="barline-freq" 
-                            value={settings.barlineFrequency} 
-                            onChange={(e) => onSettingChange('barlineFrequency', Math.max(1, parseInt(e.target.value, 10) || 1))} 
-                            className="w-20 p-1 rounded-md bg-slate-600 text-white text-center" 
+                            id="notes-per-bar" 
+                            value={settings.notesPerBar} 
+                            onChange={(e) => onSettingChange('notesPerBar', Math.max(1, parseInt(e.target.value, 10) || 1))} 
+                            className="w-20 p-1 rounded-md bg-slate-800 text-white text-center" 
                             min="1" 
                         />
-                        <span className="font-semibold text-md">notes</span>
                     </div>
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="bars-per-line" className="font-semibold text-md">Bars per Line:</label>
+                        <input 
+                            type="number" 
+                            id="bars-per-line" 
+                            value={settings.barsPerLine} 
+                            onChange={(e) => onSettingChange('barsPerLine', Math.max(1, parseInt(e.target.value, 10) || 1))} 
+                            className="w-20 p-1 rounded-md bg-slate-800 text-white text-center" 
+                            min="1" 
+                        />
+                    </div>
+                </div>
+            )}
+
+             {settings.displayMode === 'flow' && (
+                <div className="pl-2 pt-2 space-y-2 animate-fade-in-down border-l-2 border-slate-600">
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="barline-freq" className="font-semibold text-md">Barline Every:</label>
+                         <div className="flex items-center gap-2">
+                            <input 
+                                type="number" 
+                                id="barline-freq" 
+                                value={settings.barlineFrequency} 
+                                onChange={(e) => onSettingChange('barlineFrequency', Math.max(0, parseInt(e.target.value, 10)) || 0)} 
+                                className="w-20 p-1 rounded-md bg-slate-800 text-white text-center" 
+                                min="0" 
+                            />
+                             <span className="font-semibold text-md">notes</span>
+                        </div>
+                    </div>
+                     <p className="text-xs text-gray-400 italic">Set to 0 to disable barlines.</p>
                 </div>
             )}
         </div>
@@ -85,7 +113,7 @@ export const NoteGeneratorControls = ({
             </div>
              <div className="flex items-center justify-between">
                 <label htmlFor="auto-generate-interval" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Every:</label>
-                <div className="flex items-center gap-2"><input type="number" id="auto-generate-interval" value={autoGenerateInterval} onChange={(e) => onIntervalChange(Math.max(1, parseInt(e.target.value, 10) || 1))} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} /><span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span></div>
+                <div className="flex items-center gap-2"><input type="number" id="auto-generate-interval" value={autoGenerateInterval} onChange={(e) => onIntervalChange(Math.max(1, parseInt(e.target.value, 10)) || 1)} className={`w-24 p-2 rounded-md bg-slate-600 text-white text-center ${!isAutoGenerateOn && 'opacity-50'}`} min="1" disabled={!isAutoGenerateOn} /><span className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>clicks</span></div>
             </div>
             <div className="flex items-center justify-between">
                 <label htmlFor="countdown-clicks" className={`font-semibold text-lg ${!isAutoGenerateOn && 'opacity-50'}`}>Countdown:</label>

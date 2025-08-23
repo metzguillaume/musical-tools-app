@@ -1,9 +1,20 @@
+// src/components/noteGenerator/NoteGenerator.js
+
 import React, { useCallback } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import { useNoteGenerator } from './useNoteGenerator';
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
 import { NoteGeneratorControls } from './NoteGeneratorControls';
+
+const chunkArray = (arr, size) => {
+    const chunkedArr = [];
+    if (size <= 0) return [arr];
+    for (let i = 0; i < arr.length; i += size) {
+        chunkedArr.push(arr.slice(i, i + size));
+    }
+    return chunkedArr;
+};
 
 const NoteGenerator = () => {
     const { savePreset } = useTools();
@@ -15,7 +26,6 @@ const NoteGenerator = () => {
         isControlsOpen, setIsControlsOpen,
         isInfoModalOpen, setIsInfoModalOpen,
         countdownClicks, setCountdownClicks,
-        countdownMode, setCountdownMode,
         handleLogProgress,
         generateNotes
     } = useNoteGenerator();
@@ -34,41 +44,64 @@ const NoteGenerator = () => {
             const newPreset = {
                 id: Date.now().toString(), name: name.trim(),
                 gameId: 'note-generator', gameName: 'Note Generator',
-                settings: settings, // The entire settings object, including fontSize, is saved
-                automation: { isAutoGenerateOn,  autoGenerateInterval, countdownClicks, countdownMode }
+                settings: settings,
+                automation: { isAutoGenerateOn,  autoGenerateInterval, countdownClicks }
             };
             savePreset(newPreset);
             alert(`Preset "${name.trim()}" saved!`);
         }
     };
 
+    const renderNote = (note, index) => {
+        const noteName = note.charAt(0);
+        const accidental = note.substring(1).replace(/#/g, '♯').replace(/b/g, '♭');
+        return (
+            <span key={index} className="font-bold text-teal-300 whitespace-nowrap transition-all duration-150">
+                {noteName}
+                <sup style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '0.1em' }}>
+                    {accidental}
+                </sup>
+            </span>
+        );
+    };
+    
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
-            <InfoModal
+            {/* --- REPLACE THE CURRENT InfoModal WITH THIS ONE --- */}
+             <InfoModal
                 isOpen={isInfoModalOpen}
                 onClose={() => setIsInfoModalOpen(false)}
                 title="Random Note Generator Guide"
             >
-                <p className="mb-3">
-                    The <strong>Random Note Generator</strong> helps you practice note recognition by generating a sequence of random notes.
-                </p>
-                <ul className="list-disc pl-5 space-y-2 text-sm">
-                    <li>
-                        <strong>Generate</strong>: Click the blue button or press <kbd>Enter</kbd>/<kbd>Space</kbd> to create a new sequence of notes.
-                    </li>
-                    <li>
-                        <strong>Font Size</strong>: Adjust the note size manually with the slider. This setting is saved with your presets.
-                    </li>
-                    <li>
-                        <strong>Controls Panel</strong>: Use this panel to configure all other settings for the generator.
-                    </li>
-                    <li>
-                        <strong>Log Session</strong>: Records your practice session for later review.
-                    </li>
-                    <li>
-                        <strong>Save Preset</strong>: Store your preferred configuration and quickly load it later.
-                    </li>
-                </ul>
+                <div className="space-y-4 text-sm">
+                    <p>
+                        The Note Generator lets you generate a sequence of random notes. Use the controls to customize the output for your practice needs.
+                    </p>
+                    <div>
+                        <h4 className="font-bold text-indigo-300 mb-2">Controls Explained</h4>
+                        <ul className="list-disc list-inside space-y-2">
+                            <li>
+                                <strong>Number of Notes</strong>: Sets the total number of notes in the generated sequence.
+                            </li>
+                            <li>
+                                <strong>Note Type</strong>: Choose "Natural" to only generate notes from A to G, or "Chromatic" to include all sharp and flat notes.
+                            </li>
+                             <li>
+                                <strong>Avoid Repeats</strong>: When enabled, this prevents the same note from appearing twice in a row, which is useful for creating more varied sequences.
+                            </li>
+                            <li>
+                                <strong>Display Mode</strong>:
+                                <ul className="list-['-_'] list-inside pl-4 mt-1">
+                                    <li><strong>Flow</strong>: Displays notes in a simple, wrapping line. You can set a bar line to appear every "X" notes.</li>
+                                    <li><strong>Measures</strong>: Arranges notes in a grid that mimics sheet music. You can set both the "Notes per Bar" and "Bars per Line".</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>Auto-Generate</strong>: Links the generator to the global Metronome. A new sequence will be generated automatically based on the "Every X clicks" and "Countdown" settings.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </InfoModal>
 
             <div className="w-full flex-1 bg-slate-800 p-4 rounded-lg">
@@ -97,49 +130,51 @@ const NoteGenerator = () => {
                 </div>
 
                 <div
-                    className="w-full rounded-lg text-center min-h-[160px] flex justify-center items-center flex-wrap"
+                    className="w-full rounded-lg text-center min-h-[160px] flex justify-center items-center"
                     style={{
-                        columnGap: '0.6em',
-                        rowGap: '0.3em',
                         padding: '1.5rem',
                         fontSize: `${settings.fontSize}rem`,
                         lineHeight: 1
                     }}
                 >
-                    {generatedNotes.map((note, index) => {
-                        const noteName = note.charAt(0);
-                        const accidental = note.substring(1).replace(/#/g, '♯').replace(/b/g, '♭');
-                        const showBar =
-                            settings.showBarlines &&
-                            settings.barlineFrequency > 0 &&
-                            (index + 1) % settings.barlineFrequency === 0 &&
-                            index < generatedNotes.length - 1;
-
-                        return (
-                            <React.Fragment key={index}>
-                                <span className="font-bold text-teal-300 whitespace-nowrap transition-all duration-150">
-                                    {noteName}
-                                    <sup style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '0.1em' }}>
-                                        {accidental}
-                                    </sup>
-                                </span>
-
-                                {showBar && (
-                                    <div
-                                        style={{
-                                            width: '0.10em',
-                                            height: '1.2em',
-                                            backgroundColor: 'rgb(71 85 105)',
-                                            borderRadius: '9999px',
-                                            marginLeft: '0.4em',
-                                            marginRight: '0.4em'
-                                        }}
-                                    />
-                                )}
-                            </React.Fragment>
-                        );
-                    })}
+                    {settings.displayMode === 'measure' ? (
+                        <div className="w-full flex flex-col items-center gap-y-6">
+                            {chunkArray(chunkArray(generatedNotes, settings.notesPerBar), settings.barsPerLine).map((line, lineIndex) => (
+                                <div key={lineIndex} className="w-full flex justify-center items-center">
+                                    {line.map((bar, barIndex) => (
+                                        <React.Fragment key={barIndex}>
+                                            {barIndex > 0 && <div className="w-px h-16 bg-slate-500 self-center" />}
+                                            <div className="flex-1 flex justify-around items-center p-2">
+                                                {bar.map(renderNote)}
+                                            </div>
+                                        </React.Fragment>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex justify-center items-center flex-wrap" style={{ columnGap: '0.6em', rowGap: '0.3em' }}>
+                            {generatedNotes.map((note, index) => (
+                                <React.Fragment key={index}>
+                                    {renderNote(note, index)}
+                                    {settings.barlineFrequency > 0 && (index + 1) % settings.barlineFrequency === 0 && index < generatedNotes.length - 1 && (
+                                         <div
+                                            style={{
+                                                width: '0.10em',
+                                                height: '1.2em',
+                                                backgroundColor: 'rgb(71 85 105)',
+                                                borderRadius: '9999px',
+                                                marginLeft: '0.4em',
+                                                marginRight: '0.4em'
+                                            }}
+                                        />
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    )}
                 </div>
+
 
                 <div className="flex items-center justify-center gap-2 md:gap-4 mt-6 mb-8">
                     <label htmlFor="font-size-main" className="font-semibold text-lg">Font Size:</label>
@@ -163,7 +198,6 @@ const NoteGenerator = () => {
                 </div>
             </div>
 
-            {/* Side controls */}
             <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out sticky top-6 max-h-[calc(100vh-3rem)] ${
                 isControlsOpen ? 'w-80 p-4 overflow-y-auto' : 'w-0 p-0 overflow-hidden'
             }`}>
@@ -178,14 +212,11 @@ const NoteGenerator = () => {
                         onIntervalChange={setAutoGenerateInterval}
                         countdownClicks={countdownClicks}
                         onCountdownChange={setCountdownClicks}
-                        countdownMode={countdownMode}
-                        onCountdownModeChange={setCountdownMode}
                         onSavePreset={handleSavePreset}
                     />
                 </div>
             </div>
 
-            {/* Mobile controls modal */}
             {isControlsOpen && (
                 <div
                     className="md:hidden fixed inset-0 z-50 flex justify-center items-center bg-black/60"
@@ -214,8 +245,6 @@ const NoteGenerator = () => {
                                 onIntervalChange={setAutoGenerateInterval}
                                 countdownClicks={countdownClicks}
                                 onCountdownChange={setCountdownClicks}
-                                countdownMode={countdownMode}
-                                onCountdownModeChange={setCountdownMode}
                                 onSavePreset={handleSavePreset}
                             />
                         </div>

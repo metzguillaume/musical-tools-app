@@ -1,7 +1,8 @@
+// src/hooks/useNoteGenerator.js
+
 import { useState, useEffect, useCallback } from 'react';
 import { useTools } from '../../context/ToolsContext';
 
-// Helper function to shuffle an array
 const shuffle = (array) => {
     let currentIndex = array.length, randomIndex;
     while (currentIndex !== 0) {
@@ -18,10 +19,13 @@ export const useNoteGenerator = () => {
     const [settings, setSettings] = useState({
         numNotes: 12,
         noteType: 'chromatic',
-        showBarlines: true,
         fontSize: 2.7,
-        barlineFrequency: 4,
         avoidRepeats: true,
+        // New settings to control the two display modes
+        displayMode: 'flow', // 'flow' or 'measure'
+        barlineFrequency: 4,  // For 'flow' mode
+        notesPerBar: 1,       // For 'measure' mode
+        barsPerLine: 4,       // For 'measure' mode
     });
 
     const [generatedNotes, setGeneratedNotes] = useState([]);
@@ -32,13 +36,21 @@ export const useNoteGenerator = () => {
 
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'note-generator') {
-            setSettings(prevSettings => ({ ...prevSettings, ...presetToLoad.settings }));
+            // Ensure compatibility with older presets
+            const presetSettings = { ...presetToLoad.settings };
+            if (presetSettings.showBarlines === true && !presetSettings.displayMode) {
+                presetSettings.displayMode = 'measure';
+            } else if (presetSettings.showBarlines === false && !presetSettings.displayMode) {
+                presetSettings.displayMode = 'flow';
+                presetSettings.barlineFrequency = 0; // Turn off barlines in flow mode
+            }
+            
+            setSettings(prevSettings => ({ ...prevSettings, ...presetSettings }));
             
             if (presetToLoad.automation) {
                 setIsAutoGenerateOn(presetToLoad.automation.isAutoGenerateOn);
                 setAutoGenerateInterval(presetToLoad.automation.autoGenerateInterval);
                 setCountdownClicks(presetToLoad.automation.countdownClicks);
-                // The non-functional countdownMode setting is safely ignored here
             }
             clearPresetToLoad();
         }

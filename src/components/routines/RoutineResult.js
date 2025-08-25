@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTools } from '../../context/ToolsContext';
 
-export const ChallengeResult = ({ result, onDelete, isSummary = false }) => {
+export const RoutineResult = ({ result, onDelete, isSummary = false }) => { // RENAMED component
     const { presets } = useTools();
 
     const getPresetName = (presetId) => presets.find(p => p.id === presetId)?.name || 'Unknown Preset';
@@ -9,7 +9,7 @@ export const ChallengeResult = ({ result, onDelete, isSummary = false }) => {
 
     const getBorderColor = () => {
         if (isSummary) return 'border-indigo-500';
-        switch (result.challengeType) {
+        switch (result.routineType) { // RENAMED prop
             case 'PracticeRoutine': return 'border-blue-600';
             case 'Gauntlet': return 'border-yellow-500';
             case 'Streak': return 'border-green-600';
@@ -23,7 +23,7 @@ export const ChallengeResult = ({ result, onDelete, isSummary = false }) => {
                 {/* Left Side: Title and Date */}
                 <div className="flex-grow">
                     <div className="flex justify-between items-start">
-                        <h3 className="text-xl font-semibold text-teal-300">{result.challengeName}</h3>
+                        <h3 className="text-xl font-semibold text-teal-300">{result.routineName}</h3> {/*RENAMED prop*/}
                         {onDelete && (
                             <button onClick={(e) => { e.preventDefault(); onDelete(); }} className="md:hidden text-red-500 hover:text-red-400 font-bold text-3xl px-2 leading-none flex-shrink-0 ml-4">-</button>
                         )}
@@ -45,7 +45,7 @@ export const ChallengeResult = ({ result, onDelete, isSummary = false }) => {
                     </div>
                     <div className="text-left w-24">
                         <span className="text-sm text-gray-400">Time</span>
-                        {result.challengeType === 'Gauntlet' ? (
+                        {result.routineType === 'Gauntlet' ? ( /*RENAMED prop*/
                             <p className="font-bold text-lg font-mono">{new Date(result.finalTime).toISOString().slice(14, 22)}</p>
                         ) : (
                             <p className="font-bold text-lg text-gray-500">-</p>
@@ -53,7 +53,7 @@ export const ChallengeResult = ({ result, onDelete, isSummary = false }) => {
                     </div>
                     <div className="text-left w-24">
                         <span className="text-sm text-gray-400">Streak</span>
-                        {result.challengeType === 'Streak' ? (
+                        {result.routineType === 'Streak' ? ( /*RENAMED prop*/
                             <p className="font-bold text-lg">{result.streak}</p>
                         ) : (
                             <p className="font-bold text-lg text-gray-500">-</p>

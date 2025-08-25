@@ -203,7 +203,7 @@ const PresetsManagerPage = () => {
                             </ul>
                         </div>
                         <div><h4 className="font-bold text-indigo-300 mb-1">Importing & Bulk Remove</h4>
-                            <p>Use the "Import" button to load presets from a file. The "Bulk Remove" button provides powerful options to clean up presets that are old, duplicated, or not used in any challenges.</p>
+                            <p>Use the "Import" button to load presets from a file. The "Bulk Remove" button provides powerful options to clean up presets that are old, duplicated, or not used in any routines.</p> {/*RENAMED*/}
                         </div>
                     </div>
                 </InfoModal>
@@ -230,7 +230,7 @@ const PresetsManagerPage = () => {
                         </div>
                         <div className="p-2 bg-slate-800 rounded space-y-2">
                             <label className="font-bold text-indigo-300 block">Other Actions</label>
-                            <button onClick={() => handleCleanup({ type: 'notInChallenge' })} className="w-full bg-red-700 hover:bg-red-600 p-2 rounded font-semibold">Remove presets not in any Challenge</button>
+                            <button onClick={() => handleCleanup({ type: 'notInRoutine' })} className="w-full bg-red-700 hover:bg-red-600 p-2 rounded font-semibold">Remove presets not in any Routine</button> {/*RENAMED*/}
                             <button onClick={() => handleCleanup({ type: 'duplicates' })} className="w-full bg-red-700 hover:bg-red-600 p-2 rounded font-semibold">Remove all duplicate presets</button>
                         </div>
                     </div>

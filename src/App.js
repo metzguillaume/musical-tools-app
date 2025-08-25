@@ -14,9 +14,9 @@ import TriadQuiz from './components/triadQuiz/TriadQuiz';
 import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
 import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer';
 import MelodicEarTrainer from './components/earTraining/MelodicEarTrainer';
-import ChallengesPage from './components/challenges/ChallengesPage';
-import ChallengeRunner from './components/challenges/ChallengeRunner';
-import ScoreboardPage from './components/challenges/ScoreboardPage';
+import RoutinesPage from './components/routines/RoutinesPage'; // UPDATED
+import RoutineRunner from './components/routines/RoutineRunner'; // UPDATED
+import ScoreboardPage from './components/routines/ScoreboardPage'; // UPDATED
 import PresetsManagerPage from './components/presets/PresetsManagerPage';
 
 // The main UI component is now stateless and driven entirely by the context.
@@ -27,9 +27,9 @@ const AppContent = () => {
     openCategory, 
     handleCategoryClick,
     activeTool,
-    activeChallenge,
+    activeRoutine, // RENAMED
     presetToLoad,
-    lastChallengeResultId
+    lastRoutineResultId // RENAMED
   } = useTools();
 
   // Effects to automatically switch tabs
@@ -40,10 +40,10 @@ const AppContent = () => {
   }, [presetToLoad, navigate]);
 
   useEffect(() => {
-    if (lastChallengeResultId) {
+    if (lastRoutineResultId) { // RENAMED
       navigate('scoreboard');
     }
-  }, [lastChallengeResultId, navigate]);
+  }, [lastRoutineResultId, navigate]); // RENAMED
   
   const toolCategories = [
     {
@@ -71,9 +71,9 @@ const AppContent = () => {
       ],
     },
     {
-      name: 'Challenges',
+      name: 'Routines', // RENAMED
       tools: [
-        { id: 'presets-manager', name: 'Preset Manager' }, { id: 'challenges-hub', name: 'Challenge Hub' }, { id: 'scoreboard', name: 'Scoreboard' },
+        { id: 'presets-manager', name: 'Preset Manager' }, { id: 'routines-hub', name: 'Routine Hub' }, { id: 'scoreboard', name: 'Scoreboard' }, // RENAMED
       ],
     },
   ];
@@ -117,7 +117,7 @@ const AppContent = () => {
       </nav>
 
       <main className="w-full max-w-5xl mx-auto bg-slate-800 shadow-2xl rounded-xl p-4 md:p-8 flex-grow">
-          {activeChallenge ? <ChallengeRunner /> : (
+          {activeRoutine ? <RoutineRunner /> : ( // RENAMED
               <>
                   {activeTab === 'welcome' && <Welcome />}
                   {activeTab === 'chord-trainer' && <ChordTrainer />}
@@ -131,7 +131,7 @@ const AppContent = () => {
                   {activeTab === 'caged-system-quiz' && <CAGEDSystemQuiz />}
                   {activeTab === 'interval-ear-trainer' && <IntervalEarTrainer />}
                   {activeTab === 'melodic-ear-trainer' && <MelodicEarTrainer />}
-                  {activeTab === 'challenges-hub' && <ChallengesPage />}
+                  {activeTab === 'routines-hub' && <RoutinesPage />} 
                   {activeTab === 'scoreboard' && <ScoreboardPage />}
                   {activeTab === 'presets-manager' && <PresetsManagerPage />}
               </>

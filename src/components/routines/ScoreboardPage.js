@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useTools } from '../../context/ToolsContext';
-import { ChallengeResult } from './ChallengeResult';
+import { RoutineResult } from './RoutineResult'; // UPDATED
 import SectionHeader from '../common/SectionHeader';
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
 
 const ScoreboardPage = () => {
-    const { scores, presets, folders, challenges, lastChallengeResultId, setLastChallengeResultId, clearScoreboard, deleteScore, startChallenge } = useTools();
+    const { scores, presets, folders, routines, lastRoutineResultId, setLastRoutineResultId, clearScoreboard, deleteScore, startRoutine } = useTools(); // RENAMED
     const [nameFilter, setNameFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('All');
     const [gameFilter, setGameFilter] = useState('All');
@@ -14,18 +14,18 @@ const ScoreboardPage = () => {
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
     const latestResult = useMemo(() => {
-        if (!lastChallengeResultId) return null;
-        return scores.find(s => s.id === lastChallengeResultId);
-    }, [lastChallengeResultId, scores]);
+        if (!lastRoutineResultId) return null; // RENAMED
+        return scores.find(s => s.id === lastRoutineResultId); // RENAMED
+    }, [lastRoutineResultId, scores]); // RENAMED
 
-    const handleRetryChallenge = () => {
+    const handleRetryRoutine = () => { // RENAMED
         if (!latestResult) return;
-        const challengeToRetry = challenges.find(c => c.id === latestResult.challengeId);
-        if (challengeToRetry) {
-            setLastChallengeResultId(null);
-            startChallenge(challengeToRetry);
+        const routineToRetry = routines.find(r => r.id === latestResult.routineId); // RENAMED
+        if (routineToRetry) { // RENAMED
+            setLastRoutineResultId(null); // RENAMED
+            startRoutine(routineToRetry); // RENAMED
         } else {
-            alert("Error: Could not find the original challenge to retry.");
+            alert("Error: Could not find the original routine to retry."); // RENAMED
         }
     };
 
@@ -44,31 +44,31 @@ const ScoreboardPage = () => {
 
     const filteredScores = useMemo(() => {
         return scores.filter(score => {
-            if (score.id === lastChallengeResultId) return false;
+            if (score.id === lastRoutineResultId) return false; // RENAMED
             
-            const originalChallenge = challenges.find(c => c.id === score.challengeId);
-            const nameMatch = score.challengeName.toLowerCase().includes(nameFilter.toLowerCase());
-            const typeMatch = typeFilter === 'All' || score.challengeType === typeFilter;
+            const originalRoutine = routines.find(r => r.id === score.routineId); // RENAMED
+            const nameMatch = score.routineName.toLowerCase().includes(nameFilter.toLowerCase()); // RENAMED
+            const typeMatch = typeFilter === 'All' || score.routineType === typeFilter; // RENAMED
             const gameMatch = gameFilter === 'All' || score.steps.some(step => {
                 const preset = presets.find(p => p.id === step.presetId);
                 return preset && preset.gameName === gameFilter;
             });
             const folderMatch = folderFilter === 'All' 
-                || (folderFilter === 'Uncategorized' && (!originalChallenge || !originalChallenge.folderIds || originalChallenge.folderIds.length === 0))
-                || (originalChallenge && originalChallenge.folderIds && originalChallenge.folderIds.includes(folderFilter));
+                || (folderFilter === 'Uncategorized' && (!originalRoutine || !originalRoutine.folderIds || originalRoutine.folderIds.length === 0))
+                || (originalRoutine && originalRoutine.folderIds && originalRoutine.folderIds.includes(folderFilter));
 
             return nameMatch && typeMatch && gameMatch && folderMatch;
         });
-    }, [scores, nameFilter, typeFilter, gameFilter, folderFilter, lastChallengeResultId, presets, challenges]);
+    }, [scores, nameFilter, typeFilter, gameFilter, folderFilter, lastRoutineResultId, presets, routines]); // RENAMED
     
     return (
         <>
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Scoreboard Guide" verticalAlign="top">
-                <p>The Scoreboard tracks your performance every time you complete a challenge.</p>
+                <p>The Scoreboard tracks your performance every time you complete a routine.</p> {/*RENAMED*/}
                 <h4 className="font-bold text-indigo-300 mt-4">Features</h4>
                 <ul className="list-disc list-inside text-sm space-y-1">
-                    <li><strong>Challenge Complete Screen:</strong> After finishing a challenge, you'll see a detailed summary of your results. From here, you can retry the same challenge or view the full scoreboard.</li>
-                    <li><strong>Color-Coded Entries:</strong> Each result is framed in a color that matches its challenge type for quick identification (Blue for Routines, Yellow for Gauntlets, Green for Streaks).</li>
+                    <li><strong>Routine Complete Screen:</strong> After finishing a routine, you'll see a detailed summary of your results. From here, you can retry the same routine or view the full scoreboard.</li> {/*RENAMED*/}
+                    <li><strong>Color-Coded Entries:</strong> Each result is framed in a color that matches its routine type for quick identification (Blue for Routines, Yellow for Gauntlets, Green for Streaks).</li> {/*RENAMED*/}
                     <li><strong>Detailed View:</strong> Click on any scoreboard entry to expand it (like an accordion) and see a step-by-step breakdown of your performance.</li>
                     <li><strong>Advanced Filtering:</strong> Use the filter controls to find specific results by name, type, the games included, or the folder it belongs to.</li>
                     <li><strong>Managing Scores:</strong> You can delete any individual result by clicking the "-" button, or clear your entire history with the "Clear All History" button.</li>
@@ -78,17 +78,17 @@ const ScoreboardPage = () => {
             <div className="max-w-4xl mx-auto">
                 {latestResult ? (
                     <div className="mb-12">
-                        <h2 className="text-4xl font-bold text-green-400 text-center mb-4">Challenge Complete!</h2>
-                        <ChallengeResult result={latestResult} isSummary={true} />
+                        <h2 className="text-4xl font-bold text-green-400 text-center mb-4">Routine Complete!</h2> {/*RENAMED*/}
+                        <RoutineResult result={latestResult} isSummary={true} /> {/*RENAMED*/}
                         <div className="text-center mt-6 flex justify-center gap-4">
                             <button 
-                                onClick={handleRetryChallenge}
+                                onClick={handleRetryRoutine} // RENAMED
                                 className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-lg"
                             >
-                                Retry Challenge
-                            </button>
+                                Retry Routine
+                            </button> {/*RENAMED*/}
                             <button 
-                                onClick={() => setLastChallengeResultId(null)}
+                                onClick={() => setLastRoutineResultId(null)} // RENAMED
                                 className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg"
                             >
                                 View Full Scoreboard
@@ -99,7 +99,7 @@ const ScoreboardPage = () => {
                     <>
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                             <div className="flex items-center gap-2">
-                                <SectionHeader title="Challenge Scoreboard" />
+                                <SectionHeader title="Routine Scoreboard" /> {/*RENAMED*/}
                                 <InfoButton onClick={() => setIsInfoModalOpen(true)} />
                             </div>
                             <button 
@@ -115,7 +115,7 @@ const ScoreboardPage = () => {
                                 <label className="block text-sm font-semibold text-gray-300 mb-1">Filter by Name</label>
                                 <input 
                                     type="text"
-                                    placeholder="Enter challenge name..."
+                                    placeholder="Enter routine name..." // RENAMED
                                     value={nameFilter}
                                     onChange={(e) => setNameFilter(e.target.value)}
                                     className="w-full p-2 rounded-md bg-slate-600 text-white"
@@ -148,7 +148,7 @@ const ScoreboardPage = () => {
 
                         <div className="space-y-4">
                             {filteredScores.length > 0 ? (
-                                filteredScores.map(score => <ChallengeResult key={score.id} result={score} onDelete={() => deleteScore(score.id)} />)
+                                filteredScores.map(score => <RoutineResult key={score.id} result={score} onDelete={() => deleteScore(score.id)} />) // RENAMED
                             ) : (
                                  <div className="text-center p-8 bg-slate-700/50 rounded-lg">
                                     <h3 className="text-xl font-semibold text-gray-300">No Results Found</h3>

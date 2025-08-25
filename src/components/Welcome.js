@@ -30,9 +30,9 @@ const Welcome = () => {
                             </p>
                         </div>
                         <div className="bg-slate-800/70 p-4 rounded-lg border border-slate-700">
-                            <h4 className="font-bold text-2xl text-indigo-300 mb-3">3. Build a Challenge</h4>
+                            <h4 className="font-bold text-2xl text-indigo-300 mb-3">3. Build a Routine</h4> {/*RENAMED*/}
                             <p className="text-gray-300">
-                                Go to the **Challenge Hub** to combine your saved presets into a structured, multi-step workout routine.
+                                Go to the **Routine Hub** to combine your saved presets into a structured, multi-step workout routine. {/*RENAMED*/}
                             </p>
                         </div>
                     </div>
@@ -84,15 +84,15 @@ const Welcome = () => {
                             </p>
                         </div>
                         <div className="border-t border-slate-600 pt-6">
-                            <h4 className="font-bold text-xl text-amber-300 mb-2">Unleash Your Potential with Presets & Challenges</h4>
+                            <h4 className="font-bold text-xl text-amber-300 mb-2">Unleash Your Potential with Presets & Routines</h4> {/*RENAMED*/}
                             <p className="text-lg text-gray-300">
-                                The **Preset Manager** is where you build your personal library of exercises. After configuring a module, you can save its settings as a named preset. Then, visit the **Challenge Hub** to combine these presets into powerful, multi-step workout routines, complete with custom goals and scoring.
+                                The **Preset Manager** is where you build your personal library of exercises. After configuring a module, you can save its settings as a named preset. Then, visit the **Routine Hub** to combine these presets into powerful, multi-step workout routines, complete with custom goals and scoring. {/*RENAMED*/}
                             </p>
                         </div>
                         <div className="border-t border-slate-600 pt-6">
                             <h4 className="font-bold text-xl text-amber-300 mb-2">Track Everything in the Scoreboard & Log</h4>
                             <p className="text-lg text-gray-300">
-                                Every completed challenge is automatically saved to the **Scoreboard**, giving you a detailed breakdown of your performance. For other practice sessions, you can manually save notes to your **Practice Log** using the Global Toolkit.
+                                Every completed routine is automatically saved to the **Scoreboard**, giving you a detailed breakdown of your performance. For other practice sessions, you can manually save notes to your **Practice Log** using the Global Toolkit. {/*RENAMED*/}
                             </p>
                         </div>
                     </div>

@@ -17,7 +17,7 @@ const isEqual = (obj1, obj2) => {
     return true;
 };
 
-export const usePresetsLogic = (challenges) => {
+export const usePresetsLogic = (routines) => { // RENAMED argument
     const [presets, setPresets] = useState(() => {
         try {
             const savedPresets = localStorage.getItem('toolPresets');
@@ -114,11 +114,11 @@ export const usePresetsLogic = (challenges) => {
                 });
                 break;
 
-            case 'notInChallenge':
-                message = "Are you sure you want to remove all presets that aren't used in any challenge?";
-                const usedInChallengeIds = new Set(challenges.flatMap(c => c.steps.map(s => s.presetId)));
+            case 'notInRoutine': // RENAMED
+                message = "Are you sure you want to remove all presets that aren't used in any routine?"; // RENAMED
+                const usedInRoutineIds = new Set(routines.flatMap(r => r.steps.map(s => s.presetId))); // RENAMED
                 userPresets.forEach(p => {
-                    if (!usedInChallengeIds.has(p.id)) presetsToRemove.add(p.id);
+                    if (!usedInRoutineIds.has(p.id)) presetsToRemove.add(p.id); // RENAMED
                 });
                 break;
 
@@ -146,8 +146,8 @@ export const usePresetsLogic = (challenges) => {
             setPresets(prev => prev.filter(p => !presetsToRemove.has(p.id)));
             alert(`${presetsToRemove.size} presets have been removed.`);
         }
-    }, [presets, challenges]);
-    
+    }, [presets, routines]); // RENAMED dependency
+
     const exportSelectedPresets = useCallback((selectedIds) => {
         if (!selectedIds || selectedIds.length === 0) {
             return alert("No presets selected to export. Please check the boxes next to the presets you want to export.");

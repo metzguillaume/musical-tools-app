@@ -16,13 +16,13 @@ const GlobalTools = () => {
         isDronePlaying, toggleDrone,
         isTimerRunning, toggleTimer,
         isStopwatchRunning, toggleStopwatch,
-        activeChallenge
+        activeRoutine // RENAMED
     } = useTools();
 
     const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>;
     const PauseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6" /></svg>;
 
-    const isStopwatchLocked = activeChallenge?.type === 'Gauntlet';
+    const isStopwatchLocked = activeRoutine?.type === 'Gauntlet'; // RENAMED
 
     const tools = [
         { name: 'log', label: 'Practice Log', Component: PracticeLog, hidePlayPause: true },

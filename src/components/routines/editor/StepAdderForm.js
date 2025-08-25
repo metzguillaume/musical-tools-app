@@ -13,8 +13,9 @@ const StepAdderForm = ({ routineType, presets, onAddStep }) => {
     const [goalType, setGoalType] = useState('time');
     const [goalValue, setGoalValue] = useState(5);
     const [instruction, setInstruction] = useState('');
+    const [questionsInARow, setQuestionsInARow] = useState(3); // State for the new Streak feature
 
-    // MODIFIED: This new useMemo hook filters presets based on the routine type
+    // Filters out generator presets for Gauntlet and Streak modes.
     const filteredPresets = useMemo(() => {
         if (routineType === 'Gauntlet' || routineType === 'Streak') {
             return presets.filter(p => gameToCategoryMap[p.gameName] !== 'Generators');
@@ -22,25 +23,25 @@ const StepAdderForm = ({ routineType, presets, onAddStep }) => {
         return presets; // Return all presets for Practice Routines
     }, [presets, routineType]);
 
+    // Ensures a valid preset is always selected, even when filtering changes.
     useEffect(() => {
-        // Use the new filtered list to set the initial preset
         const availablePresets = [...filteredPresets].sort((a,b) => a.name.localeCompare(b.name));
         if (availablePresets.length > 0) {
-            // If the current presetId is not in the new filtered list, update it
             if (!availablePresets.some(p => p.id === presetId)) {
                 setPresetId(availablePresets[0].id);
             }
         } else {
-            setPresetId(''); // No presets available
+            setPresetId('');
         }
     }, [filteredPresets, presetId]);
 
+    // Manages the goal type logic based on routine type and preset type.
     useEffect(() => {
         if (!presetId) return;
         const selectedPreset = presets.find(p => p.id === presetId);
         if (!selectedPreset) return;
         const category = gameToCategoryMap[selectedPreset.gameName];
-        if (category === 'Generators' || routineType !== 'PracticeRoutine') {
+        if (category === 'Generators' && routineType === 'PracticeRoutine') {
             setGoalType('time');
         }
     }, [presetId, presets, routineType]);
@@ -51,12 +52,11 @@ const StepAdderForm = ({ routineType, presets, onAddStep }) => {
     }, [presetId, presets]);
 
     const handleAddClick = () => {
-        if (!presetId) {
-            alert("No presets available for this routine type.");
-            return;
-        }
+        if (!presetId) { alert("No presets available for this routine type."); return; }
+        
         let finalGoalType = null;
         let finalGoalValue = null;
+        let finalQuestionsInARow = null; // Data for the new Streak feature
 
         if (routineType === 'PracticeRoutine') {
             finalGoalType = goalType;
@@ -64,26 +64,22 @@ const StepAdderForm = ({ routineType, presets, onAddStep }) => {
         } else if (routineType === 'Gauntlet') {
             finalGoalType = 'questions';
             finalGoalValue = goalValue;
+        } else if (routineType === 'Streak') {
+            // For streaks, we add the new "questionsInARow" property.
+            finalQuestionsInARow = questionsInARow;
         }
         
-        onAddStep({ presetId, goalType: finalGoalType, goalValue: finalGoalValue, instruction: instruction.trim() });
-        setInstruction('');
+        onAddStep({ presetId, goalType: finalGoalType, goalValue: finalGoalValue, instruction: instruction.trim(), questionsInARow: finalQuestionsInARow });
+        setInstruction(''); // Reset instruction input after adding.
     };
 
     return (
         <div className="bg-slate-800/50 p-4 rounded-lg space-y-4">
-            {/* MODIFIED: The preset selector now receives the filtered list */}
             <PresetSelector presets={filteredPresets} selectedPresetId={presetId} onSelectPreset={setPresetId} />
             
             <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-1">Custom Note (Optional)</label>
-                <input 
-                    type="text"
-                    value={instruction}
-                    onChange={(e) => setInstruction(e.target.value)}
-                    placeholder="e.g., Use a pick, focus on rhythm..."
-                    className="w-full p-2 rounded-md bg-slate-600 text-white"
-                />
+                <input type="text" value={instruction} onChange={(e) => setInstruction(e.target.value)} placeholder="e.g., Use a pick, focus on rhythm..." className="w-full p-2 rounded-md bg-slate-600 text-white" />
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 items-end">
@@ -92,6 +88,10 @@ const StepAdderForm = ({ routineType, presets, onAddStep }) => {
                 )}
                 {routineType === 'Gauntlet' && (
                     <div className="w-full md:w-40 flex-grow"><label className="block text-sm font-semibold text-gray-300 mb-1">Questions</label><input type="number" value={goalValue} onChange={e => setGoalValue(Number(e.target.value))} min="1" className="w-full p-2 rounded-md bg-slate-600 text-white" /></div>
+                )}
+                {/* NEW: Input for Streak feature, only shown for Streak routines. */}
+                {routineType === 'Streak' && (
+                     <div className="w-full md:w-56 flex-grow"><label className="block text-sm font-semibold text-gray-300 mb-1">Questions in a Row</label><input type="number" value={questionsInARow} onChange={e => setQuestionsInARow(Number(e.target.value))} min="1" className="w-full p-2 rounded-md bg-slate-600 text-white" /></div>
                 )}
                 <button onClick={handleAddClick} className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg flex-shrink-0">
                     {routineType === 'Streak' ? 'Add to Pool' : 'Add Step'}

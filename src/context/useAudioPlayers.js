@@ -3,7 +3,6 @@ import * as Tone from 'tone';
 import { NOTE_TO_MIDI } from '../utils/musicTheory';
 import { fretboardModel } from '../utils/fretboardUtils';
 
-
 export const useAudioPlayers = (unlockAudio, bpm) => {
     const intervalSynth = useRef(null);
     const fretboardPlayers = useRef(null);
@@ -44,6 +43,10 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
     const playInterval = useCallback(async (notes) => {
         if (!notes || notes.length < 2 || !intervalSynth.current) return;
         await unlockAudio();
+
+        // Safety check: Stop any currently playing synth notes before starting new ones.
+        intervalSynth.current.releaseAll();
+
         const now = Tone.now();
         intervalSynth.current.triggerAttackRelease(notes[0], 0.4, now);
         intervalSynth.current.triggerAttackRelease(notes[1], 0.4, now + 0.5);
@@ -53,17 +56,27 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
     const playFretboardNotes = useCallback(async (notes) => {
         if (!areFretboardSoundsReady || !notes || notes.length < 2) return;
         await unlockAudio();
+
         const rootNoteId = `${notes[0].string}-${notes[0].fret}`;
         const targetNoteId = `${notes[1].string}-${notes[1].fret}`;
+
         if (!fretboardPlayers.current.has(rootNoteId) || !fretboardPlayers.current.has(targetNoteId)) {
             console.error("Audio for notes not found:", rootNoteId, targetNoteId);
             return;
         }
+
         const now = Tone.now();
+        
+        // This helper function now contains the stop-before-start safety check.
         const playNote = (noteId, time) => {
             const player = fretboardPlayers.current.player(noteId);
+            // This is the key fix: stop any previous playback of this specific note before starting it again.
+            if (player.state === "started") {
+                player.stop(0);
+            }
             player.start(time);
         };
+
         playNote(rootNoteId, now);
         playNote(targetNoteId, now + 0.4);
         playNote(rootNoteId, now + 0.9);
@@ -71,66 +84,66 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
     }, [areFretboardSoundsReady, unlockAudio]);
 
     const playChord = useCallback(async (noteNames) => {
-    if (!areFretboardSoundsReady || !noteNames || noteNames.length === 0) return;
-    await unlockAudio();
+        if (!areFretboardSoundsReady || !noteNames || noteNames.length === 0) return;
+        await unlockAudio();
 
-    let lastMidi = 52; // Start the search one octave higher for a clearer sound
-    const voicing = [];
-
-    // For each note name, find the next highest-pitched fret on the guitar
-    for (const noteName of noteNames) {
-        const targetMidiVal = NOTE_TO_MIDI[noteName] % 12;
-        let foundNote = null;
-
-        // Search the fretboard for the next available note
-        for (let midi = lastMidi + 1; midi < 80; midi++) {
-            if (midi % 12 === targetMidiVal) {
-                // We found a matching note, now find its position
-                for (let s = 1; s <= 6; s++) {
-                    for (let f = 0; f <= 12; f++) {
-                        if (fretboardModel[6 - s][f].midi === midi) {
-                            foundNote = { string: s, fret: f, midi: midi };
-                            break;
+        let lastMidi = 52;
+        const voicing = [];
+        for (const noteName of noteNames) {
+            const targetMidiVal = NOTE_TO_MIDI[noteName] % 12;
+            let foundNote = null;
+            for (let midi = lastMidi + 1; midi < 80; midi++) {
+                if (midi % 12 === targetMidiVal) {
+                    for (let s = 1; s <= 6; s++) {
+                        for (let f = 0; f <= 12; f++) {
+                            if (fretboardModel[6 - s][f].midi === midi) {
+                                foundNote = { string: s, fret: f, midi: midi };
+                                break;
+                            }
                         }
+                        if (foundNote) break;
                     }
-                    if (foundNote) break;
                 }
+                if (foundNote) break;
             }
-            if (foundNote) break;
+            if (foundNote) {
+                voicing.push(foundNote);
+                lastMidi = foundNote.midi;
+            }
         }
 
-        if (foundNote) {
-            voicing.push(foundNote);
-            lastMidi = foundNote.midi;
+        if (voicing.length !== noteNames.length) {
+            console.error("Could not build a full ascending voicing for:", noteNames.join(', '));
+            return;
         }
-    }
 
-    if (voicing.length !== noteNames.length) {
-        console.error("Could not build a full ascending voicing for:", noteNames.join(', '));
-        return;
-    }
+        const now = Tone.now();
+        const noteDuration = 0.4;
 
-    const now = Tone.now();
-    const noteDuration = 0.4;
+        // This new helper function ensures the stop-before-start safety check is applied everywhere.
+        const playVoicingNote = (note, time) => {
+            const noteId = `${note.string}-${note.fret}`;
+            if (fretboardPlayers.current.has(noteId)) {
+                const player = fretboardPlayers.current.player(noteId);
+                if (player.state === "started") {
+                    player.stop(0);
+                }
+                player.start(time);
+            }
+        };
 
-    // Play as an arpeggio
-    voicing.forEach((note, index) => {
-        const noteId = `${note.string}-${note.fret}`;
-        if (fretboardPlayers.current.has(noteId)) {
-            fretboardPlayers.current.player(noteId).start(now + index * noteDuration);
-        }
-    });
+        // Play as an arpeggio using the safe helper function.
+        voicing.forEach((note, index) => {
+            playVoicingNote(note, now + index * noteDuration);
+        });
 
-    // Play as a chord
-    const chordTime = now + (voicing.length * noteDuration) + 0.1;
-    voicing.forEach(note => {
-        const noteId = `${note.string}-${note.fret}`;
-        if (fretboardPlayers.current.has(noteId)) {
-            fretboardPlayers.current.player(noteId).start(chordTime);
-        }
-    });
+        // Play as a chord using the safe helper function.
+        const chordTime = now + (voicing.length * noteDuration) + 0.1;
+        voicing.forEach(note => {
+            playVoicingNote(note, chordTime);
+        });
 
-}, [areFretboardSoundsReady, unlockAudio]);
+    }, [areFretboardSoundsReady, unlockAudio]);
 
     return { playInterval, playChord, playFretboardNotes, areFretboardSoundsReady, fretboardVolume, setFretboardVolume, intervalSynthVolume, setIntervalSynthVolume, fretboardPlayers };
 };

@@ -32,13 +32,14 @@ const AppContent = () => {
     lastRoutineResultId // RENAMED
   } = useTools();
 
-  // Effects to automatically switch tabs
+// Effects to automatically switch tabs
   useEffect(() => {
-    if (presetToLoad) {
+    // This "!activeRoutine" check is the key fix.
+    // It stops the app from trying to navigate when a preset is loaded during a routine.
+    if (presetToLoad && !activeRoutine) {
       navigate(presetToLoad.gameId);
     }
-  }, [presetToLoad, navigate]);
-
+  }, [presetToLoad, navigate, activeRoutine]);
   useEffect(() => {
     if (lastRoutineResultId) { // RENAMED
       navigate('scoreboard');

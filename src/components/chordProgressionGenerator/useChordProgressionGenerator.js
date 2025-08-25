@@ -236,6 +236,9 @@ export const useChordProgressionGenerator = () => {
         } else {
             setMetronomeSchedule(null);
         }
+
+        // This cleanup function will run when you navigate away
+        return () => setMetronomeSchedule(null);
     }, [isAutoGenerateOn, autoGenerateInterval, scheduledGenerate, setMetronomeSchedule]);
 
     useEffect(() => {

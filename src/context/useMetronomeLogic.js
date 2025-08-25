@@ -7,7 +7,6 @@ export const useMetronomeLogic = (unlockAudio) => {
     const [metronomeVolume, setMetronomeVolume] = useState(-10);
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
     const [countdownClicks, setCountdownClicks] = useState(4);
-    const [isCountdownReady, setIsCountdownReady] = useState(false);
     
     const metronomePlayer = useRef(null);
     const countdownPlayers = useRef([]);
@@ -15,7 +14,23 @@ export const useMetronomeLogic = (unlockAudio) => {
     const scheduledTaskRef = useRef(null); 
 
     useEffect(() => {
-        metronomePlayer.current = new Tone.Player({ url: `${process.env.PUBLIC_URL}/sounds/click.wav`, fadeOut: 0.1, onload: () => setIsMetronomeReady(true) }).toDestination();
+        let clickLoaded = false;
+        let countdownLoaded = false;
+
+        const checkAllLoaded = () => {
+            if (clickLoaded && countdownLoaded) {
+                setIsMetronomeReady(true);
+            }
+        };
+
+        metronomePlayer.current = new Tone.Player({ 
+            url: `${process.env.PUBLIC_URL}/sounds/click.wav`, 
+            fadeOut: 0.1, 
+            onload: () => {
+                clickLoaded = true;
+                checkAllLoaded();
+            }
+        }).toDestination();
         
         let loadedCountdownCount = 0;
         const countdownFileNames = ['1.wav', '2.wav', '3.wav', '4.wav', '5.wav', '6.wav', '7.wav'];
@@ -25,7 +40,10 @@ export const useMetronomeLogic = (unlockAudio) => {
                 url: `${process.env.PUBLIC_URL}/sounds/${fileName}`,
                 onload: () => {
                     loadedCountdownCount++;
-                    if (loadedCountdownCount === totalCountdownFiles) setIsCountdownReady(true);
+                    if (loadedCountdownCount === totalCountdownFiles) {
+                        countdownLoaded = true;
+                        checkAllLoaded();
+                    }
                 }
             }).toDestination()
         );
@@ -40,11 +58,16 @@ export const useMetronomeLogic = (unlockAudio) => {
         };
     }, []);
 
-    useEffect(() => { if (isMetronomeReady) metronomePlayer.current.volume.value = metronomeVolume; }, [metronomeVolume, isMetronomeReady]);
-    useEffect(() => { if (isCountdownReady) { countdownPlayers.current.forEach(player => { player.volume.value = metronomeVolume; }); } }, [metronomeVolume, isCountdownReady]);
+    useEffect(() => { 
+        if (isMetronomeReady) {
+            metronomePlayer.current.volume.value = metronomeVolume;
+            countdownPlayers.current.forEach(player => { player.volume.value = metronomeVolume; });
+        }
+    }, [metronomeVolume, isMetronomeReady]);
 
     const startMetronome = useCallback(() => {
         if (!isMetronomeReady) return;
+
         const transport = Tone.getTransport();
         transport.bpm.value = bpm;
         if (transportEventRef.current.id) transport.clear(transportEventRef.current.id);
@@ -56,7 +79,10 @@ export const useMetronomeLogic = (unlockAudio) => {
         transportEventRef.current.id = transport.scheduleRepeat(time => {
             const task = scheduledTaskRef.current;
             if (!task || !task.callback || task.interval <= 0) {
-                metronomePlayer.current.start(time);
+                // MODIFIED: Added safety check
+                if (metronomePlayer.current && metronomePlayer.current.loaded) {
+                    metronomePlayer.current.start(time);
+                }
                 return;
             }
             const mainInterval = task.interval;
@@ -68,18 +94,25 @@ export const useMetronomeLogic = (unlockAudio) => {
             
             if (positionInCycle < countIn) {
                 const countdownNumber = positionInCycle;
-                if (countdownNumber < countdownPlayers.current.length && countdownPlayers.current[countdownNumber]?.loaded) {
-                    countdownPlayers.current[countdownNumber].start(time);
-                } else {
+                const player = countdownPlayers.current[countdownNumber];
+                // MODIFIED: Added safety check
+                if (player && player.loaded) {
+                    player.start(time);
+                } else if (metronomePlayer.current && metronomePlayer.current.loaded) {
                     metronomePlayer.current.start(time);
                 }
             } else {
-                metronomePlayer.current.start(time);
+                // MODIFIED: Added safety check
+                if (metronomePlayer.current && metronomePlayer.current.loaded) {
+                    metronomePlayer.current.start(time);
+                }
             }
             transportEventRef.current.beatCounter++;
         }, "4n");
         
-        transport.start();
+        if (transport.state !== 'started') {
+            transport.start(Tone.now() + 0.1);
+        }
         setIsMetronomePlaying(true);
     }, [bpm, isMetronomeReady, countdownClicks]);
 

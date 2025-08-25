@@ -68,26 +68,34 @@ export const RoutineResult = ({ result, onDelete, isSummary = false }) => { // R
     );
 
     // The detailed view shown when expanded
-    const DetailedView = () => (
-        <div className="p-4 border-t border-slate-600/50">
-             <h4 className="font-bold text-indigo-300 mb-2">Step Breakdown</h4>
-             <div className="space-y-3">
-                {result.steps.map((step, index) => (
-                    <div key={index} className="p-3 bg-slate-800 rounded-lg text-left">
-                        <p className="font-semibold text-gray-200">Step {index + 1}: {getPresetName(step.presetId)}</p>
-                        <div className="flex justify-between text-sm mt-1">
-                            <span className="text-gray-400">
-                                Goal: {step.goalType === 'time' ? `${step.goalValue / 60} min` : `${step.goalValue || 'N/A'} questions`}
-                            </span>
-                            <span className="font-semibold text-white">
-                                Result: {result.stepResults[index].score} / {result.stepResults[index].asked}
-                            </span>
+    // The detailed view shown when expanded
+    const DetailedView = () => {
+        // FIXED: Return nothing if the routine type is 'Streak', as a breakdown is not applicable.
+        if (result.routineType === 'Streak') {
+            return null;
+        }
+
+        return (
+            <div className="p-4 border-t border-slate-600/50">
+                 <h4 className="font-bold text-indigo-300 mb-2">Step Breakdown</h4>
+                 <div className="space-y-3">
+                    {result.steps.map((step, index) => (
+                        <div key={index} className="p-3 bg-slate-800 rounded-lg text-left">
+                            <p className="font-semibold text-gray-200">Step {index + 1}: {getPresetName(step.presetId)}</p>
+                            <div className="flex justify-between text-sm mt-1">
+                                <span className="text-gray-400">
+                                    Goal: {step.goalType === 'time' ? `${step.goalValue / 60} min` : `${step.goalValue || 'N/A'} questions`}
+                                </span>
+                                <span className="font-semibold text-white">
+                                    Result: {result.stepResults[index].score} / {result.stepResults[index].asked}
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     if (isSummary) {
         return (

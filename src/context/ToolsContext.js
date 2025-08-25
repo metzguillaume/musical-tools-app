@@ -71,7 +71,32 @@ export const ToolsProvider = ({ children }) => {
     const nextRoutineStep = useCallback(() => setRoutineStepIndex(prev => prev + 1), []);
     const endRoutine = useCallback(() => { if (stopwatch.isStopwatchRunning) stopwatch.toggleStopwatch(); setActiveRoutine(null); setRoutineStepIndex(0); setRoutineProgress(null); }, [stopwatch]);
     const updateRoutineProgress = useCallback((stepIndex, quizProgress, currentProgress) => { if (!currentProgress?.stepResults?.[stepIndex]) return currentProgress; const newStepResults = [...currentProgress.stepResults]; newStepResults[stepIndex] = { score: quizProgress.score, asked: quizProgress.totalAsked }; const totalScore = newStepResults.reduce((sum, r) => sum + r.score, 0); const totalAsked = newStepResults.reduce((sum, r) => sum + r.asked, 0); const newState = { ...currentProgress, stepResults: newStepResults, totalScore, totalAsked, streak: quizProgress.wasCorrect ? (currentProgress.streak || 0) + 1 : 0 }; setRoutineProgress(newState); return newState; }, []);
-    const finishRoutine = useCallback((finalProgress) => { if (!activeRoutine || !finalProgress) return; const result = { id: `res_${Date.now()}`, routineId: activeRoutine.id, routineName: activeRoutine.name, routineType: activeRoutine.type, completionTime: new Date().toISOString(), steps: activeRoutine.steps, stepResults: finalProgress.stepResults, totalScore: finalProgress.totalScore, totalAsked: finalProgress.totalAsked, streak: finalProgress.streak, finalTime: activeRoutine.type === 'Gauntlet' ? stopwatch.stopwatchTime : null, }; scoreboard.saveRoutineResult(result); setLastRoutineResultId(result.id); endRoutine(); }, [activeRoutine, endRoutine, stopwatch, scoreboard]);
+    const finishRoutine = useCallback((finalProgress) => {
+        if (!activeRoutine || !finalProgress) return;
+        const result = {
+            id: `res_${Date.now()}`,
+            routineId: activeRoutine.id,
+            routineName: activeRoutine.name,
+            routineType: activeRoutine.type,
+            completionTime: new Date().toISOString(),
+            steps: activeRoutine.steps,
+            stepResults: finalProgress.stepResults,
+            totalScore: finalProgress.totalScore,
+            totalAsked: finalProgress.totalAsked,
+            streak: finalProgress.streak,
+            finalTime: activeRoutine.type === 'Gauntlet' ? stopwatch.stopwatchTime : null,
+        };
+
+        // FIXED: Override score and asked counts for Streak results to reflect the final streak.
+        if (result.routineType === 'Streak') {
+            result.totalScore = result.streak;
+            result.totalAsked = result.streak;
+        }
+
+        scoreboard.saveRoutineResult(result);
+        setLastRoutineResultId(result.id);
+        endRoutine();
+    }, [activeRoutine, endRoutine, stopwatch, scoreboard]);
 
     // The entire value object is memoized for stability.
     const value = useMemo(() => ({

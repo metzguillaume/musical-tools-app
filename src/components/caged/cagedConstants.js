@@ -18,12 +18,18 @@ export const CAGED_SHAPES = {
 };
 
 export const ROOT_NOTE_OPTIONS = [
-    { display: 'C', value: 'C' }, { display: 'Db/C#', value: 'Db', altValue: 'C#' },
-    { display: 'D', value: 'D' }, { display: 'Eb/D#', value: 'Eb', altValue: 'D#' },
-    { display: 'E', value: 'E' }, { display: 'F', value: 'F' },
-    { display: 'F#/Gb', value: 'F#', altValue: 'Gb' }, { display: 'G', value: 'G' },
-    { display: 'Ab/G#', value: 'Ab', altValue: 'G#' }, { display: 'A', value: 'A' },
-    { display: 'Bb/A#', value: 'Bb', altValue: 'A#' }, { display: 'B', value: 'B' },
+    { display: 'A', value: 'A' },
+    { display: 'Bb/A#', value: 'Bb', altValue: 'A#' },
+    { display: 'B', value: 'B' },
+    { display: 'C', value: 'C' },
+    { display: 'Db/C#', value: 'Db', altValue: 'C#' },
+    { display: 'D', value: 'D' },
+    { display: 'Eb/D#', value: 'Eb', altValue: 'D#' },
+    { display: 'E', value: 'E' },
+    { display: 'F', value: 'F' },
+    { display: 'F#/Gb', value: 'F#', altValue: 'Gb' },
+    { display: 'G', value: 'G' },
+    { display: 'Ab/G#', value: 'Ab', altValue: 'G#' },
 ];
 
 export const SHAPE_ORDER = ['C', 'A', 'G', 'E', 'D'];

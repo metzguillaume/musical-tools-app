@@ -37,7 +37,11 @@ const RoutineHUD = ({ routine, stepIndex, progress, timeLeft, stopwatchTime, onE
             <h2 className="text-xl font-bold text-teal-300 text-center border-b border-slate-700 pb-3">{routine.name}</h2>
             
             <div className="space-y-3">
-                <StatDisplay label="Step" value={`${stepIndex + 1} / ${routine.steps.length}`} />
+                {/* FIXED: This will now only show for non-Streak routines */}
+                {routine.type !== 'Streak' && (
+                    <StatDisplay label="Step" value={`${stepIndex + 1} / ${routine.steps.length}`} />
+                )}
+
                 <StatDisplay label={goalLabel} value={goalDisplay} />
                 
                 {routine.type === 'Gauntlet' && (

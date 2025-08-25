@@ -88,11 +88,12 @@ const RoutineRunner = () => {
         return () => clearInterval(intervalId);
     }, [activeRoutine, routineStepIndex]);
 
-    // This function handles progress updates from quizzes.
+// This function handles progress updates from quizzes.
     const handleProgressUpdate = useCallback((progress) => {
         if (!activeRoutine) return;
 
         let currentStepIdx = (activeRoutine.type === 'Streak') ? streakState.currentStepIndex : routineStepIndex;
+        // The 'routineProgress' variable holds the state BEFORE this update. Its streak count is the one we want to save.
         const newProgress = updateRoutineProgress(currentStepIdx, progress, routineProgress);
         const currentStep = activeRoutine.steps[currentStepIdx];
         const isFinalStep = routineStepIndex >= activeRoutine.steps.length - 1;
@@ -101,20 +102,26 @@ const RoutineRunner = () => {
         
         if (activeRoutine.type === 'Streak') {
             if (!progress.wasCorrect) {
-                advance(true, newProgress);
+                // FIXED: When the streak ends, we create a final result object
+                // that uses the streak count from *before* it was reset to 0.
+                const finalProgress = { ...newProgress, streak: routineProgress.streak || 0 };
+                advance(true, finalProgress);
             } else {
-                const newQuestionsAsked = streakState.questionsAsked + 1;
-                const requiredQuestions = currentStep.questionsInARow || 1;
-                
-                if (newQuestionsAsked >= requiredQuestions) {
-                    let nextStepIndex;
-                    do {
-                        nextStepIndex = Math.floor(Math.random() * activeRoutine.steps.length);
-                    } while (activeRoutine.steps.length > 1 && nextStepIndex === streakState.currentStepIndex);
-                    setStreakState({ currentStepIndex: nextStepIndex, questionsAsked: 0 });
-                } else {
-                    setStreakState(prev => ({ ...prev, questionsAsked: newQuestionsAsked }));
-                }
+                // If correct, wait 2 seconds before choosing the next question.
+                timeoutRef.current = setTimeout(() => {
+                    const newQuestionsAsked = streakState.questionsAsked + 1;
+                    const requiredQuestions = currentStep.questionsInARow || 1;
+                    
+                    if (newQuestionsAsked >= requiredQuestions) {
+                        let nextStepIndex;
+                        do {
+                            nextStepIndex = Math.floor(Math.random() * activeRoutine.steps.length);
+                        } while (activeRoutine.steps.length > 1 && nextStepIndex === streakState.currentStepIndex);
+                        setStreakState({ currentStepIndex: nextStepIndex, questionsAsked: 0 });
+                    } else {
+                        setStreakState(prev => ({ ...prev, questionsAsked: newQuestionsAsked }));
+                    }
+                }, 2000);
             }
         } else {
             const questionsAnsweredForStep = newProgress.stepResults[currentStepIdx].asked;

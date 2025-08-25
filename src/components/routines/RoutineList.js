@@ -1,7 +1,7 @@
 import React from 'react';
 
 // A new sub-component for the expandable folder manager
-const FolderManager = ({ routine, folders, onToggleFolder }) => ( // RENAMED prop
+const FolderManager = ({ routine, folders, onToggleFolder }) => (
     <div className="bg-slate-800 p-4 rounded-b-lg -mt-2 animate-fade-in-down">
         <h4 className="font-bold text-indigo-300 mb-2">Assign to Folders:</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -10,8 +10,8 @@ const FolderManager = ({ routine, folders, onToggleFolder }) => ( // RENAMED pro
                     <input
                         type="checkbox"
                         className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 bg-slate-700"
-                        checked={routine.folderIds.includes(folder.id)} // RENAMED prop
-                        onChange={() => onToggleFolder(routine.id, folder.id)} // RENAMED prop
+                        checked={routine.folderIds.includes(folder.id)}
+                        onChange={() => onToggleFolder(routine.id, folder.id)}
                     />
                     <span className="font-semibold">{folder.name}</span>
                 </label>
@@ -21,7 +21,7 @@ const FolderManager = ({ routine, folders, onToggleFolder }) => ( // RENAMED pro
     </div>
 );
 
-const RoutineList = ({ routines = [], folders = [], onStart, onEdit, onDelete, onExport, onShowCreator, onToggleManageFolders, onToggleFolder, managingFoldersForId }) => { // RENAMED component and prop
+const RoutineList = ({ routines = [], folders = [], onStart, onEdit, onDelete, onExport, onShowCreator, onToggleManageFolders, onToggleFolder, managingFoldersForId, isSelectionMode, selectedRoutineIds, onToggleSelection }) => {
     
     const getBorderColor = (type) => {
         switch (type) {
@@ -32,29 +32,39 @@ const RoutineList = ({ routines = [], folders = [], onStart, onEdit, onDelete, o
         }
     };
     
-    if (!routines || routines.length === 0) { // RENAMED prop
+    if (!routines || routines.length === 0) {
         if (!onShowCreator) {
-            return <p className="text-center text-gray-400 py-4">No routines in this folder match your current filters.</p>; // RENAMED text
+            return <p className="text-center text-gray-400 py-4">No routines in this folder match your current filters.</p>;
         }
         return (
             <div className="text-center p-8 bg-slate-700/50 rounded-lg">
-                <h3 className="text-xl font-semibold text-gray-300">No Routines Found</h3> {/*RENAMED text*/}
-                <p className="text-gray-400 mt-2">You haven't created any routines yet. Get started by building a new one!</p> {/*RENAMED text*/}
+                <h3 className="text-xl font-semibold text-gray-300">No Routines Found</h3>
+                <p className="text-gray-400 mt-2">You haven't created any routines yet. Get started by building a new one!</p>
                 <button 
                     onClick={onShowCreator}
                     className="mt-4 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg"
                 >
                     Create Your First Routine
-                </button> {/*RENAMED text*/}
+                </button>
             </div>
         );
     }
 
     return (
         <div className="space-y-4">
-            {routines.map(routine => ( // RENAMED prop
+            {routines.map(routine => (
                 <div key={routine.id}>
-                    <div className={`bg-slate-700 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-2 ${getBorderColor(routine.type)} ${managingFoldersForId === routine.id ? 'rounded-t-lg' : 'rounded-lg'}`}>
+                    <div className={`bg-slate-700 p-4 flex items-center justify-between gap-4 border-2 ${getBorderColor(routine.type)} ${managingFoldersForId === routine.id ? 'rounded-t-lg' : 'rounded-lg'}`}>
+                        {isSelectionMode && (
+                            <div className="flex-shrink-0 pr-4">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedRoutineIds.has(routine.id)}
+                                    onChange={() => onToggleSelection(routine.id)}
+                                    className="h-6 w-6 rounded border-gray-400 text-indigo-600 bg-slate-800 focus:ring-indigo-500"
+                                />
+                            </div>
+                        )}
                         <div className="flex-grow">
                             <h3 className="font-bold text-xl text-teal-300">{routine.name}</h3>
                             <p className="text-sm text-gray-400 capitalize">{routine.type.replace(/([A-Z])/g, ' $1').trim()} &bull; {routine.steps.length} Steps</p>
@@ -65,17 +75,16 @@ const RoutineList = ({ routines = [], folders = [], onStart, onEdit, onDelete, o
                             )}
                         </div>
                         <div className="flex flex-shrink-0 gap-2 flex-wrap items-center">
-                            <button onClick={() => onToggleManageFolders(routine.id)} className={`${managingFoldersForId === routine.id ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'} text-white font-bold py-2 px-4 rounded-lg text-sm`}>Manage Folders</button>
-                            <button onClick={() => onStart(routine)} className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Start</button>
-                            <button onClick={() => onEdit(routine)} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Edit</button>
-                            <button onClick={() => onExport(routine)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg text-sm">Export</button>
-                            <button onClick={() => onDelete(routine.id)} className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm">Delete</button>
+                            <button onClick={() => onToggleManageFolders(routine.id)} disabled={isSelectionMode} className={`${managingFoldersForId === routine.id ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'} text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed`}>Manage Folders</button>
+                            <button onClick={() => onStart(routine)} disabled={isSelectionMode} className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Start</button>
+                            <button onClick={() => onEdit(routine)} disabled={isSelectionMode} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Edit</button>
+                            <button onClick={() => onExport(routine)} disabled={isSelectionMode} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Export</button>
+                            <button onClick={() => onDelete(routine.id)} disabled={isSelectionMode} className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Delete</button>
                         </div>
                     </div>
-                    {/* Conditionally render the expandable panel */}
                     {managingFoldersForId === routine.id && (
                         <FolderManager 
-                            routine={routine} // RENAMED prop
+                            routine={routine}
                             folders={folders}
                             onToggleFolder={onToggleFolder}
                         />
@@ -86,4 +95,4 @@ const RoutineList = ({ routines = [], folders = [], onStart, onEdit, onDelete, o
     );
 };
 
-export default RoutineList; // RENAMED component
+export default RoutineList;

@@ -72,7 +72,7 @@ const AppContent = () => {
       ],
     },
     {
-      name: 'Routines', // RENAMED
+      name: 'Presets & Routines', // RENAMED
       tools: [
         { id: 'presets-manager', name: 'Preset Manager' }, { id: 'routines-hub', name: 'Routine Hub' }, { id: 'scoreboard', name: 'Scoreboard' }, // RENAMED
       ],

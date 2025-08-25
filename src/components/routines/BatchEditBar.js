@@ -1,15 +1,37 @@
 import React from 'react';
 
-const BatchEditBar = ({ selectedCount, onMove, onDelete }) => {
+const BatchEditBar = ({ selectedCount, onMove, onExport, onDelete, onCancel }) => {
     return (
         <div className="bg-slate-900/80 backdrop-blur-sm p-4 rounded-lg mb-6 flex justify-between items-center sticky top-4 z-20 border border-yellow-500">
             <span className="font-bold text-lg text-yellow-300">{selectedCount} Routine(s) Selected</span>
             <div className="flex gap-2">
-                <button onClick={onMove} disabled={selectedCount === 0} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                    Move Selected
+                <button 
+                    onClick={onMove} 
+                    disabled={selectedCount === 0} 
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Move
                 </button>
-                <button onClick={onDelete} disabled={selectedCount === 0} className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                    Delete Selected
+                <button 
+                    onClick={onExport} 
+                    disabled={selectedCount === 0} 
+                    className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Export
+                </button>
+                <button 
+                    onClick={onDelete} 
+                    disabled={selectedCount === 0} 
+                    className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Delete
+                </button>
+                {/* New Cancel Button */}
+                <button 
+                    onClick={onCancel}
+                    className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg"
+                >
+                    Cancel
                 </button>
             </div>
         </div>

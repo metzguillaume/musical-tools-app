@@ -133,26 +133,38 @@ export const useRoutinesLogic = () => {
         URL.revokeObjectURL(href);
     }, []);
 
-    const exportFolder = useCallback((folderId, allPresets) => {
-        const folder = folders.find(f => f.id === folderId);
-        if (!folder) return alert("Folder not found.");
-        const routinesInFolder = routines.filter(r => r.folderIds.includes(folderId));
-        if (routinesInFolder.length === 0) return alert("This folder is empty. Nothing to export.");
-
-        const requiredPresetIds = new Set(routinesInFolder.flatMap(r => r.steps.map(s => s.presetId)));
+    const exportFolder = useCallback((idOrIds, allPresets, fileName) => {
+        let routinesToExport;
+        let bundleName;
+    
+        if (Array.isArray(idOrIds)) {
+            // Case 1: Batch selection of routines from an array of IDs
+            routinesToExport = routines.filter(r => idOrIds.includes(r.id));
+            bundleName = fileName || 'custom_selection';
+        } else {
+            // Case 2: Exporting a pre-existing folder by its ID
+            const folder = folders.find(f => f.id === idOrIds);
+            if (!folder) return alert("Folder not found.");
+            routinesToExport = routines.filter(r => r.folderIds && r.folderIds.includes(idOrIds));
+            bundleName = folder.name;
+        }
+    
+        if (routinesToExport.length === 0) return alert("There are no routines to export in this selection.");
+    
+        const requiredPresetIds = new Set(routinesToExport.flatMap(r => r.steps.map(s => s.presetId)));
         const requiredPresets = allPresets.filter(p => requiredPresetIds.has(p.id));
         
         const folderBundle = {
             type: 'MusicToolsRoutineFolderBundle',
-            folderName: folder.name,
-            routines: routinesInFolder,
+            folderName: bundleName,
+            routines: routinesToExport,
             requiredPresets: requiredPresets,
         };
         const jsonString = JSON.stringify(folderBundle, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const href = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        const safeName = folder.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const safeName = (fileName || bundleName).replace(/[^a-z0-9]/gi, '_').toLowerCase();
         link.download = `routine_folder_${safeName}.routine.json`;
         link.href = href;
         document.body.appendChild(link);

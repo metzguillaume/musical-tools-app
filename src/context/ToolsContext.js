@@ -104,7 +104,7 @@ export const ToolsProvider = ({ children }) => {
         activeTab, navigate, openCategory, handleCategoryClick,
         ...log, ...metronome, ...drone, ...timer, ...stopwatch, ...audioPlayers, ...presets, ...routinesLogic,
         exportRoutine: (r) => routinesLogic.exportRoutine(r, presets.presets),
-        exportFolder: (id) => routinesLogic.exportFolder(id, presets.presets),
+        exportFolder: (id, fileName) => routinesLogic.exportFolder(id, presets.presets, fileName),
         importRoutines: (f) => routinesLogic.importRoutines(f, presets.savePreset),
         ...scoreboard,
         presetToLoad, loadPreset, clearPresetToLoad,

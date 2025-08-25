@@ -1,6 +1,6 @@
 import React from 'react';
 
-// A new sub-component for the expandable folder manager
+// A sub-component for the expandable folder manager
 const FolderManager = ({ routine, folders, onToggleFolder }) => (
     <div className="bg-slate-800 p-4 rounded-b-lg -mt-2 animate-fade-in-down">
         <h4 className="font-bold text-indigo-300 mb-2">Assign to Folders:</h4>
@@ -21,7 +21,8 @@ const FolderManager = ({ routine, folders, onToggleFolder }) => (
     </div>
 );
 
-const RoutineList = ({ routines = [], folders = [], onStart, onEdit, onDelete, onExport, onShowCreator, onToggleManageFolders, onToggleFolder, managingFoldersForId, isSelectionMode, selectedRoutineIds, onToggleSelection }) => {
+// FIXED: Removed `onDelete` from this component's direct props
+const RoutineList = ({ routines = [], folders = [], onStart, onEdit, onExport, onShowCreator, onToggleManageFolders, onToggleFolder, managingFoldersForId, isSelectionMode, selectedRoutineIds, onToggleSelection }) => {
     
     const getBorderColor = (type) => {
         switch (type) {
@@ -52,45 +53,44 @@ const RoutineList = ({ routines = [], folders = [], onStart, onEdit, onDelete, o
 
     return (
         <div className="space-y-4">
-            {routines.map(routine => (
-                <div key={routine.id}>
-                    <div className={`bg-slate-700 p-4 flex items-center justify-between gap-4 border-2 ${getBorderColor(routine.type)} ${managingFoldersForId === routine.id ? 'rounded-t-lg' : 'rounded-lg'}`}>
-                        {isSelectionMode && (
-                            <div className="flex-shrink-0 pr-4">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedRoutineIds.has(routine.id)}
-                                    onChange={() => onToggleSelection(routine.id)}
-                                    className="h-6 w-6 rounded border-gray-400 text-indigo-600 bg-slate-800 focus:ring-indigo-500"
-                                />
+            {routines.map(routine => {
+                const isSelected = selectedRoutineIds.has(routine.id);
+                return (
+                    <div key={routine.id}>
+                        <div 
+                            onClick={isSelectionMode ? () => onToggleSelection(routine.id) : undefined}
+                            className={`p-4 flex items-center justify-between gap-4 border-2 transition-all duration-150
+                                ${managingFoldersForId === routine.id ? 'rounded-t-lg' : 'rounded-lg'}
+                                ${isSelectionMode ? 'cursor-pointer' : ''}
+                                ${isSelected ? `bg-indigo-800 ring-2 ring-indigo-400 ${getBorderColor(routine.type)}` : `bg-slate-700 ${getBorderColor(routine.type)}`}
+                            `}
+                        >
+                            <div className="flex-grow">
+                                <h3 className="font-bold text-xl text-teal-300">{routine.name}</h3>
+                                <p className="text-sm text-gray-400 capitalize">{routine.type.replace(/([A-Z])/g, ' $1').trim()} &bull; {routine.steps.length} Steps</p>
+                                {routine.createdAt && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Created: {new Date(routine.createdAt).toLocaleString()}
+                                    </p>
+                                )}
                             </div>
+                            <div className="flex flex-shrink-0 gap-2 flex-wrap items-center">
+                                <button onClick={(e) => { e.stopPropagation(); onToggleManageFolders(routine.id); }} disabled={isSelectionMode} className={`${managingFoldersForId === routine.id ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'} text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed`}>Manage Folders</button>
+                                <button onClick={(e) => { e.stopPropagation(); onStart(routine); }} disabled={isSelectionMode} className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Start</button>
+                                <button onClick={(e) => { e.stopPropagation(); onEdit(routine); }} disabled={isSelectionMode} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Edit</button>
+                                <button onClick={(e) => { e.stopPropagation(); onExport(routine); }} disabled={isSelectionMode} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Export</button>
+                            </div>
+                        </div>
+                        {managingFoldersForId === routine.id && (
+                            <FolderManager 
+                                routine={routine}
+                                folders={folders}
+                                onToggleFolder={onToggleFolder}
+                            />
                         )}
-                        <div className="flex-grow">
-                            <h3 className="font-bold text-xl text-teal-300">{routine.name}</h3>
-                            <p className="text-sm text-gray-400 capitalize">{routine.type.replace(/([A-Z])/g, ' $1').trim()} &bull; {routine.steps.length} Steps</p>
-                            {routine.createdAt && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Created: {new Date(routine.createdAt).toLocaleString()}
-                                </p>
-                            )}
-                        </div>
-                        <div className="flex flex-shrink-0 gap-2 flex-wrap items-center">
-                            <button onClick={() => onToggleManageFolders(routine.id)} disabled={isSelectionMode} className={`${managingFoldersForId === routine.id ? 'bg-indigo-600' : 'bg-gray-700 hover:bg-gray-600'} text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed`}>Manage Folders</button>
-                            <button onClick={() => onStart(routine)} disabled={isSelectionMode} className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Start</button>
-                            <button onClick={() => onEdit(routine)} disabled={isSelectionMode} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Edit</button>
-                            <button onClick={() => onExport(routine)} disabled={isSelectionMode} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Export</button>
-                            <button onClick={() => onDelete(routine.id)} disabled={isSelectionMode} className="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed">Delete</button>
-                        </div>
                     </div>
-                    {managingFoldersForId === routine.id && (
-                        <FolderManager 
-                            routine={routine}
-                            folders={folders}
-                            onToggleFolder={onToggleFolder}
-                        />
-                    )}
-                </div>
-            ))}
+                )
+            })}
         </div>
     );
 };

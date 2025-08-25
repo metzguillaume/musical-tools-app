@@ -12,14 +12,28 @@ const StepAdderForm = ({ routineType, presets, onAddStep }) => {
     const [presetId, setPresetId] = useState('');
     const [goalType, setGoalType] = useState('time');
     const [goalValue, setGoalValue] = useState(5);
-    const [instruction, setInstruction] = useState(''); // NEW state for the instruction
+    const [instruction, setInstruction] = useState('');
+
+    // MODIFIED: This new useMemo hook filters presets based on the routine type
+    const filteredPresets = useMemo(() => {
+        if (routineType === 'Gauntlet' || routineType === 'Streak') {
+            return presets.filter(p => gameToCategoryMap[p.gameName] !== 'Generators');
+        }
+        return presets; // Return all presets for Practice Routines
+    }, [presets, routineType]);
 
     useEffect(() => {
-        const allPresets = [...presets].sort((a,b) => a.name.localeCompare(b.name));
-        if(!presetId && allPresets.length > 0) {
-            setPresetId(allPresets[0].id);
+        // Use the new filtered list to set the initial preset
+        const availablePresets = [...filteredPresets].sort((a,b) => a.name.localeCompare(b.name));
+        if (availablePresets.length > 0) {
+            // If the current presetId is not in the new filtered list, update it
+            if (!availablePresets.some(p => p.id === presetId)) {
+                setPresetId(availablePresets[0].id);
+            }
+        } else {
+            setPresetId(''); // No presets available
         }
-    }, [presets, presetId]);
+    }, [filteredPresets, presetId]);
 
     useEffect(() => {
         if (!presetId) return;
@@ -37,6 +51,10 @@ const StepAdderForm = ({ routineType, presets, onAddStep }) => {
     }, [presetId, presets]);
 
     const handleAddClick = () => {
+        if (!presetId) {
+            alert("No presets available for this routine type.");
+            return;
+        }
         let finalGoalType = null;
         let finalGoalValue = null;
 
@@ -48,16 +66,15 @@ const StepAdderForm = ({ routineType, presets, onAddStep }) => {
             finalGoalValue = goalValue;
         }
         
-        // MODIFIED: Pass instruction data up
         onAddStep({ presetId, goalType: finalGoalType, goalValue: finalGoalValue, instruction: instruction.trim() });
-        setInstruction(''); // Clear the input after adding
+        setInstruction('');
     };
 
     return (
         <div className="bg-slate-800/50 p-4 rounded-lg space-y-4">
-            <PresetSelector presets={presets} selectedPresetId={presetId} onSelectPreset={setPresetId} />
+            {/* MODIFIED: The preset selector now receives the filtered list */}
+            <PresetSelector presets={filteredPresets} selectedPresetId={presetId} onSelectPreset={setPresetId} />
             
-            {/* NEW: Instruction Text Input */}
             <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-1">Custom Note (Optional)</label>
                 <input 

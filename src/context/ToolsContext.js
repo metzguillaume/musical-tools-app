@@ -54,6 +54,15 @@ export const ToolsProvider = ({ children }) => {
     const routinesLogic = useRoutinesLogic();
     const presets = usePresetsLogic(routinesLogic.routines);
 
+    // This effect acts as a safety net to ensure that whenever the user navigates
+    // to a new tool, any lingering auto-generation schedule is cleared.
+    useEffect(() => {
+        if (metronome.setMetronomeSchedule) {
+            metronome.setMetronomeSchedule(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab]);
+
     const loadPreset = useCallback((presetToLoad) => { presets.updatePreset(presetToLoad.id, { ...presetToLoad, lastUsed: new Date().toISOString() }); setPresetToLoad(presetToLoad); }, [presets]);
 
     const startRoutine = useCallback(async (routine) => {
@@ -87,7 +96,6 @@ export const ToolsProvider = ({ children }) => {
             finalTime: activeRoutine.type === 'Gauntlet' ? stopwatch.stopwatchTime : null,
         };
 
-        // FIXED: Override score and asked counts for Streak results to reflect the final streak.
         if (result.routineType === 'Streak') {
             result.totalScore = result.streak;
             result.totalAsked = result.streak;
@@ -112,10 +120,11 @@ export const ToolsProvider = ({ children }) => {
         startRoutine, nextRoutineStep, endRoutine, updateRoutineProgress, finishRoutine,
         lastRoutineResultId, setLastRoutineResultId,
     }), [
-        unlockAudio, activeTool, toggleActiveTool, activeTab, navigate, openCategory, handleCategoryClick, log, metronome, drone,
-        timer, stopwatch, audioPlayers, presets, routinesLogic,
-        // MODIFIED: Added the missing comma that was causing the syntax error.
-        scoreboard, presetToLoad, activeRoutine, routineStepIndex, routineProgress, lastRoutineResultId, loadPreset, startRoutine, nextRoutineStep, endRoutine, updateRoutineProgress, finishRoutine, setRoutineProgress, setLastRoutineResultId, clearPresetToLoad
+        unlockAudio, activeTool, toggleActiveTool, activeTab, navigate, openCategory, handleCategoryClick,
+        log, metronome, drone, timer, stopwatch, audioPlayers, presets, routinesLogic, scoreboard,
+        presetToLoad, activeRoutine, routineStepIndex, routineProgress, lastRoutineResultId,
+        loadPreset, startRoutine, nextRoutineStep, endRoutine, updateRoutineProgress, finishRoutine,
+        setRoutineProgress, setLastRoutineResultId, clearPresetToLoad
     ]);
 
     return (

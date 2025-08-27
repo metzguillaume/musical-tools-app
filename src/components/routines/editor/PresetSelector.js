@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 const categoryOrder = [
     { name: 'Generators', modules: ['Note Generator', 'Interval Generator', 'Chord Progression Generator'] },
     { name: 'Theory', modules: ['Interval Practice', 'Triad & Tetrads Quiz', 'Chord Trainer'] },
-    { name: 'Fretboard', modules: ['Fretboard Intervals', 'CAGED System Quiz'] },
+    { name: 'Fretboard', modules: ['Fretboard Intervals', 'CAGED System Quiz', 'Fretboard Triads'] },
     { name: 'Ear Training', modules: ['Interval Recognition', 'Melodic Recognition'] }
 ];
 

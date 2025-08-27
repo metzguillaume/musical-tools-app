@@ -13,6 +13,8 @@ import { CagedQuizControls } from '../caged/CagedQuizControls';
 import { IntervalEarTrainerControls } from '../earTraining/IntervalEarTrainerControls';
 import { MelodicEarTrainerControls } from '../earTraining/MelodicEarTrainerControls';
 import { ChordTrainerControls } from '../chordTrainer/ChordTrainerControls';
+// +++ IMPORT the FretboardTriadsControls component +++
+import { FretboardTriadsControls } from '../fretboardTriads/FretboardTriadsControls';
 
 // Map game IDs to their corresponding controls component
 const controlsMap = {
@@ -26,6 +28,8 @@ const controlsMap = {
     'interval-ear-trainer': IntervalEarTrainerControls,
     'melodic-ear-trainer': MelodicEarTrainerControls,
     'chord-trainer': ChordTrainerControls,
+    // +++ ADD the new entry for Fretboard Triads +++
+    'fretboard-triads': FretboardTriadsControls,
 };
 
 const PresetEditorModal = ({ preset, onSave, onCancel }) => {
@@ -126,6 +130,18 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                     onIntervalChange: (val) => setEditedPreset(p => ({...p, automation: {...p.automation, autoGenerateInterval: val }})),
                     countdownClicks: editedPreset.automation?.countdownClicks || 0,
                     onCountdownChange: (val) => setEditedPreset(p => ({...p, automation: {...p.automation, countdownClicks: val }})),
+                };
+            
+            // +++ ADD a case for Fretboard Triads to handle its specific onSettingChange prop +++
+            case 'fretboard-triads':
+                return {
+                    ...baseProps,
+                    onSettingChange: (key, value) => {
+                        setEditedPreset(p => ({
+                            ...p,
+                            settings: { ...p.settings, [key]: value }
+                        }));
+                    },
                 };
             
             // This default case handles NoteGenerator, IntervalGenerator, and others with similar automation props

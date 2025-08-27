@@ -107,28 +107,44 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
             return note.label;
         };
 
+        // Logic for before the answer is submitted
         if (!isAnswered && !isReviewing) {
             if (question.mode === 'identify') return question.notes.map(note => ({ ...note, label: note.isRoot ? 'R' : '' }));
             if (question.mode === 'construct') return [ ...question.notes.filter(n => n.fret === -1), ...(userAnswer.notes || []).map(n => ({...n, isRoot: false, overrideColor: '#3b82f6'})) ];
         }
 
+        // Logic for AFTER the answer is submitted or when reviewing
         if (isAnswered || isReviewing) {
-            const correctNotes = question.answer.notes;
+            const wasCorrect = isReviewing ? itemToDisplay.wasCorrect : (history.length > 0 ? history[history.length - 1].wasCorrect : false);
             const userNotes = itemUserAnswer.notes || [];
-            const correctSet = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
-            const correctNotesStyled = correctNotes.map(note => ({
-                ...note,
-                overrideLabel: getNoteLabel(note),
-                overrideColor: note.isRoot ? '#166534' : '#22c55e',
-            }));
-            const incorrectClicksStyled = userNotes
-                .filter(n => !correctSet.has(`${n.string}-${n.fret}`))
-                .map(note => ({ ...note, overrideLabel: getNoteLabel(note), overrideColor: '#ef4444' }));
+            const correctNotes = question.answer.notes;
             const mutedStrings = question.notes.filter(n => n.fret === -1);
-            return [...correctNotesStyled, ...incorrectClicksStyled, ...mutedStrings];
+
+            if (wasCorrect) {
+                // If the answer was correct, simply display the user's notes in green.
+                // This works for both the original position and the correct octave-up position.
+                const userNotesStyled = userNotes.map(note => ({
+                    ...note,
+                    overrideLabel: getNoteLabel(note),
+                    overrideColor: note.isRoot ? '#166534' : '#22c55e', // Dark green for root, light green for others
+                }));
+                return [...userNotesStyled, ...mutedStrings];
+            } else {
+                // If incorrect, show the correct answer in green and wrong clicks in red.
+                const correctSet = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
+                const correctNotesStyled = correctNotes.map(note => ({
+                    ...note,
+                    overrideLabel: getNoteLabel(note),
+                    overrideColor: note.isRoot ? '#166534' : '#22c55e',
+                }));
+                const incorrectClicksStyled = userNotes
+                    .filter(n => !correctSet.has(`${n.string}-${n.fret}`))
+                    .map(note => ({ ...note, overrideLabel: getNoteLabel(note), overrideColor: '#ef4444' }));
+                return [...correctNotesStyled, ...incorrectClicksStyled, ...mutedStrings];
+            }
         }
         return [];
-    }, [itemToDisplay, isAnswered, isReviewing, settings.showDegrees, userAnswer.notes]);
+    }, [itemToDisplay, isAnswered, isReviewing, settings.showDegrees, userAnswer.notes, history]);
 
     const renderReviewFeedback = () => {
         if (!isReviewing) return null;

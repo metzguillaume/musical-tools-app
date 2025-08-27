@@ -78,10 +78,35 @@ export const useCagedQuiz = (quizMode, activeShapes, onProgressUpdate) => {
             const correctGroup = ROOT_NOTE_OPTIONS.find(opt => opt.value === correct.root || opt.altValue === correct.root);
             const isRootCorrect = correctGroup && (userRoot === correctGroup.value || userRoot === correctGroup.altValue);
             isCorrect = isRootCorrect && userAnswer.quality === correct.quality && userAnswer.shape === correct.shape;
-        } else {
-            const correctSet = new Set(correct.notes.map(n => `${n.string}-${n.fret}`));
-            const userSet = new Set(userAnswer.notes.map(n => `${n.string}-${n.fret}`));
-            isCorrect = correctSet.size === userSet.size && [...correctSet].every(note => userSet.has(note));
+        } else { // 'construct' mode
+            const correctNotes = correct.notes;
+            const userNotes = userAnswer.notes || [];
+
+            // A helper function to compare two sets of notes.
+            const setsAreEqual = (setA, setB) => {
+                if (setA.size !== setB.size) return false;
+                for (const item of setA) {
+                    if (!setB.has(item)) return false;
+                }
+                return true;
+            };
+
+            if (correctNotes.length !== userNotes.length) {
+                isCorrect = false;
+            } else {
+                const userSet = new Set(userNotes.map(n => `${n.string}-${n.fret}`));
+
+                // 1. Check against the original, lower position
+                const correctSetOriginal = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
+                const isMatchAtOriginal = setsAreEqual(userSet, correctSetOriginal);
+
+                // 2. Check against the octave-up position
+                const correctSetOctaveUp = new Set(correctNotes.map(n => `${n.string}-${n.fret + 12}`));
+                const isMatchAtOctaveUp = setsAreEqual(userSet, correctSetOctaveUp);
+                
+                // The answer is correct if it matches either position.
+                isCorrect = isMatchAtOriginal || isMatchAtOctaveUp;
+            }
         }
         
         const newScore = isCorrect ? score + 1 : score;

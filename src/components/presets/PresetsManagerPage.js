@@ -16,6 +16,7 @@ const gameToCategoryMap = {
     'Chord Trainer': 'Theory',
     'Fretboard Intervals': 'Fretboard',
     'CAGED System Quiz': 'Fretboard',
+    'Fretboard Triads': 'Fretboard',
     'Interval Recognition': 'Ear Training',
     'Melodic Recognition': 'Ear Training',
 };
@@ -24,7 +25,7 @@ const gameToCategoryMap = {
 const categoryOrder = [
     { name: 'Generators', modules: ['Note Generator', 'Interval Generator', 'Chord Progression Generator', 'Diagram Maker'] },
     { name: 'Theory', modules: ['Interval Practice', 'Triad & Tetrads Quiz', 'Chord Trainer'] },
-    { name: 'Fretboard', modules: ['Fretboard Intervals', 'CAGED System Quiz'] },
+    { name: 'Fretboard', modules: ['Fretboard Intervals', 'CAGED System Quiz', 'Fretboard Triads'] },
     { name: 'Ear Training', modules: ['Interval Recognition', 'Melodic Recognition'] }
 ];
 

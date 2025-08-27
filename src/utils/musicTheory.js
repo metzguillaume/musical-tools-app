@@ -62,6 +62,22 @@ export const CHORDS = {
     'Sus4': { intervals: [0, 5, 7], quality: 'Sus' },
 };
 
+export const TRIAD_DEFINITIONS = {
+    qualities: {
+        'Major':    [0, 4, 7],
+        'Minor':    [0, 3, 7],
+        'Diminished': [0, 3, 6],
+        'Augmented':  [0, 4, 8],
+        'Sus2':     [0, 2, 7],
+        'Sus4':     [0, 5, 7],
+    },
+    inversions: {
+        'Root':     (intervals) => intervals,
+        '1st':      (intervals) => [intervals[1] - intervals[0], intervals[2] - intervals[0], 12],
+        '2nd':      (intervals) => [intervals[2] - intervals[0], 12, 12 + (intervals[1] - intervals[0])],
+    },
+};
+
 export const NOTE_TO_MIDI = {
     'C': 48, 'C#': 49, 'Db': 49, 'D': 50, 'D#': 51, 'Eb': 51, 'E': 52, 'F': 53,
     'F#': 54, 'Gb': 54, 'G': 55, 'G#': 56, 'Ab': 56, 'A': 57, 'A#': 58, 'Bb': 58, 'B': 59,

@@ -12,6 +12,7 @@ import ChordProgressionGenerator from './components/chordProgressionGenerator/Ch
 import IntervalGenerator from './components/intervalGenerator/IntervalGenerator';
 import TriadQuiz from './components/triadQuiz/TriadQuiz';
 import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
+import FretboardTriads from './components/fretboardTriads/FretboardTriads';
 import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer';
 import MelodicEarTrainer from './components/earTraining/MelodicEarTrainer';
 import RoutinesPage from './components/routines/RoutinesPage'; // UPDATED
@@ -63,6 +64,7 @@ const AppContent = () => {
       name: 'Fretboard',
       tools: [
         { id: 'interval-fretboard-quiz', name: 'Fretboard Intervals' }, { id: 'caged-system-quiz', name: 'CAGED System Quiz' },
+        { id: 'fretboard-triads', name: 'Fretboard Triads' },
       ],
     },
     {
@@ -130,6 +132,7 @@ const AppContent = () => {
                   {activeTab === 'interval-generator' && <IntervalGenerator />}
                   {activeTab === 'triad-quiz' && <TriadQuiz />}
                   {activeTab === 'caged-system-quiz' && <CAGEDSystemQuiz />}
+                  {activeTab === 'fretboard-triads' && <FretboardTriads />}
                   {activeTab === 'interval-ear-trainer' && <IntervalEarTrainer />}
                   {activeTab === 'melodic-ear-trainer' && <MelodicEarTrainer />}
                   {activeTab === 'routines-hub' && <RoutinesPage />} 

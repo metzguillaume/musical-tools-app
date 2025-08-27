@@ -145,6 +145,23 @@ export const defaultPresets = [
             quizMode: 'mixed',
         },
     },
+    // Fretboard Triads Default
+    {
+        id: 'default-11',
+        name: 'Default Fretboard Triads',
+        gameId: 'fretboard-triads',
+        gameName: 'Fretboard Triads',
+        isDefault: true,
+        settings: {
+            modes: { identify: true, constructHorizontally: true, constructVertically: true },
+            stringSets: { 'E A D': true, 'A D G': true, 'D G B': true, 'G B e': true },
+            qualities: { Major: true, Minor: true, Diminished: false, Augmented: false, Sus2: false, Sus4: false },
+            inversions: { Root: true, '1st': true, '2nd': true },
+            autoAdvance: true,
+            postAnswerDisplay: 'degrees',
+            showRootHint: false,
+        },
+    },
     // Interval Recognition (Ear Training) Default
     {
         id: 'default-09',

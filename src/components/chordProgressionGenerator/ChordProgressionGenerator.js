@@ -153,7 +153,7 @@ const ChordProgressionGenerator = () => {
                              settings.displayMode === 'measure' ? (
                                 <div key={progIndex} className="w-full flex flex-col items-center gap-y-6">
                                     {chunkArray(chunkArray(prog, settings.chordsPerBar), settings.barsPerLine).map((line, lineIndex) => (
-                                        <div key={lineIndex} className="w-full flex justify-center items-center">
+                                        <div key={lineIndex} className="w-full flex justify-center items-center flex-wrap gap-y-4">
                                             {line.map((bar, barIndex) => (
                                                 <React.Fragment key={barIndex}>
                                                     {barIndex > 0 && <div className="w-px h-16 bg-slate-500 self-center" />}

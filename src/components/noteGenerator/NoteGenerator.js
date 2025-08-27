@@ -105,7 +105,7 @@ const NoteGenerator = () => {
             </InfoModal>
 
             <div className="w-full flex-1 bg-slate-800 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
                     <div className="flex-1"></div>
                     <div className="flex-1 flex justify-center items-center gap-2">
                         <h1 className="text-xl md:text-2xl text-center font-bold text-indigo-300">

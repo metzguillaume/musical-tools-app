@@ -76,19 +76,6 @@ export const IntervalsQuizControls = ({
                         </div>
                     )}
 
-                    {(settings.quizMode === 'nameTheInterval' || settings.quizMode === 'mixed') && (
-                         <div className="p-3 bg-slate-900/50 rounded-lg space-y-3">
-                             <h5 className="font-bold text-base text-teal-300 border-b border-slate-600 pb-1">"Name the Interval" Settings</h5>
-                             <div>
-                                 <h4 className="font-semibold">Audio Playback Direction</h4>
-                                 <div className="flex bg-slate-600 rounded-md p-1 mt-1">
-                                     <button onClick={() => onAudioDirectionChange('above')} className={`flex-1 rounded-md text-sm py-1 ${audioDirection === 'above' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Ascending</button>
-                                     <button onClick={() => onAudioDirectionChange('below')} className={`flex-1 rounded-md text-sm py-1 ${audioDirection === 'below' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}>Descending</button>
-                                 </div>
-                             </div>
-                         </div>
-                    )}
-
                     <div>
                         <label htmlFor="interval-audio-volume" className="font-semibold text-lg text-teal-300 mb-2 block">Audio Volume</label>
                         <input

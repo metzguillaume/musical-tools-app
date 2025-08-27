@@ -29,7 +29,6 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
     });
     
     // Non-preset related state
-    const [audioDirection, setAudioDirection] = useState('above');
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [openControlSections, setOpenControlSections] = useState({ quiz: true, selection: true });
@@ -38,9 +37,9 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
     // Load Preset Effect
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'intervals-quiz') {
-            const { fretboardVolume: presetVolume, audioDirection: presetAudioDirection, ...presetSettings } = presetToLoad.settings;
+            // Destructure and ignore the old 'audioDirection' setting from presets
+            const { fretboardVolume: presetVolume, audioDirection: _, ...presetSettings } = presetToLoad.settings;
             setSettings(presetSettings);
-            if (presetAudioDirection) setAudioDirection(presetAudioDirection);
             if (presetVolume !== undefined) {
                 setFretboardVolume(presetVolume);
                 setLocalVolume(presetVolume);
@@ -52,12 +51,13 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
     // Sync local slider with global volume
     useEffect(() => { setLocalVolume(fretboardVolume); }, [fretboardVolume]);
 
+    // The `audioDirection` argument has been removed from the hook call
     const { 
         feedback, score, answerChecked, currentQuestion, userAnswer, setUserAnswer, 
         history, reviewIndex, setReviewIndex, handleReviewNav, startReview,
         checkAnswer, generateNewQuestion,
         replayAudioForHistoryItem
-    } = useIntervalsQuiz(settings, settings.playAudio, audioDirection, onProgressUpdate);
+    } = useIntervalsQuiz(settings, settings.playAudio, onProgressUpdate);
     
     const isReviewing = reviewIndex !== null;
     
@@ -82,7 +82,6 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [answerChecked, checkAnswer, isReviewing]);
 
-    // NEW: This useEffect handles "Enter to continue" after a mistake
     useEffect(() => {
         const handleKeyDown = (event) => {
     const targetTagName = event.target.tagName.toLowerCase();
@@ -110,7 +109,8 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
             savePreset({
                 id: Date.now().toString(), name: name.trim(),
                 gameId: 'intervals-quiz', gameName: 'Interval Practice',
-                settings: { ...settings, audioDirection, fretboardVolume }
+                // The `audioDirection` state is no longer saved in the preset
+                settings: { ...settings, fretboardVolume }
             });
             alert(`Preset "${name.trim()}" saved!`);
         }
@@ -130,8 +130,6 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
     
     const itemToDisplay = isReviewing ? history[reviewIndex] : { question: currentQuestion, userAnswer };
 
-    // --- HELPER RENDER FUNCTIONS (Restored) ---
-    
     const renderQuestion = () => {
         const question = itemToDisplay?.question;
         if (!question) return <div className="text-2xl font-semibold text-gray-400">Loading...</div>;
@@ -197,8 +195,6 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
         );
     };
 
-    // --- JSX FOR LAYOUT SLOTS ---
-    
     const topControlsContent = (
         <>
             <label className="flex items-center gap-2 cursor-pointer font-semibold">
@@ -225,7 +221,6 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
             <button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button>
             <div className="flex flex-col gap-2 flex-grow max-w-xs">
                 <button onClick={() => setReviewIndex(null)} className="bg-purple-600 hover:bg-purple-500 font-bold p-3 rounded-lg text-xl">Return to Quiz</button>
-                {/* This new button uses the function */}
                 <button onClick={() => replayAudioForHistoryItem(reviewIndex)} className="bg-sky-600 hover:bg-sky-500 text-sm p-2 rounded-lg font-semibold">Replay Audio</button>
             </div>
             <button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button>
@@ -241,7 +236,7 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Interval Practice Quiz Guide">
                 <p>This module tests your knowledge of intervals in two ways: identifying an interval from two notes, or identifying a note from a root and an interval.</p>
                 <p className="mt-2">Enable the <b>Play Audio</b> toggle to hear the interval played using natural guitar sounds after you answer.</p>
-                <p>Use the "Controls" panel to select the quiz mode and other options, including audio volume and playback direction for the "Name Interval" mode.</p>
+                <p>Use the "Controls" panel to select the quiz mode and other options. The audio for "Name The Interval" mode will always be ascending.</p>
             </InfoModal>
 
             <QuizLayout
@@ -268,8 +263,6 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
                     <IntervalsQuizControls
                         settings={settings}
                         onSettingChange={handleSettingChange}
-                        audioDirection={audioDirection}
-                        onAudioDirectionChange={setAudioDirection}
                         localVolume={localVolume}
                         onLocalVolumeChange={setLocalVolume}
                         onVolumeSet={() => setFretboardVolume(localVolume)}
@@ -294,8 +287,6 @@ const IntervalsQuiz = ({ onProgressUpdate }) => {
                            <IntervalsQuizControls
                                 settings={settings}
                                 onSettingChange={handleSettingChange}
-                                audioDirection={audioDirection}
-                                onAudioDirectionChange={setAudioDirection}
                                 localVolume={localVolume}
                                 onLocalVolumeChange={setLocalVolume}
                                 onVolumeSet={() => setFretboardVolume(localVolume)}

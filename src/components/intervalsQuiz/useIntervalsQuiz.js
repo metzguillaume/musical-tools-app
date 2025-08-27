@@ -18,7 +18,8 @@ export const intervalData = [
     { name: 'Major 7th', semitones: 11, quality: 'Major', number: '7th' }, { name: 'Perfect Octave', semitones: 12, quality: 'Perfect', number: 'Octave' }
 ];
 
-export const useIntervalsQuiz = (settings, playAudio, audioDirection, onProgressUpdate) => {
+// --- CHANGE: The `audioDirection` argument is removed ---
+export const useIntervalsQuiz = (settings, playAudio, onProgressUpdate) => {
     const { playFretboardNotes } = useTools();
     const { quizMode, rootNoteType, direction, autoAdvance, selectedIntervals } = settings;
 
@@ -99,52 +100,21 @@ export const useIntervalsQuiz = (settings, playAudio, audioDirection, onProgress
         setUserAnswer({});
     }, [quizMode, rootNoteType, direction, selectedIntervals]);
 
-    const playIntervalAudio = useCallback((rootNoteName, targetNoteName, direction = 'above') => {
-        const rootMidi = NOTE_TO_MIDI[rootNoteName];
-        let targetMidi = NOTE_TO_MIDI[targetNoteName];
-
-        if (rootMidi === undefined || targetMidi === undefined) {
-            console.error("Could not find MIDI for notes:", rootNoteName, targetNoteName);
-            return;
-        }
-        
-        // This is the new, corrected logic for handling octaves
-        if (rootMidi % 12 === targetMidi % 12 && rootNoteName === targetNoteName) {
-            if (direction === 'below') {
-                targetMidi -= 12;
-            } else { // Handles 'above' and the empty direction for unison
-                targetMidi += 12;
-            }
-        }
-        // UPDATED: New logic to find a playable interval fingering within frets 0-12
-        const findPlayablePositions = () => {
-    let diff = targetMidi - rootMidi;
-    if (direction === 'above') {
-        if (diff < 0) {
-            // Handles ascending intervals that wrap around, like G up to C
-            diff += 12;
-        }
-    } else { // direction is 'below'
-        if (diff > 0) {
-            // Handles descending intervals that wrap, like your D down to E example
-            diff -= 12;
-        }
-    }
-    const intervalDistance = diff;
+    const playIntervalAudio = useCallback((rootMidi, targetMidi) => {
+        const findPlayablePositions = (startMidi, endMidi) => {
+            const intervalDistance = endMidi - startMidi;
             
-            // Search for a suitable root note on a low fret
-            for (let s = 6; s >= 1; s--) {
-                for (let f = 0; f <= 7; f++) {
+            for (let s = 6; s >= 1; s--) { // Search low strings first
+                for (let f = 0; f <= 7; f++) { // On low frets
                     const root = fretboardModel[6 - s][f];
-                    if (root.midi % 12 === rootMidi % 12) {
+                    if (root.midi % 12 === startMidi % 12) {
                         const rootPosition = { string: s, fret: f, midi: root.midi };
-                        const targetMidiValue = rootPosition.midi + intervalDistance;
+                        const finalTargetMidi = rootPosition.midi + intervalDistance;
 
-                        // Now search for the target note anywhere within the first 12 frets
                         for (let ts = 6; ts >= 1; ts--) {
                             for (let tf = 0; tf <= 12; tf++) {
                                 const target = fretboardModel[6 - ts][tf];
-                                if (target.midi === targetMidiValue) {
+                                if (target.midi === finalTargetMidi) {
                                     return [rootPosition, { string: ts, fret: tf }];
                                 }
                             }
@@ -152,17 +122,15 @@ export const useIntervalsQuiz = (settings, playAudio, audioDirection, onProgress
                     }
                 }
             }
-            return null; // No playable position found
+            return null;
         };
         
-        const positions = findPlayablePositions();
-        
-        console.log("Attempting to play audio for:", rootNoteName, targetNoteName, "Positions:", positions);
+        const positions = findPlayablePositions(rootMidi, targetMidi);
 
         if (positions) {
             playFretboardNotes(positions);
         } else {
-            console.error("Could not find a playable fretboard position for one or both notes.");
+            console.error("Could not find a playable fretboard position for MIDI notes:", rootMidi, targetMidi);
         }
     }, [playFretboardNotes]);
 
@@ -204,17 +172,36 @@ export const useIntervalsQuiz = (settings, playAudio, audioDirection, onProgress
         setAnswerChecked(true);
 
         if (playAudio) {
+            let rootNoteForAudio, intervalForAudio, directionForAudio;
+
             if (currentQuestion.mode === 'nameTheNote') {
-                playIntervalAudio(currentQuestion.rootNote, currentQuestion.correctAnswer.note, currentQuestion.direction);
-            } else if (currentQuestion.mode === 'nameTheInterval') {
-                playIntervalAudio(currentQuestion.note1, currentQuestion.note2, audioDirection);
+                rootNoteForAudio = currentQuestion.rootNote;
+                intervalForAudio = intervalData.find(i => i.name === currentQuestion.intervalName);
+                directionForAudio = currentQuestion.direction;
+            } else { 
+                rootNoteForAudio = currentQuestion.note1;
+                intervalForAudio = intervalData.find(i => i.quality === currentQuestion.correctAnswer.quality && i.number === currentQuestion.correctAnswer.number);
+                // --- CHANGE: Direction is now hardcoded to 'above' for this mode ---
+                directionForAudio = 'above';
+            }
+
+            if (intervalForAudio && NOTE_TO_MIDI[rootNoteForAudio]) {
+                const rootMidi = (NOTE_TO_MIDI[rootNoteForAudio] % 12) + 60;
+                let targetMidi;
+
+                if (directionForAudio === 'below') {
+                    targetMidi = rootMidi - intervalForAudio.semitones;
+                } else { 
+                    targetMidi = rootMidi + intervalForAudio.semitones;
+                }
+                playIntervalAudio(rootMidi, targetMidi);
             }
         }
 
         if (autoAdvance && isCorrect) {
             timeoutRef.current = setTimeout(generateNewQuestion, 2000);
         }
-    }, [answerChecked, userAnswer, currentQuestion, autoAdvance, generateNewQuestion, playAudio, playIntervalAudio, audioDirection, score, history.length, onProgressUpdate]);
+    }, [answerChecked, userAnswer, currentQuestion, autoAdvance, generateNewQuestion, playAudio, playIntervalAudio, score, history.length, onProgressUpdate]);
 
     useEffect(() => {
         setScore(0);
@@ -245,12 +232,29 @@ export const useIntervalsQuiz = (settings, playAudio, audioDirection, onProgress
         const historyItem = history[index];
         if (!historyItem || !playAudio) return;
 
-        if (historyItem.question.mode === 'nameTheNote') {
-            const { rootNote, correctAnswer, direction } = historyItem.question;
-            playIntervalAudio(rootNote, correctAnswer.note, direction);
-        } else if (historyItem.question.mode === 'nameTheInterval') {
-            const { note1, note2 } = historyItem.question;
-            playIntervalAudio(note1, note2, audioDirection);
+        const { question } = historyItem;
+        let rootNoteForAudio, intervalForAudio, directionForAudio;
+
+        if (question.mode === 'nameTheNote') {
+            rootNoteForAudio = question.rootNote;
+            intervalForAudio = intervalData.find(i => i.name === question.intervalName);
+            directionForAudio = question.direction;
+        } else if (question.mode === 'nameTheInterval') {
+            rootNoteForAudio = question.note1;
+            intervalForAudio = intervalData.find(i => i.quality === question.correctAnswer.quality && i.number === question.correctAnswer.number);
+            // --- CHANGE: Direction is now hardcoded to 'above' for this mode ---
+            directionForAudio = 'above';
+        }
+
+        if (intervalForAudio && NOTE_TO_MIDI[rootNoteForAudio]) {
+            const rootMidi = (NOTE_TO_MIDI[rootNoteForAudio] % 12) + 60;
+            let targetMidi;
+            if (directionForAudio === 'below') {
+                targetMidi = rootMidi - intervalForAudio.semitones;
+            } else {
+                targetMidi = rootMidi + intervalForAudio.semitones;
+            }
+            playIntervalAudio(rootMidi, targetMidi);
         }
     };
 

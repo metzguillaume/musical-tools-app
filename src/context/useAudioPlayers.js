@@ -44,7 +44,6 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
         if (!notes || notes.length < 2 || !intervalSynth.current) return;
         await unlockAudio();
 
-        // Safety check: Stop any currently playing synth notes before starting new ones.
         intervalSynth.current.releaseAll();
 
         const now = Tone.now();
@@ -53,34 +52,34 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
         intervalSynth.current.triggerAttackRelease(notes, 0.8, now + 1.2);
     }, [unlockAudio]);
 
-    const playFretboardNotes = useCallback(async (notes) => {
-        if (!areFretboardSoundsReady || !notes || notes.length < 2) return;
+    const playFretboardNotes = useCallback(async (notePositions) => {
+        if (!areFretboardSoundsReady || !notePositions || notePositions.length < 2) return;
         await unlockAudio();
 
-        const rootNoteId = `${notes[0].string}-${notes[0].fret}`;
-        const targetNoteId = `${notes[1].string}-${notes[1].fret}`;
+        const firstNoteId = `${notePositions[0].string}-${notePositions[0].fret}`;
+        const secondNoteId = `${notePositions[1].string}-${notePositions[1].fret}`;
 
-        if (!fretboardPlayers.current.has(rootNoteId) || !fretboardPlayers.current.has(targetNoteId)) {
-            console.error("Audio for notes not found:", rootNoteId, targetNoteId);
+        if (!fretboardPlayers.current.has(firstNoteId) || !fretboardPlayers.current.has(secondNoteId)) {
+            console.error("Audio for notes not found:", firstNoteId, secondNoteId);
             return;
         }
 
         const now = Tone.now();
-        
-        // This helper function now contains the stop-before-start safety check.
-        const playNote = (noteId, time) => {
-            const player = fretboardPlayers.current.player(noteId);
-            // This is the key fix: stop any previous playback of this specific note before starting it again.
-            if (player.state === "started") {
-                player.stop(0);
-            }
-            player.start(time);
-        };
+        const player1 = fretboardPlayers.current.player(firstNoteId);
+        const player2 = fretboardPlayers.current.player(secondNoteId);
 
-        playNote(rootNoteId, now);
-        playNote(targetNoteId, now + 0.4);
-        playNote(rootNoteId, now + 0.9);
-        playNote(targetNoteId, now + 0.9);
+        // Ensure notes are stopped before playing to prevent overlap
+        if (player1.state === "started") player1.stop(0);
+        if (player2.state === "started") player2.stop(0);
+
+        // Arpeggio: Root -> Target
+        player1.start(now);
+        player2.start(now + 0.5);
+
+        // Chord: Both together
+        player1.start(now + 1.2);
+        player2.start(now + 1.2);
+
     }, [areFretboardSoundsReady, unlockAudio]);
 
     const playChord = useCallback(async (noteNames) => {
@@ -120,7 +119,6 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
         const now = Tone.now();
         const noteDuration = 0.4;
 
-        // This new helper function ensures the stop-before-start safety check is applied everywhere.
         const playVoicingNote = (note, time) => {
             const noteId = `${note.string}-${note.fret}`;
             if (fretboardPlayers.current.has(noteId)) {
@@ -132,12 +130,10 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
             }
         };
 
-        // Play as an arpeggio using the safe helper function.
         voicing.forEach((note, index) => {
             playVoicingNote(note, now + index * noteDuration);
         });
 
-        // Play as a chord using the safe helper function.
         const chordTime = now + (voicing.length * noteDuration) + 0.1;
         voicing.forEach(note => {
             playVoicingNote(note, chordTime);

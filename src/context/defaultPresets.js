@@ -210,4 +210,44 @@ export const defaultPresets = [
             replayOnAnswer: false,
         },
     },
+    // Chord Recognition Default
+    {
+        id: 'default-12',
+        name: 'Default Chord Recognition',
+        gameId: 'chord-ear-trainer',
+        gameName: 'Chord Recognition',
+        isDefault: true,
+        settings: {
+            autoAdvance: true,
+            playbackStyle: 'Harmonic',
+            qualities: {
+                'Major': true, 'Minor': true, 'Diminished': true, 'Augmented': false,
+                'Sus2': false, 'Sus4': false, 'Major 7th': true, 'Minor 7th': true,
+                'Dominant 7th': true, 'Half-Diminished 7th': false, 'Diminished 7th': false,
+            },
+            keyMode: 'Fixed',
+            questionsPerKey: 5,
+            fixedKey: 'C',
+            useDrone: true,
+        },
+    },
+    // Progression Recognition Default
+    {
+        id: 'default-13',
+        name: 'Default Progression Recognition',
+        gameId: 'progression-ear-trainer',
+        gameName: 'Progression Recognition',
+        isDefault: true,
+        settings: {
+            autoAdvance: true,
+            keyType: 'Major',
+            keyMode: 'Fixed',
+            fixedKey: 'C',
+            chordFilter: 'All',
+            excludeDiminished: true,
+            startOnTonic: true,
+            questionsPerKey: 3,
+            useDrone: true,
+        },
+    },
 ];

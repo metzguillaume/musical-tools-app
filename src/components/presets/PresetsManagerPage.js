@@ -19,6 +19,8 @@ const gameToCategoryMap = {
     'Fretboard Triads': 'Fretboard',
     'Interval Recognition': 'Ear Training',
     'Melodic Recognition': 'Ear Training',
+    'Chord Recognition': 'Ear Training',
+    'Progression Recognition': 'Ear Training',
 };
 
 // Defines the desired rendering order for categories and modules
@@ -26,7 +28,7 @@ const categoryOrder = [
     { name: 'Generators', modules: ['Note Generator', 'Interval Generator', 'Chord Progression Generator', 'Diagram Maker'] },
     { name: 'Theory', modules: ['Interval Practice', 'Triad & Tetrads Quiz', 'Chord Trainer'] },
     { name: 'Fretboard', modules: ['Fretboard Intervals', 'CAGED System Quiz', 'Fretboard Triads'] },
-    { name: 'Ear Training', modules: ['Interval Recognition', 'Melodic Recognition'] }
+    { name: 'Ear Training', modules: ['Interval Recognition', 'Melodic Recognition', 'Chord Recognition', 'Progression Recognition'] }
 ];
 
 const ImportSelectionModal = ({ presetsFromFile, onImport, onCancel }) => {

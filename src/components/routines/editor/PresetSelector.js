@@ -5,7 +5,7 @@ const categoryOrder = [
     { name: 'Generators', modules: ['Note Generator', 'Interval Generator', 'Chord Progression Generator'] },
     { name: 'Theory', modules: ['Interval Practice', 'Triad & Tetrads Quiz', 'Chord Trainer'] },
     { name: 'Fretboard', modules: ['Fretboard Intervals', 'CAGED System Quiz', 'Fretboard Triads'] },
-    { name: 'Ear Training', modules: ['Interval Recognition', 'Melodic Recognition'] }
+    { name: 'Ear Training', modules: ['Interval Recognition', 'Melodic Recognition', 'Chord Recognition', 'Progression Recognition'] }
 ];
 
 const PresetSelector = ({ presets, selectedPresetId, onSelectPreset }) => {

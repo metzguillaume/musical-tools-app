@@ -15,6 +15,8 @@ import CAGEDSystemQuiz from './components/caged/CAGEDSystemQuiz';
 import FretboardTriads from './components/fretboardTriads/FretboardTriads';
 import IntervalEarTrainer from './components/earTraining/IntervalEarTrainer';
 import MelodicEarTrainer from './components/earTraining/MelodicEarTrainer';
+import ChordEarTrainer from './components/earTraining/chordRecognition/ChordEarTrainer';
+import ProgressionEarTrainer from './components/earTraining/progressionRecognition/ProgressionEarTrainer';
 import RoutinesPage from './components/routines/RoutinesPage'; // UPDATED
 import RoutineRunner from './components/routines/RoutineRunner'; // UPDATED
 import ScoreboardPage from './components/routines/ScoreboardPage'; // UPDATED
@@ -68,11 +70,14 @@ const AppContent = () => {
       ],
     },
     {
-      name: 'Ear Training',
-      tools: [
-        { id: 'interval-ear-trainer', name: 'Interval Recognition' }, { id: 'melodic-ear-trainer', name: 'Melodic Recognition' },
-      ],
-    },
+  name: 'Ear Training',
+  tools: [
+    { id: 'interval-ear-trainer', name: 'Interval Recognition' },
+    { id: 'melodic-ear-trainer', name: 'Melodic Recognition' },
+    { id: 'chord-ear-trainer', name: 'Chord Recognition' },
+    { id: 'progression-ear-trainer', name: 'Progression Recognition' },
+  ],
+},
     {
       name: 'Presets & Routines', // RENAMED
       tools: [
@@ -135,6 +140,8 @@ const AppContent = () => {
                   {activeTab === 'fretboard-triads' && <FretboardTriads />}
                   {activeTab === 'interval-ear-trainer' && <IntervalEarTrainer />}
                   {activeTab === 'melodic-ear-trainer' && <MelodicEarTrainer />}
+                  {activeTab === 'chord-ear-trainer' && <ChordEarTrainer />}
+                  {activeTab === 'progression-ear-trainer' && <ProgressionEarTrainer />}
                   {activeTab === 'routines-hub' && <RoutinesPage />} 
                   {activeTab === 'scoreboard' && <ScoreboardPage />}
                   {activeTab === 'presets-manager' && <PresetsManagerPage />}

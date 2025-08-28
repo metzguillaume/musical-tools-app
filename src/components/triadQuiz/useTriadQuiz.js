@@ -139,7 +139,8 @@ export const useTriadQuiz = (settings, onProgressUpdate) => {
             const notesToPlay = isNamingInvertedChord 
                 ? currentQuestion.notes 
                 : currentQuestion.rootPositionNotes;
-            playChord(notesToPlay);
+            // +++ MODIFIED LINE 1 of 3 +++
+            playChord(notesToPlay, 'Both');
         }
 
         if (autoAdvance && isCorrect) { 
@@ -180,7 +181,8 @@ export const useTriadQuiz = (settings, onProgressUpdate) => {
         const notesToPlay = isNamingInvertedChord 
             ? question.notes 
             : question.rootPositionNotes;
-        playChord(notesToPlay);
+        // +++ MODIFIED LINE 2 of 3 +++
+        playChord(notesToPlay, 'Both');
     }, [history, playAudio, playChord, settings]);
 
     const playUserAnswerForHistoryItem = useCallback((index) => {
@@ -200,7 +202,8 @@ export const useTriadQuiz = (settings, onProgressUpdate) => {
             notesToPlay = historyItem.userAnswer.notes || [];
         }
         if (notesToPlay.length > 0) {
-            playChord(notesToPlay);
+            // +++ MODIFIED LINE 3 of 3 +++
+            playChord(notesToPlay, 'Both');
         }
     }, [history, playAudio, playChord, questionTypes]);
     

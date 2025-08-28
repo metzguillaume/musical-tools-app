@@ -27,7 +27,7 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
                 setAreFretboardSoundsReady(true);
                 console.log("Fretboard sounds loaded.");
             },
-            fadeIn: 0.05,
+            fadeIn: 0.1,
             fadeOut: 0.1
         }).toDestination();
 
@@ -68,21 +68,18 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
         const player1 = fretboardPlayers.current.player(firstNoteId);
         const player2 = fretboardPlayers.current.player(secondNoteId);
 
-        // Ensure notes are stopped before playing to prevent overlap
         if (player1.state === "started") player1.stop(0);
         if (player2.state === "started") player2.stop(0);
 
-        // Arpeggio: Root -> Target
         player1.start(now);
         player2.start(now + 0.5);
 
-        // Chord: Both together
         player1.start(now + 1.2);
         player2.start(now + 1.2);
 
     }, [areFretboardSoundsReady, unlockAudio]);
-
-    const playChord = useCallback(async (noteNames) => {
+    
+    const playChord = useCallback(async (noteNames, style = 'Harmonic', sequenceInterval = 0.8) => {
         if (!areFretboardSoundsReady || !noteNames || noteNames.length === 0) return;
         await unlockAudio();
 
@@ -105,10 +102,7 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
                 }
                 if (foundNote) break;
             }
-            if (foundNote) {
-                voicing.push(foundNote);
-                lastMidi = foundNote.midi;
-            }
+            if (foundNote) { voicing.push(foundNote); lastMidi = foundNote.midi; }
         }
 
         if (voicing.length !== noteNames.length) {
@@ -117,27 +111,39 @@ export const useAudioPlayers = (unlockAudio, bpm) => {
         }
 
         const now = Tone.now();
-        const noteDuration = 0.4;
-
+        
+        // +++ FIX 1: This helper function no longer uses a fixed duration. +++
+        // It lets the note samples ring out naturally, fixing the "cut off" sound.
         const playVoicingNote = (note, time) => {
             const noteId = `${note.string}-${note.fret}`;
             if (fretboardPlayers.current.has(noteId)) {
-                const player = fretboardPlayers.current.player(noteId);
-                if (player.state === "started") {
-                    player.stop(0);
-                }
-                player.start(time);
+                // Tone.js automatically handles stopping the previous sound when re-triggering.
+                fretboardPlayers.current.player(noteId).start(time);
             }
         };
 
-        voicing.forEach((note, index) => {
-            playVoicingNote(note, now + index * noteDuration);
-        });
-
-        const chordTime = now + (voicing.length * noteDuration) + 0.1;
-        voicing.forEach(note => {
-            playVoicingNote(note, chordTime);
-        });
+        if (style === 'Melodic') {
+            voicing.forEach((note, index) => playVoicingNote(note, now + index * sequenceInterval));
+        } else if (style === 'Harmonic') {
+            voicing.forEach(note => playVoicingNote(note, now));
+        } else if (style === 'Both') {
+            // +++ FIX 2: Reworked timing logic to ensure all notes are heard. +++
+            const noteInterval = 0.5; // Time between arpeggio notes
+            
+            // 1. Play the full arpeggio.
+            voicing.forEach((note, index) => {
+                playVoicingNote(note, now + index * noteInterval);
+            });
+            
+            // 2. Calculate the start time of the last arpeggio note.
+            const lastNoteStartTime = now + (voicing.length - 1) * noteInterval;
+            
+            // 3. Schedule the full chord to play clearly *after* the last note is heard.
+            const chordTime = lastNoteStartTime + 0.7;
+            voicing.forEach(note => {
+                playVoicingNote(note, chordTime);
+            });
+        }
 
     }, [areFretboardSoundsReady, unlockAudio]);
 

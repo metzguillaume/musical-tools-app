@@ -15,6 +15,8 @@ import { MelodicEarTrainerControls } from '../earTraining/MelodicEarTrainerContr
 import { ChordTrainerControls } from '../chordTrainer/ChordTrainerControls';
 // +++ IMPORT the FretboardTriadsControls component +++
 import { FretboardTriadsControls } from '../fretboardTriads/FretboardTriadsControls';
+import { ChordEarTrainerControls } from '../earTraining/chordRecognition/ChordEarTrainerControls';
+import { ProgressionEarTrainerControls } from '../earTraining/progressionRecognition/ProgressionEarTrainerControls';
 
 // Map game IDs to their corresponding controls component
 const controlsMap = {
@@ -30,6 +32,8 @@ const controlsMap = {
     'chord-trainer': ChordTrainerControls,
     // +++ ADD the new entry for Fretboard Triads +++
     'fretboard-triads': FretboardTriadsControls,
+    'chord-ear-trainer': ChordEarTrainerControls,
+    'progression-ear-trainer': ProgressionEarTrainerControls,
 };
 
 const PresetEditorModal = ({ preset, onSave, onCancel }) => {
@@ -94,13 +98,14 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                 };
 
             case 'melodic-ear-trainer':
-                 return {
+            case 'chord-ear-trainer':
+            case 'progression-ear-trainer':
+                return {
                     ...baseProps,
-                    volume: editedPreset.settings.fretboardVolume,
-                    onVolumeChange: (val) => handleSettingChange('fretboardVolume', val),
-                    onRandomKey: () => {}, // Not used in editor
-                    onApplySettings: () => {}, // Not used in editor
-                };
+        // The generic onSettingChange from baseProps works for these components
+                        onRandomKey: () => {}, // Dummy function for editor
+                    onApplySettings: () => {}, // Dummy function for editor
+    };
 
             case 'caged-system-quiz':
                  return {

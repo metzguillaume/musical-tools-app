@@ -6,6 +6,7 @@ const gameToCategoryMap = {
     'Interval Practice': 'Theory', 'Triad & Tetrads Quiz': 'Theory', 'Chord Trainer': 'Theory',
     'Fretboard Intervals': 'Fretboard', 'CAGED System Quiz': 'Fretboard', 'Fretboard Triads': 'Fretboard',
     'Interval Recognition': 'Ear Training', 'Melodic Recognition': 'Ear Training',
+    'Chord Recognition': 'Ear Training', 'Progression Recognition': 'Ear Training',
 };
 
 const StepAdderForm = ({ routineType, presets, onAddStep }) => {

@@ -5,6 +5,22 @@ import SectionHeader from '../common/SectionHeader';
 import InfoModal from '../common/InfoModal';
 import InfoButton from '../common/InfoButton';
 
+const ALL_GAMES_ORDERED = [
+    'Note Generator',
+    'Interval Generator',
+    'Chord Progression Generator',
+    'Interval Practice',
+    'Triad & Tetrads Quiz',
+    'Chord Trainer',
+    'Fretboard Intervals',
+    'CAGED System Quiz',
+    'Fretboard Triads',
+    'Interval Recognition',
+    'Melodic Recognition',
+    'Chord Recognition',
+    'Progression Recognition'
+];
+
 const ScoreboardPage = () => {
     const { scores, presets, folders, routines, lastRoutineResultId, setLastRoutineResultId, clearScoreboard, deleteScore, startRoutine } = useTools(); // RENAMED
     const [nameFilter, setNameFilter] = useState('');
@@ -30,17 +46,8 @@ const ScoreboardPage = () => {
     };
 
     const availableGames = useMemo(() => {
-        const gameNames = new Set();
-        scores.forEach(score => {
-            score.steps.forEach(step => {
-                const preset = presets.find(p => p.id === step.presetId);
-                if (preset) {
-                    gameNames.add(preset.gameName);
-                }
-            });
-        });
-        return ['All', ...Array.from(gameNames).sort()];
-    }, [scores, presets]);
+        return ['All', ...ALL_GAMES_ORDERED];
+    }, []);
 
     const filteredScores = useMemo(() => {
         return scores.filter(score => {

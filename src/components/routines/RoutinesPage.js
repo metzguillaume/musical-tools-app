@@ -219,7 +219,30 @@ const RoutinesPage = () => {
     return (
         <>
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Routine Hub Guide" verticalAlign="top">
-                {/* Modal content */}
+                <div className="space-y-4 text-sm">
+                    <p>The <strong>Routine Hub</strong> is where you can build, manage, and launch structured, multi-step practice sessions. Think of a routine as a custom workout playlist, combining your favorite presets into a single, repeatable exercise.</p>
+                    
+                    <h4 className="font-bold text-indigo-300 mt-4">The Three Types of Routines</h4>
+                    <ul className="list-disc list-inside ml-2 space-y-2">
+                        <li>
+                            <strong>Practice Routine (Flexibility):</strong> The standard workout format. You can set goals for each step by either <strong>time</strong> (e.g., "practice for 5 minutes") or <strong>questions</strong> (e.g., "answer 10 correctly"). You can also choose to run the steps in sequential or random order.
+                        </li>
+                        <li>
+                            <strong>The Gauntlet (Speed & Accuracy):</strong> A race against the clock. Your goal is to complete a set number of questions for all steps as quickly as you can. The stopwatch runs automatically, and your final time is saved to the Scoreboard.
+                        </li>
+                        <li>
+                            <strong>The Streak (Perfection):</strong> A test of consistency. The routine randomly picks from your list of presets and continues as long as you answer correctly. One wrong answer ends the routine, and your score is your streak of correct answers.
+                        </li>
+                    </ul>
+
+                    <h4 className="font-bold text-indigo-300 mt-4">Managing Your Routines</h4>
+                    <ul className="list-disc list-inside ml-2 space-y-1">
+                        <li><strong>Folders:</strong> Organize your routines into default folders (based on type) or create your own custom folders.</li>
+                        <li><strong>Selection Mode:</strong> Click the "Select Routines" button to enter batch-edit mode. This allows you to Export, Delete, or Move multiple routines at once.</li>
+                        <li><strong>Import / Export:</strong> You can share any routine or folder with others by exporting it to a file. Likewise, you can import routines that others have shared with you.</li>
+                        <li><strong>Scoreboard:</strong> Every completed routine is automatically saved to the Scoreboard, giving you a detailed history of your performance and progress over time.</li>
+                    </ul>
+                </div>
             </InfoModal>
 
             <MoveRoutinesModal 

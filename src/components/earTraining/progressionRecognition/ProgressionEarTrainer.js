@@ -45,7 +45,7 @@ const AnswerInput = ({ userAnswer, setUserAnswer, currentQuestion, isAnswered })
                 <button 
                     onClick={handleBackspace} 
                     disabled={isAnswered || userAnswer.length === 0}
-                    className="col-span-3 py-3 bg-yellow-600/80 hover:bg-yellow-700/80 rounded-md text-lg font-semibold disabled:opacity-50"
+                    className="col-span-4 py-3 bg-yellow-600/80 hover:bg-yellow-700/80 rounded-md text-lg font-semibold disabled:opacity-50"
                 >
                     Backspace
                 </button>
@@ -99,6 +99,37 @@ const ProgressionEarTrainer = ({ onProgressUpdate }) => {
             return () => clearTimeout(timer);
         }
     }, [currentQuestion, isAnswered, isReviewing, playQuestionAudio]);
+
+    // Submit on Enter key press
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            // Ignore if the user is typing in an input field somewhere else
+            const targetTagName = event.target.tagName.toLowerCase();
+            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+                return;
+            }
+
+            if (event.key !== 'Enter') return;
+
+            event.preventDefault(); // Prevent any default browser action for the Enter key
+
+            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+
+            // If the question is answered and we are not auto-advancing, "Enter" acts as the "Next Question" button.
+            if (isAnswered && (!settings.autoAdvance || !wasCorrect)) {
+                generateNewQuestion();
+            } 
+            // If the question is not answered and the user has entered 4 chords, "Enter" submits the answer.
+            else if (!isAnswered && userAnswer.length === 4) {
+                checkAnswer(userAnswer);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isAnswered, userAnswer, settings.autoAdvance, history, checkAnswer, generateNewQuestion]);
     
     const handleSettingChange = (key, value) => setSettings(prev => ({ ...prev, [key]: value }));
     const handleRandomKey = () => {

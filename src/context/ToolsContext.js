@@ -52,10 +52,11 @@ export const ToolsProvider = ({ children }) => {
     const audioPlayers = useAudioPlayers(unlockAudio, metronome.bpm);
     const scoreboard = useScoreboardLogic();
     const routinesLogic = useRoutinesLogic();
-    const presets = usePresetsLogic(routinesLogic.routines);
 
-    // This effect acts as a safety net to ensure that whenever the user navigates
-    // to a new tool, any lingering auto-generation schedule is cleared.
+    // +++ CHANGE 1: Destructure the returned object from usePresetsLogic +++
+    // This separates the stable functions (like updatePreset) from the presets array, which changes often.
+    const { presets, updatePreset, ...presetsLogic } = usePresetsLogic(routinesLogic.routines);
+
     useEffect(() => {
         if (metronome.setMetronomeSchedule) {
             metronome.setMetronomeSchedule(null);
@@ -63,7 +64,12 @@ export const ToolsProvider = ({ children }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
 
-    const loadPreset = useCallback((presetToLoad) => { presets.updatePreset(presetToLoad.id, { ...presetToLoad, lastUsed: new Date().toISOString() }); setPresetToLoad(presetToLoad); }, [presets]);
+    // +++ CHANGE 2: The loadPreset function now depends only on the stable updatePreset function. +++
+    // This resolves the ESLint warning and fixes the root cause of the bug.
+    const loadPreset = useCallback((presetToLoad) => { 
+        updatePreset(presetToLoad.id, { ...presetToLoad, lastUsed: new Date().toISOString() }); 
+        setPresetToLoad(presetToLoad); 
+    }, [updatePreset]);
 
     const startRoutine = useCallback(async (routine) => {
         await unlockAudio();
@@ -106,14 +112,16 @@ export const ToolsProvider = ({ children }) => {
         endRoutine();
     }, [activeRoutine, endRoutine, stopwatch, scoreboard]);
 
-    // The entire value object is memoized for stability.
+    // +++ CHANGE 3: The value object is updated to use the new destructured variables. +++
     const value = useMemo(() => ({
         unlockAudio, activeTool, toggleActiveTool,
         activeTab, navigate, openCategory, handleCategoryClick,
-        ...log, ...metronome, ...drone, ...timer, ...stopwatch, ...audioPlayers, ...presets, ...routinesLogic,
-        exportRoutine: (r) => routinesLogic.exportRoutine(r, presets.presets),
-        exportFolder: (id, fileName) => routinesLogic.exportFolder(id, presets.presets, fileName),
-        importRoutines: (f) => routinesLogic.importRoutines(f, presets.savePreset),
+        ...log, ...metronome, ...drone, ...timer, ...stopwatch, ...audioPlayers, 
+        presets, updatePreset, ...presetsLogic, 
+        ...routinesLogic,
+        exportRoutine: (r) => routinesLogic.exportRoutine(r, presets),
+        exportFolder: (id, fileName) => routinesLogic.exportFolder(id, presets, fileName),
+        importRoutines: (f) => routinesLogic.importRoutines(f, presetsLogic.savePreset),
         ...scoreboard,
         presetToLoad, loadPreset, clearPresetToLoad,
         activeRoutine, routineStepIndex, routineProgress, setRoutineProgress,
@@ -121,7 +129,7 @@ export const ToolsProvider = ({ children }) => {
         lastRoutineResultId, setLastRoutineResultId,
     }), [
         unlockAudio, activeTool, toggleActiveTool, activeTab, navigate, openCategory, handleCategoryClick,
-        log, metronome, drone, timer, stopwatch, audioPlayers, presets, routinesLogic, scoreboard,
+        log, metronome, drone, timer, stopwatch, audioPlayers, presets, updatePreset, presetsLogic, routinesLogic, scoreboard,
         presetToLoad, activeRoutine, routineStepIndex, routineProgress, lastRoutineResultId,
         loadPreset, startRoutine, nextRoutineStep, endRoutine, updateRoutineProgress, finishRoutine,
         setRoutineProgress, setLastRoutineResultId, clearPresetToLoad

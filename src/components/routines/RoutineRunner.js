@@ -76,23 +76,38 @@ const RoutineRunner = () => {
     }, [activeRoutine, routineStepIndex, presets, loadPreset, resetStopwatch, toggleStopwatch, streakState]);
     
     // This effect handles the timer for Practice Routines.
+    // This effect is now only responsible for INITIATING a timed step.
     useEffect(() => {
-        if (activeRoutine?.type !== 'PracticeRoutine' || activeRoutine.steps[routineStepIndex]?.goalType !== 'time') { return; }
-        const currentStep = activeRoutine.steps[routineStepIndex];
-        setStepTimeLeft(currentStep.goalValue);
-        const intervalId = setInterval(() => {
-            setStepTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(intervalId);
-                    const { routineStepIndex, activeRoutine, finishRoutine, nextRoutineStep, routineProgress } = callbacks.current;
-                    if (routineStepIndex >= activeRoutine.steps.length - 1) { finishRoutine(routineProgress); } else { nextRoutineStep(); }
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(intervalId);
+        if (activeRoutine?.type === 'PracticeRoutine' && activeRoutine.steps[routineStepIndex]?.goalType === 'time') {
+            const currentStep = activeRoutine.steps[routineStepIndex];
+            setStepTimeLeft(currentStep.goalValue);
+        }
     }, [activeRoutine, routineStepIndex]);
+
+    // This second effect handles the countdown and transition, preventing the loop.
+    useEffect(() => {
+        if (activeRoutine?.type !== 'PracticeRoutine' || activeRoutine.steps[routineStepIndex]?.goalType !== 'time' || stepTimeLeft <= 0) {
+            return;
+        }
+
+        const handleTimeout = () => {
+            const newTimeLeft = stepTimeLeft - 1;
+            if (newTimeLeft <= 0) {
+                const { routineStepIndex, activeRoutine, finishRoutine, nextRoutineStep, routineProgress } = callbacks.current;
+                if (routineStepIndex >= activeRoutine.steps.length - 1) {
+                    finishRoutine(routineProgress);
+                } else {
+                    nextRoutineStep();
+                }
+            } else {
+                setStepTimeLeft(newTimeLeft);
+            }
+        };
+
+        timeoutRef.current = setTimeout(handleTimeout, 1000);
+
+        return () => clearTimeout(timeoutRef.current);
+    }, [activeRoutine, routineStepIndex, stepTimeLeft]); // This effect now depends on stepTimeLeft
 
 // This function handles progress updates from quizzes.
     const handleProgressUpdate = useCallback((progress) => {

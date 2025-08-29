@@ -85,17 +85,30 @@ export const useChordProgressionGenerator = () => {
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'chord-progression-generator') {
             const presetSettings = { ...presetToLoad.settings };
-            // Handle migration for older presets
-            if (!presetSettings.chordDegreeView) {
-                presetSettings.chordDegreeView = presetSettings.displayMode || 'both';
-            }
-            if (presetSettings.showBarLines === true && !presetSettings.displayMode) {
-                presetSettings.displayMode = 'measure';
-            } else if (presetSettings.showBarLines === false && !presetSettings.displayMode) {
-                presetSettings.displayMode = 'flow';
-            }
-            delete presetSettings.showBarLines;
 
+            // --- NEW: Robust migration and validation logic ---
+            const defaultDisplaySettings = {
+                displayMode: 'measure',
+                chordDegreeView: 'both',
+                chordsPerBar: 1,
+                barsPerLine: 4,
+                flowBarlineFrequency: 4
+            };
+
+            // If a preset is from before the displayMode update, migrate it.
+            if (presetSettings.displayMode === undefined && presetSettings.showBarLines !== undefined) {
+                presetSettings.displayMode = presetSettings.showBarLines ? 'measure' : 'flow';
+            }
+
+            // Ensure all necessary display keys exist on the loaded preset.
+            // If any are missing, apply the default component value for that key.
+            for (const key in defaultDisplaySettings) {
+                if (presetSettings[key] === undefined) {
+                    presetSettings[key] = defaultDisplaySettings[key];
+                }
+            }
+            delete presetSettings.showBarLines; // Clean up the old property if it exists.
+            
             setSettings(s => ({...s, ...presetSettings}));
             
             if (presetToLoad.automation) {

@@ -250,4 +250,19 @@ export const defaultPresets = [
             useDrone: true,
         },
     },
+    // Music Circles Default
+    {
+        id: 'default-14',
+        name: 'Default Circle of 5ths',
+        gameId: 'music-circles',
+        gameName: 'Music Circles',
+        isDefault: true,
+        settings: {
+            mode: 'Chromatic',
+            circleInterval: 7,
+            rootNote: 'C',
+            scaleType: 'Major',
+            showLabels: true,
+        },
+    },
 ];

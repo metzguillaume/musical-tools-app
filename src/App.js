@@ -21,6 +21,7 @@ import RoutinesPage from './components/routines/RoutinesPage'; // UPDATED
 import RoutineRunner from './components/routines/RoutineRunner'; // UPDATED
 import ScoreboardPage from './components/routines/ScoreboardPage'; // UPDATED
 import PresetsManagerPage from './components/presets/PresetsManagerPage';
+import MusicCircles from './components/musicCircles/MusicCircles';
 
 // The main UI component is now stateless and driven entirely by the context.
 const AppContent = () => {
@@ -34,6 +35,8 @@ const AppContent = () => {
     presetToLoad,
     lastRoutineResultId // RENAMED
   } = useTools();
+
+const showMusicCircles = process.env.REACT_APP_SHOW_MUSIC_CIRCLES === 'true';
 
 // Effects to automatically switch tabs
   useEffect(() => {
@@ -51,11 +54,15 @@ const AppContent = () => {
   
   const toolCategories = [
     {
-      name: 'Generators',
-      tools: [
-        { id: 'note-generator', name: 'Note Generator' }, { id: 'interval-generator', name: 'Interval Generator' }, { id: 'chord-progression-generator', name: 'Chord Progression Generator' }, { id: 'diagram-maker', name: 'Diagram Maker' },
-      ],
-    },
+  name: 'Generators',
+  tools: [
+    { id: 'note-generator', name: 'Note Generator' },
+    { id: 'interval-generator', name: 'Interval Generator' },
+    { id: 'chord-progression-generator', name: 'Chord Progression Generator' },
+    { id: 'diagram-maker', name: 'Diagram Maker' },
+    ...(showMusicCircles ? [{ id: 'music-circles', name: 'Music Circles' }] : []),
+  ],
+},
     {
       name: 'Theory',
       tools: [
@@ -133,6 +140,7 @@ const AppContent = () => {
                   {activeTab === 'note-generator' && <NoteGenerator />}
                   {activeTab === 'interval-fretboard-quiz' && <IntervalFretboardQuiz />}
                   {activeTab === 'diagram-maker' && <DiagramMaker />}
+                  {showMusicCircles && activeTab === 'music-circles' && <MusicCircles />}
                   {activeTab === 'chord-progression-generator' && <ChordProgressionGenerator />}
                   {activeTab === 'interval-generator' && <IntervalGenerator />}
                   {activeTab === 'triad-quiz' && <TriadQuiz />}

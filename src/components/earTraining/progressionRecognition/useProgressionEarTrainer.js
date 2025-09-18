@@ -13,6 +13,7 @@ export const useProgressionEarTrainer = (settings, onProgressUpdate) => {
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [history, setHistory] = useState([]);
     const [reviewIndex, setReviewIndex] = useState(null);
+    const [isNewKey, setIsNewKey] = useState(false); // Flag for roving key delay
     
     const timeoutRef = useRef(null);
     const currentKey = useRef('C');
@@ -39,6 +40,7 @@ export const useProgressionEarTrainer = (settings, onProgressUpdate) => {
     const generateNewQuestion = useCallback(() => {
         clearTimeout(timeoutRef.current);
         setReviewIndex(null);
+        setIsNewKey(false); // Reset the flag for each new question
 
         const { keyMode, fixedKey, keyType, chordFilter, excludeDiminished, startOnTonic, questionsPerKey } = settings;
 
@@ -50,6 +52,7 @@ export const useProgressionEarTrainer = (settings, onProgressUpdate) => {
                     nextKey = possibleKeys[Math.floor(Math.random() * possibleKeys.length)];
                 } while (nextKey === currentKey.current);
                 currentKey.current = nextKey;
+                setIsNewKey(true); // Signal that the key has changed
             }
         } else {
             currentKey.current = fixedKey;
@@ -154,6 +157,7 @@ export const useProgressionEarTrainer = (settings, onProgressUpdate) => {
             onProgressUpdate({ wasCorrect: isCorrect, score: newScore, totalAsked: newTotalAsked });
         }
 
+        // Auto-advance only if the setting is on AND the answer was correct
         if (settings.autoAdvance && isCorrect) {
             timeoutRef.current = setTimeout(generateNewQuestion, 2500);
         }
@@ -179,7 +183,7 @@ export const useProgressionEarTrainer = (settings, onProgressUpdate) => {
 
     return {
         score, totalAsked, feedback, isAnswered, currentQuestion,
-        history, reviewIndex, setReviewIndex,
+        history, reviewIndex, setReviewIndex, isNewKey,
         generateNewQuestion, checkAnswer, handleReviewNav, startReview, playQuestionAudio
     };
 };

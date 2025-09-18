@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTools } from '../../../context/ToolsContext';
 import { useProgressionEarTrainer } from './useProgressionEarTrainer';
 import InfoModal from '../../common/InfoModal';
@@ -7,7 +7,7 @@ import { ProgressionEarTrainerControls } from './ProgressionEarTrainerControls';
 import { getDiatonicChords } from '../../../utils/musicTheory';
 
 // A sub-component for the unique answer input of this quiz
-const AnswerInput = ({ userAnswer, setUserAnswer, currentQuestion, isAnswered }) => {
+const AnswerInput = ({ userAnswer, onUserAnswerChange, currentQuestion, isAnswered }) => {
     if (!currentQuestion || !currentQuestion.progression) return null;
 
     const progressionLength = currentQuestion.progression.length;
@@ -15,12 +15,14 @@ const AnswerInput = ({ userAnswer, setUserAnswer, currentQuestion, isAnswered })
 
     const handleRomanClick = (roman) => {
         if (isAnswered || userAnswer.length >= progressionLength) return;
-        setUserAnswer(prev => [...prev, roman]);
+        const newAnswer = [...userAnswer, roman];
+        onUserAnswerChange(newAnswer);
     };
 
     const handleBackspace = () => {
         if (isAnswered) return;
-        setUserAnswer(prev => prev.slice(0, -1));
+        const newAnswer = userAnswer.slice(0, -1);
+        onUserAnswerChange(newAnswer);
     };
 
     return (
@@ -63,7 +65,7 @@ const ProgressionEarTrainer = ({ onProgressUpdate }) => {
         keyType: 'Major',
         keyMode: 'Fixed',
         fixedKey: 'C',
-        questionsPerKey: 3, // Added for the new feature
+        questionsPerKey: 3,
         chordFilter: 'All',
         excludeDiminished: true,
         startOnTonic: true,
@@ -75,9 +77,19 @@ const ProgressionEarTrainer = ({ onProgressUpdate }) => {
     const [userAnswer, setUserAnswer] = useState([]);
 
     const {
-        score, totalAsked, feedback, isAnswered, currentQuestion, history, reviewIndex, setReviewIndex,
+        score, totalAsked, feedback, isAnswered, currentQuestion, history, reviewIndex, setReviewIndex, isNewKey,
         generateNewQuestion, checkAnswer, handleReviewNav, startReview, playQuestionAudio
     } = useProgressionEarTrainer(settings, onProgressUpdate);
+
+    // Centralize answer changes and auto-submission, wrapped in useCallback to stabilize it
+    const handleUserAnswerChange = useCallback((newAnswer) => {
+        if (isAnswered) return;
+        setUserAnswer(newAnswer);
+
+        if (newAnswer.length === 4) {
+            checkAnswer(newAnswer);
+        }
+    }, [isAnswered, checkAnswer]);
 
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'progression-ear-trainer') {
@@ -93,35 +105,51 @@ const ProgressionEarTrainer = ({ onProgressUpdate }) => {
 
     const isReviewing = reviewIndex !== null;
 
+    // Play audio for the current question with a delay
     useEffect(() => {
         if (currentQuestion && !currentQuestion.noOptions && !isAnswered && !isReviewing) {
-            const timer = setTimeout(() => playQuestionAudio(), 500);
+            const delay = isNewKey ? 3000 : 500; // 3-second delay for a new roving key
+            const timer = setTimeout(() => playQuestionAudio(), delay);
             return () => clearTimeout(timer);
         }
-    }, [currentQuestion, isAnswered, isReviewing, playQuestionAudio]);
+    }, [currentQuestion, isAnswered, isReviewing, playQuestionAudio, isNewKey]);
 
-    // Submit on Enter key press
+    // Keyboard controls (Numpad, Backspace, Enter)
     useEffect(() => {
+        const diatonicChords = currentQuestion && currentQuestion.key
+            ? getDiatonicChords(currentQuestion.key, currentQuestion.keyType, 'Triads')
+            : [];
+
         const handleKeyDown = (event) => {
-            // Ignore if the user is typing in an input field somewhere else
             const targetTagName = event.target.tagName.toLowerCase();
             if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
                 return;
             }
 
-            if (event.key !== 'Enter') return;
+            if (isAnswered && event.key !== 'Enter') return;
 
-            event.preventDefault(); // Prevent any default browser action for the Enter key
+            const num = parseInt(event.key, 10);
+            if (num >= 1 && num <= 7 && userAnswer.length < 4) {
+                const chordIndex = num - 1;
+                if (diatonicChords[chordIndex]) {
+                    const newAnswer = [...userAnswer, diatonicChords[chordIndex].roman];
+                    handleUserAnswerChange(newAnswer);
+                }
+                return;
+            }
+            
+            if (event.key === 'Backspace') {
+                 const newAnswer = userAnswer.slice(0, -1);
+                 handleUserAnswerChange(newAnswer);
+                 return;
+            }
 
-            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
-
-            // If the question is answered and we are not auto-advancing, "Enter" acts as the "Next Question" button.
-            if (isAnswered && (!settings.autoAdvance || !wasCorrect)) {
-                generateNewQuestion();
-            } 
-            // If the question is not answered and the user has entered 4 chords, "Enter" submits the answer.
-            else if (!isAnswered && userAnswer.length === 4) {
-                checkAnswer(userAnswer);
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : false;
+                if (isAnswered && (!settings.autoAdvance || !wasCorrect)) {
+                    generateNewQuestion();
+                } 
             }
         };
 
@@ -129,7 +157,7 @@ const ProgressionEarTrainer = ({ onProgressUpdate }) => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isAnswered, userAnswer, settings.autoAdvance, history, checkAnswer, generateNewQuestion]);
+    }, [isAnswered, userAnswer, settings.autoAdvance, history, generateNewQuestion, currentQuestion, handleUserAnswerChange]);
     
     const handleSettingChange = (key, value) => setSettings(prev => ({ ...prev, [key]: value }));
     const handleRandomKey = () => {
@@ -167,7 +195,7 @@ const ProgressionEarTrainer = ({ onProgressUpdate }) => {
       </label>
     );
 
-    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : false;
     const footerContent = isReviewing ? (
         <div className="flex items-center justify-center gap-4 w-full">
             <button onClick={() => handleReviewNav(-1)} disabled={reviewIndex === 0} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Prev</button>
@@ -175,8 +203,7 @@ const ProgressionEarTrainer = ({ onProgressUpdate }) => {
             <button onClick={() => handleReviewNav(1)} disabled={reviewIndex === history.length - 1} className="bg-slate-600 hover:bg-slate-500 font-bold p-3 rounded-lg disabled:opacity-50">Next</button>
         </div>
     ) : (
-        <div className="flex items-center justify-center gap-4">
-            <button onClick={() => checkAnswer(userAnswer)} disabled={isAnswered || userAnswer.length !== 4} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-lg disabled:bg-gray-500">Submit</button>
+        <div className="flex items-center justify-center gap-4 min-h-[52px]">
             {isAnswered && (!settings.autoAdvance || !wasCorrect) && 
                 <button onClick={generateNewQuestion} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg animate-pulse">Next Question</button>
             }
@@ -190,8 +217,10 @@ const ProgressionEarTrainer = ({ onProgressUpdate }) => {
                 <h4 className="font-bold text-indigo-300 mt-4">How to Play</h4>
                 <ul className="list-disc list-inside text-sm space-y-1">
                     <li>A 4-chord progression will be played.</li>
-                    <li>Use the Roman numeral buttons to build your answer sequence.</li>
-                    <li>Press "Submit" once you have selected all 4 chords.</li>
+                    <li>Use the Roman numeral buttons or your keyboard's number keys (1-7) to build your answer sequence.</li>
+                    <li>Your answer is automatically submitted after the 4th chord is selected.</li>
+                    <li>If you are correct, the next question will start automatically (if Auto-Advance is on).</li>
+                    <li>If you are incorrect, review the answer and press "Next Question" or Enter to continue.</li>
                 </ul>
             </InfoModal>
 
@@ -213,7 +242,12 @@ const ProgressionEarTrainer = ({ onProgressUpdate }) => {
                                 {isReviewing ? `Your Answer: ${itemToDisplay.userAnswer.join(' - ')} | Correct: ${questionForDisplay.answer.join(' - ')}` : (feedback.message || <>&nbsp;</>)}
                             </div>
                             
-                            {!isReviewing && <AnswerInput userAnswer={userAnswer} setUserAnswer={setUserAnswer} currentQuestion={currentQuestion} isAnswered={isAnswered} />}
+                            {!isReviewing && <AnswerInput 
+                                userAnswer={userAnswer} 
+                                onUserAnswerChange={handleUserAnswerChange} 
+                                currentQuestion={currentQuestion} 
+                                isAnswered={isAnswered} 
+                            />}
                         </>
                     )}
                 </div>

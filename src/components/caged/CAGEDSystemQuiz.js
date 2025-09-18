@@ -30,13 +30,15 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
         includeMinor: true,
         shapes: { E: true, A: true, G: true, C: true, D: true },
         showDegrees: false,
+        showRootHint: false,
     });
     const [autoAdvance, setAutoAdvance] = useState(true);
 
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'caged-system-quiz') {
             const { quizMode: presetQuizMode, ...presetSettings } = presetToLoad.settings;
-            setSettings(presetSettings);
+            const mergedSettings = { showRootHint: false, ...presetSettings };
+            setSettings(mergedSettings);
             if(presetQuizMode) setQuizMode(presetQuizMode);
             clearPresetToLoad();
         }
@@ -82,17 +84,17 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-    const targetTagName = event.target.tagName.toLowerCase();
-    if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
-        return;
-    }
+            const targetTagName = event.target.tagName.toLowerCase();
+            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+                return;
+            }
 
-    const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
-    if (event.key === 'Enter' && isAnswered && (!autoAdvance || !wasCorrect)) {
-        event.preventDefault();
-        generateNewQuestion();
-    }
-};
+            const wasCorrect = history.length > 0 ? history[history.length - 1].wasCorrect : true;
+            if (event.key === 'Enter' && isAnswered && (!autoAdvance || !wasCorrect)) {
+                event.preventDefault();
+                generateNewQuestion();
+            }
+        };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isAnswered, autoAdvance, history, generateNewQuestion]);
@@ -106,24 +108,25 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
             return note.label;
         };
 
-        // Logic for before the answer is submitted
         if (!isAnswered && !isReviewing) {
-            if (question.mode === 'identify') return question.notes.map(note => ({ ...note, label: note.isRoot ? 'R' : '' }));
+            if (question.mode === 'identify') {
+                // FIX 1: The root note is only marked if the hint setting is on.
+                return question.notes.map(note => ({ 
+                    ...note, 
+                    label: (note.isRoot && settings.showRootHint) ? 'R' : '',
+                    isRoot: note.isRoot && settings.showRootHint
+                }));
+            }
             if (question.mode === 'construct') {
-                // FIXED: Explicitly clear labels on user-placed notes before submission
                 const userPlacedNotes = (userAnswer.notes || []).map(n => ({
-                    ...n,
-                    isRoot: false,
-                    overrideColor: '#3b82f6', // User-placed notes are blue
-                    label: '', // Ensure note name is blank
-                    degree: '', // Ensure degree is blank
+                    ...n, isRoot: false, overrideColor: '#3b82f6',
+                    label: '', degree: '',
                 }));
                 const mutedStrings = question.notes.filter(n => n.fret === -1);
                 return [...mutedStrings, ...userPlacedNotes];
             }
         }
 
-        // Logic for AFTER the answer is submitted or when reviewing
         if (isAnswered || isReviewing) {
             const wasCorrect = isReviewing ? itemToDisplay.wasCorrect : (history.length > 0 ? history[history.length - 1].wasCorrect : false);
             const userNotes = itemUserAnswer.notes || [];
@@ -131,12 +134,14 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
             const mutedStrings = question.notes.filter(n => n.fret === -1);
 
             if (wasCorrect) {
-                const userNotesStyled = userNotes.map(note => ({
+                // FIX 2: Always show the correct notes after a correct answer, not the user's notes.
+                // This prevents the diagram from disappearing in "identify" mode.
+                const correctNotesStyled = correctNotes.map(note => ({
                     ...note,
                     overrideLabel: getNoteLabel(note),
                     overrideColor: note.isRoot ? '#166534' : '#22c55e',
                 }));
-                return [...userNotesStyled, ...mutedStrings];
+                return [...correctNotesStyled, ...mutedStrings];
             } else {
                 const correctSet = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
                 const correctNotesStyled = correctNotes.map(note => ({
@@ -151,7 +156,7 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
             }
         }
         return [];
-    }, [itemToDisplay, isAnswered, isReviewing, settings.showDegrees, userAnswer.notes, history]);
+    }, [itemToDisplay, isAnswered, isReviewing, settings.showDegrees, settings.showRootHint, userAnswer.notes, history]);
 
     const renderReviewFeedback = () => {
         if (!isReviewing) return null;

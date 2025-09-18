@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import InfoModal from '../common/InfoModal';
 import SectionHeader from '../common/SectionHeader';
@@ -90,14 +90,16 @@ const PresetsManagerPage = () => {
     const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
     const [cleanupGame, setCleanupGame] = useState('');
     const fileInputRef = useRef(null);
-
-    const gameNames = useMemo(() => {
-        const names = Array.from(new Set(presets.filter(p => !p.isDefault).map(p => p.gameName))).sort();
-        if (names.length > 0 && !cleanupGame) {
-            setCleanupGame(names[0]);
+    
+    useEffect(() => {
+        const customGameNames = Array.from(new Set(presets.filter(p => !p.isDefault).map(p => p.gameName))).sort();
+        if (customGameNames.length > 0 && !cleanupGame) {
+            setCleanupGame(customGameNames[0]);
+        } else if (customGameNames.length > 0 && !customGameNames.includes(cleanupGame)) {
+            setCleanupGame(customGameNames[0]);
         }
-        return names;
     }, [presets, cleanupGame]);
+
 
     const categorizedPresets = useMemo(() => {
         let processed = [...presets];
@@ -206,7 +208,7 @@ const PresetsManagerPage = () => {
                             </ul>
                         </div>
                         <div><h4 className="font-bold text-indigo-300 mb-1">Importing & Bulk Remove</h4>
-                            <p>Use the "Import" button to load presets from a file. The "Bulk Remove" button provides powerful options to clean up presets that are old, duplicated, or not used in any routines.</p> {/*RENAMED*/}
+                            <p>Use the "Import" button to load presets from a file. The "Bulk Remove" button provides powerful options to clean up presets that are old, duplicated, or not used in any routines.</p>
                         </div>
                     </div>
                 </InfoModal>
@@ -219,9 +221,9 @@ const PresetsManagerPage = () => {
                             <label className="font-bold text-indigo-300 block mb-2">Remove by Tool</label>
                             <div className="flex gap-2">
                                 <select value={cleanupGame} onChange={(e) => setCleanupGame(e.target.value)} className="flex-grow bg-slate-600 rounded p-1">
-                                    {gameNames.map(name => <option key={name} value={name}>{name}</option>)}
+                                    {Array.from(new Set(presets.filter(p => !p.isDefault).map(p => p.gameName))).sort().map(name => <option key={name} value={name}>{name}</option>)}
                                 </select>
-                                <button onClick={() => handleCleanup({ type: 'byGame', value: cleanupGame })} className="bg-red-700 hover:bg-red-600 px-3 py-1 rounded font-semibold">Remove</button>
+                                <button onClick={() => handleCleanup({ type: 'byGame', value: cleanupGame })} disabled={!cleanupGame} className="bg-red-700 hover:bg-red-600 px-3 py-1 rounded font-semibold disabled:opacity-50">Remove</button>
                             </div>
                         </div>
                         <div className="p-2 bg-slate-800 rounded">
@@ -233,7 +235,7 @@ const PresetsManagerPage = () => {
                         </div>
                         <div className="p-2 bg-slate-800 rounded space-y-2">
                             <label className="font-bold text-indigo-300 block">Other Actions</label>
-                            <button onClick={() => handleCleanup({ type: 'notInRoutine' })} className="w-full bg-red-700 hover:bg-red-600 p-2 rounded font-semibold">Remove presets not in any Routine</button> {/*RENAMED*/}
+                            <button onClick={() => handleCleanup({ type: 'notInRoutine' })} className="w-full bg-red-700 hover:bg-red-600 p-2 rounded font-semibold">Remove presets not in any Routine</button>
                             <button onClick={() => handleCleanup({ type: 'duplicates' })} className="w-full bg-red-700 hover:bg-red-600 p-2 rounded font-semibold">Remove all duplicate presets</button>
                         </div>
                     </div>
@@ -253,8 +255,8 @@ const PresetsManagerPage = () => {
                 {isSelectionMode ? (
                     <div className="flex items-center gap-2 animate-fade-in">
                         <span className="font-semibold">{selection.size} selected</span>
-                        <button onClick={() => exportSelectedPresets(Array.from(selection))} className="bg-green-600 hover:bg-green-500 font-bold py-2 px-4 rounded-lg">Export</button>
-                        <button onClick={() => deleteSelectedPresets(Array.from(selection))} className="bg-red-700 hover:bg-red-600 font-bold py-2 px-4 rounded-lg">Delete</button>
+                        <button onClick={() => exportSelectedPresets(Array.from(selection))} disabled={selection.size === 0} className="bg-green-600 hover:bg-green-500 font-bold py-2 px-4 rounded-lg disabled:opacity-50">Export</button>
+                        <button onClick={() => deleteSelectedPresets(Array.from(selection))} disabled={selection.size === 0} className="bg-red-700 hover:bg-red-600 font-bold py-2 px-4 rounded-lg disabled:opacity-50">Delete</button>
                         <button onClick={handleExitSelectionMode} className="bg-gray-600 hover:bg-gray-500 font-bold py-2 px-4 rounded-lg">Done</button>
                     </div>
                 ) : (
@@ -266,7 +268,13 @@ const PresetsManagerPage = () => {
                 <input type="text" placeholder="Search by name..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full p-2 rounded-md bg-slate-600 text-white" />
                 <select value={gameFilter} onChange={e => setGameFilter(e.target.value)} className="w-full p-2 rounded-md bg-slate-600 text-white">
                     <option value="All">All Tools</option>
-                    {gameNames.map(name => <option key={name} value={name}>{name}</option>)}
+                    {categoryOrder.map(category => (
+                        <optgroup key={category.name} label={category.name}>
+                            {category.modules.map(moduleName => (
+                                <option key={moduleName} value={moduleName}>{moduleName}</option>
+                            ))}
+                        </optgroup>
+                    ))}
                 </select>
                  <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="w-full p-2 rounded-md bg-slate-600 text-white">
                     <option value="All">All Presets</option>
@@ -310,7 +318,7 @@ const PresetsManagerPage = () => {
                                     const allInFolderSelected = folderPresets.length > 0 && folderPresets.every(p => selection.has(p.id));
 
                                     return (
-                                        <details key={gameName} className="group bg-slate-900/50 rounded-lg">
+                                        <details key={gameName} className="group bg-slate-900/50 rounded-lg" open>
                                             <summary className="list-none">
                                                 <div className="flex items-center gap-3 p-3 cursor-pointer hover:bg-slate-800/50 rounded-t-lg">
                                                     <span className="transform transition-transform duration-200 group-open:rotate-90 text-sm">▶</span>

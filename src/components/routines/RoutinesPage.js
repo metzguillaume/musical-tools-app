@@ -14,18 +14,20 @@ const defaultFolders = [
     { id: 'folder_default_streak', name: 'The Streak' }
 ];
 
+// This is the component for an individual folder inside a category
 const FolderItem = ({ folder, isSelectionMode, selectedRoutineIds, handleSelectAllInFolder, onExportFolder, onRename, onDelete, ...routineListProps }) => {
     const isDefault = folder.id.startsWith('folder_default_');
 
     const routineIdsInFolder = folder.routines.map(r => r.id);
     const allInFolderSelected = routineIdsInFolder.length > 0 && routineIdsInFolder.every(id => selectedRoutineIds.has(id));
 
+    // Do not render the folder if it's empty
     if (folder.routines.length === 0) {
         return null;
     }
 
     return (
-        <details className="group">
+        <details className="group" open>
             <summary className="list-none">
                 <div className="flex justify-between items-center p-3 bg-slate-800 rounded-t-lg cursor-pointer hover:bg-slate-700/50 transition-colors">
                     <div className="flex items-center gap-3">
@@ -56,6 +58,25 @@ const FolderItem = ({ folder, isSelectionMode, selectedRoutineIds, handleSelectA
                     selectedRoutineIds={selectedRoutineIds}
                     {...routineListProps}
                 />
+            </div>
+        </details>
+    );
+};
+
+// NEW: A component to create a collapsible, visually distinct category section
+const RoutineCategorySection = ({ title, children, hasContent }) => {
+    if (!hasContent) {
+        return null; // Don't render the section if there's nothing to show
+    }
+
+    return (
+        <details className="bg-slate-800/50 rounded-lg border-2 border-slate-700 group" open>
+            <summary className="list-none p-4 cursor-pointer hover:bg-slate-700/50 rounded-lg flex items-center gap-3">
+                <span className="transform transition-transform duration-200 group-open:rotate-90">▶</span>
+                <h2 className="text-2xl font-bold text-teal-300">{title}</h2>
+            </summary>
+            <div className="p-4 border-t border-slate-700">
+                {children}
             </div>
         </details>
     );
@@ -216,6 +237,10 @@ const RoutinesPage = () => {
         managingFoldersForId, selectedRoutineIds, onToggleSelection: handleToggleSelection
     };
 
+    // Check if there are any routines to display in each category after filtering
+    const hasDefaultRoutines = defaultCategorized.some(f => f.routines.length > 0);
+    const hasCustomRoutines = customCategorized.some(f => f.routines.length > 0);
+
     return (
         <>
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Routine Hub Guide" verticalAlign="top">
@@ -323,9 +348,8 @@ const RoutinesPage = () => {
                         </div>
                         
                         <div className="space-y-8">
-                            <div>
-                                <SectionHeader title="Default Folders" />
-                                <div className="space-y-6 mt-4">
+                            <RoutineCategorySection title="Default Folders" hasContent={hasDefaultRoutines}>
+                                <div className="space-y-6">
                                     {defaultCategorized.map(folder => (
                                         <FolderItem 
                                             key={folder.id}
@@ -337,10 +361,10 @@ const RoutinesPage = () => {
                                         />
                                     ))}
                                 </div>
-                            </div>
-                            <div>
-                                <SectionHeader title="My Custom Folders" />
-                                <div className="space-y-6 mt-4">
+                            </RoutineCategorySection>
+                            
+                            <RoutineCategorySection title="My Custom Folders" hasContent={hasCustomRoutines}>
+                                <div className="space-y-6">
                                     {customCategorized.length > 0 ? customCategorized.map(folder => (
                                         <FolderItem 
                                             key={folder.id}
@@ -354,7 +378,7 @@ const RoutinesPage = () => {
                                         />
                                     )) : <p className="text-gray-400 text-center mt-4">No custom folders created yet.</p>}
                                 </div>
-                            </div>
+                            </RoutineCategorySection>
                         </div>
                     </>
                 ) : (

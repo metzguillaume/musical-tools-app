@@ -80,7 +80,6 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
         }
     }, [userAnswer, autoAdvance, checkAnswer, itemToDisplay.question]);
 
-    // This useEffect is for the new "Enter to continue" feature
     useEffect(() => {
         const handleKeyDown = (event) => {
     const targetTagName = event.target.tagName.toLowerCase();
@@ -110,7 +109,18 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
         // Logic for before the answer is submitted
         if (!isAnswered && !isReviewing) {
             if (question.mode === 'identify') return question.notes.map(note => ({ ...note, label: note.isRoot ? 'R' : '' }));
-            if (question.mode === 'construct') return [ ...question.notes.filter(n => n.fret === -1), ...(userAnswer.notes || []).map(n => ({...n, isRoot: false, overrideColor: '#3b82f6'})) ];
+            if (question.mode === 'construct') {
+                // FIXED: Explicitly clear labels on user-placed notes before submission
+                const userPlacedNotes = (userAnswer.notes || []).map(n => ({
+                    ...n,
+                    isRoot: false,
+                    overrideColor: '#3b82f6', // User-placed notes are blue
+                    label: '', // Ensure note name is blank
+                    degree: '', // Ensure degree is blank
+                }));
+                const mutedStrings = question.notes.filter(n => n.fret === -1);
+                return [...mutedStrings, ...userPlacedNotes];
+            }
         }
 
         // Logic for AFTER the answer is submitted or when reviewing
@@ -121,16 +131,13 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
             const mutedStrings = question.notes.filter(n => n.fret === -1);
 
             if (wasCorrect) {
-                // If the answer was correct, simply display the user's notes in green.
-                // This works for both the original position and the correct octave-up position.
                 const userNotesStyled = userNotes.map(note => ({
                     ...note,
                     overrideLabel: getNoteLabel(note),
-                    overrideColor: note.isRoot ? '#166534' : '#22c55e', // Dark green for root, light green for others
+                    overrideColor: note.isRoot ? '#166534' : '#22c55e',
                 }));
                 return [...userNotesStyled, ...mutedStrings];
             } else {
-                // If incorrect, show the correct answer in green and wrong clicks in red.
                 const correctSet = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
                 const correctNotesStyled = correctNotes.map(note => ({
                     ...note,

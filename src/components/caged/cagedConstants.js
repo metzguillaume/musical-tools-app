@@ -17,19 +17,20 @@ export const CAGED_SHAPES = {
     }
 };
 
+// UPDATED: The 'display' property now shows sharps first.
 export const ROOT_NOTE_OPTIONS = [
     { display: 'A', value: 'A' },
-    { display: 'Bb/A#', value: 'Bb', altValue: 'A#' },
+    { display: 'A#/Bb', value: 'Bb', altValue: 'A#' },
     { display: 'B', value: 'B' },
     { display: 'C', value: 'C' },
-    { display: 'Db/C#', value: 'Db', altValue: 'C#' },
+    { display: 'C#/Db', value: 'Db', altValue: 'C#' },
     { display: 'D', value: 'D' },
-    { display: 'Eb/D#', value: 'Eb', altValue: 'D#' },
+    { display: 'D#/Eb', value: 'Eb', altValue: 'D#' },
     { display: 'E', value: 'E' },
     { display: 'F', value: 'F' },
     { display: 'F#/Gb', value: 'F#', altValue: 'Gb' },
     { display: 'G', value: 'G' },
-    { display: 'Ab/G#', value: 'Ab', altValue: 'G#' },
+    { display: 'G#/Ab', value: 'Ab', altValue: 'G#' },
 ];
 
 export const SHAPE_ORDER = ['C', 'A', 'G', 'E', 'D'];

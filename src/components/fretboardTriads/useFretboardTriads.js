@@ -10,13 +10,14 @@ export const STRING_SETS = {
     'D G B': [4, 3, 2],
     'G B e': [3, 2, 1],
 };
+// UPDATED: The 'display' property now shows sharps first.
 export const ROOT_NOTE_OPTIONS = [
-    { value: 'A', display: 'A' }, { value: 'Bb', display: 'B♭/A♯' },
+    { value: 'A', display: 'A' }, { value: 'Bb', display: 'A♯/B♭' },
     { value: 'B', display: 'B' }, { value: 'C', display: 'C' },
-    { value: 'Db', display: 'D♭/C♯' }, { value: 'D', display: 'D' },
-    { value: 'Eb', display: 'E♭/D♯' }, { value: 'E', display: 'E' },
+    { value: 'Db', display: 'C♯/D♭' }, { value: 'D', display: 'D' },
+    { value: 'Eb', display: 'D♯/E♭' }, { value: 'E', display: 'E' },
     { value: 'F', display: 'F' }, { value: 'F#', display: 'F♯/G♭' },
-    { value: 'G', display: 'G' }, { value: 'Ab', display: 'A♭/G♯' },
+    { value: 'G', display: 'G' }, { value: 'Ab', display: 'G♯/A♭' },
 ];
 
 export const useFretboardTriads = (questionSettings, onProgressUpdate) => {
@@ -211,7 +212,6 @@ export const useFretboardTriads = (questionSettings, onProgressUpdate) => {
         setIsAnswered(true);
         if (autoAdvance && isCorrect) timeoutRef.current = setTimeout(generateNewQuestion, 2000);
 
-    // --- FIX: Simplified the dependency array, removing the redundant items ---
     }, [isAnswered, userAnswer, currentQuestion, generateNewQuestion, onProgressUpdate, score, totalAsked]);
 
 

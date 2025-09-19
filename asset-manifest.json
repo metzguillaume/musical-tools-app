@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/musical-tools-app/static/css/main.3415d71b.css",
-    "main.js": "/musical-tools-app/static/js/main.aad1319e.js",
+    "main.js": "/musical-tools-app/static/js/main.471b2b6b.js",
     "static/js/453.267d8d01.chunk.js": "/musical-tools-app/static/js/453.267d8d01.chunk.js",
     "index.html": "/musical-tools-app/index.html",
     "main.3415d71b.css.map": "/musical-tools-app/static/css/main.3415d71b.css.map",
-    "main.aad1319e.js.map": "/musical-tools-app/static/js/main.aad1319e.js.map",
+    "main.471b2b6b.js.map": "/musical-tools-app/static/js/main.471b2b6b.js.map",
     "453.267d8d01.chunk.js.map": "/musical-tools-app/static/js/453.267d8d01.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.3415d71b.css",
-    "static/js/main.aad1319e.js"
+    "static/js/main.471b2b6b.js"
   ]
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { findTriadShapes } from '../../utils/fretboardUtils';
 import { fretboardModel } from '../../utils/fretboardUtils';
+import { getWeightedEnharmonicName, NOTE_TO_MIDI_CLASS } from '../../utils/musicTheory';
 
 export const TRIAD_QUALITIES = ['Major', 'Minor', 'Diminished', 'Augmented', 'Sus2', 'Sus4'];
 export const TRIAD_INVERSIONS = ['Root', '1st', '2nd'];
@@ -10,14 +11,13 @@ export const STRING_SETS = {
     'D G B': [4, 3, 2],
     'G B e': [3, 2, 1],
 };
-// UPDATED: The 'display' property now shows sharps first.
 export const ROOT_NOTE_OPTIONS = [
-    { value: 'A', display: 'A' }, { value: 'Bb', display: 'A♯/B♭' },
+    { value: 'A', display: 'A' }, { value: 'A#', display: 'A♯/B♭' },
     { value: 'B', display: 'B' }, { value: 'C', display: 'C' },
-    { value: 'Db', display: 'C♯/D♭' }, { value: 'D', display: 'D' },
-    { value: 'Eb', display: 'D♯/E♭' }, { value: 'E', display: 'E' },
+    { value: 'C#', display: 'C♯/D♭' }, { value: 'D', display: 'D' },
+    { value: 'D#', display: 'D♯/E♭' }, { value: 'E', display: 'E' },
     { value: 'F', display: 'F' }, { value: 'F#', display: 'F♯/G♭' },
-    { value: 'G', display: 'G' }, { value: 'Ab', display: 'G♯/A♭' },
+    { value: 'G', display: 'G' }, { value: 'G#', display: 'G♯/A♭' },
 ];
 
 export const useFretboardTriads = (questionSettings, onProgressUpdate) => {
@@ -61,7 +61,8 @@ export const useFretboardTriads = (questionSettings, onProgressUpdate) => {
         while (!question && attempts < 50) {
             attempts++;
             const randomQuality = activeQualities[Math.floor(Math.random() * activeQualities.length)];
-            const randomRoot = ROOT_NOTE_OPTIONS[Math.floor(Math.random() * ROOT_NOTE_OPTIONS.length)].value;
+            const baseRootName = ROOT_NOTE_OPTIONS[Math.floor(Math.random() * ROOT_NOTE_OPTIONS.length)].value;
+            const finalRootName = getWeightedEnharmonicName(baseRootName);
             const randomInversion = activeInversions[Math.floor(Math.random() * activeInversions.length)];
             
             const prevQuestion = currentQuestionRef.current;
@@ -71,19 +72,19 @@ export const useFretboardTriads = (questionSettings, onProgressUpdate) => {
                 
                 if (prevQuestion?.answer && prevQuestion.mode === 'identify') {
                     const prev = prevQuestion.answer;
-                    if (prev.root === randomRoot && prev.quality === randomQuality && prev.inversion === randomInversion) {
+                    if (prev.root === finalRootName && prev.quality === randomQuality && prev.inversion === randomInversion) {
                         continue; 
                     }
                 }
 
-                const shapes = findTriadShapes(randomRoot, randomQuality, randomInversion, STRING_SETS[randomStringSetName]);
+                const shapes = findTriadShapes(finalRootName, randomQuality, randomInversion, STRING_SETS[randomStringSetName]);
                 const playableShapes = shapes.filter(shape => shape.every(note => note.fret <= 15));
 
                 if (playableShapes.length > 0) {
                     const chosenShape = playableShapes[Math.floor(Math.random() * playableShapes.length)];
                     question = {
                         notes: chosenShape,
-                        answer: { root: randomRoot, quality: randomQuality, inversion: randomInversion },
+                        answer: { root: finalRootName, quality: randomQuality, inversion: randomInversion },
                         prompt: { text1: 'Identify the triad:' },
                         mode: 'identify'
                     };
@@ -93,14 +94,14 @@ export const useFretboardTriads = (questionSettings, onProgressUpdate) => {
                 
                 if (prevQuestion?.answer && prevQuestion.mode === 'constructHorizontally') {
                     const prev = prevQuestion.answer;
-                    if (prev.root === randomRoot && prev.quality === randomQuality && prev.stringSetName === randomStringSetName) {
+                    if (prev.root === finalRootName && prev.quality === randomQuality && prev.stringSetName === randomStringSetName) {
                         continue; 
                     }
                 }
 
                 let allInversionsOnSet = [];
                 activeInversions.forEach(inv => {
-                    const shapes = findTriadShapes(randomRoot, randomQuality, inv, STRING_SETS[randomStringSetName]);
+                    const shapes = findTriadShapes(finalRootName, randomQuality, inv, STRING_SETS[randomStringSetName]);
                     if (shapes.length > 0) allInversionsOnSet.push(...shapes[0]);
                 });
 
@@ -108,37 +109,37 @@ export const useFretboardTriads = (questionSettings, onProgressUpdate) => {
                      question = {
                         answer: { 
                             notes: allInversionsOnSet,
-                            root: randomRoot,
+                            root: finalRootName,
                             quality: randomQuality,
                             inversions: activeInversions,
                             stringSetName: randomStringSetName
                         },
-                        prompt: { text1: 'Construct all ', highlight1: `${randomRoot} ${randomQuality}`, text2: ' triads on the ', highlight2: `${randomStringSetName} strings` },
+                        prompt: { text1: 'Construct all ', highlight1: `${finalRootName} ${randomQuality}`, text2: ' triads on the ', highlight2: `${randomStringSetName} strings` },
                         mode: 'constructHorizontally'
                     };
                 }
             } else if (mode === 'constructVertically') {
                 if (prevQuestion?.answer && prevQuestion.mode === 'constructVertically') {
                     const prev = prevQuestion.answer;
-                    if (prev.root === randomRoot && prev.quality === randomQuality && prev.inversion === randomInversion) {
+                    if (prev.root === finalRootName && prev.quality === randomQuality && prev.inversion === randomInversion) {
                         continue;
                     }
                 }
 
                 let allShapesOnFretboard = [];
                 Object.values(STRING_SETS).forEach(stringSet => {
-                    const shapes = findTriadShapes(randomRoot, randomQuality, randomInversion, stringSet);
+                    const shapes = findTriadShapes(finalRootName, randomQuality, randomInversion, stringSet);
                     if (shapes.length > 0) allShapesOnFretboard.push(...shapes[0]);
                 });
                  if (allShapesOnFretboard.length > 0) {
                     question = {
                         answer: { 
                             notes: allShapesOnFretboard,
-                            root: randomRoot,
+                            root: finalRootName,
                             quality: randomQuality,
                             inversion: randomInversion
                         },
-                        prompt: { text1: 'Construct all ', highlight1: `${randomRoot} ${randomQuality}`, text2: ` triads in `, highlight2: `${randomInversion} inversion` },
+                        prompt: { text1: 'Construct all ', highlight1: `${finalRootName} ${randomQuality}`, text2: ` triads in `, highlight2: `${randomInversion} inversion` },
                         mode: 'constructVertically'
                     };
                 }
@@ -163,30 +164,14 @@ export const useFretboardTriads = (questionSettings, onProgressUpdate) => {
 
         if (currentQuestion.mode === 'identify') {
             const { root, quality, inversion } = currentQuestion.answer;
-            isCorrect = userAnswer.root === root && userAnswer.quality === quality && userAnswer.inversion === inversion;
+            const userAnswerRootMidi = NOTE_TO_MIDI_CLASS[userAnswer.root];
+            const correctAnswerRootMidi = NOTE_TO_MIDI_CLASS[root];
+            isCorrect = userAnswerRootMidi === correctAnswerRootMidi && userAnswer.quality === quality && userAnswer.inversion === inversion;
         } else {
             const userNotes = userAnswer.notes || [];
-            const expectedNotes = currentQuestion.answer.notes;
-
-            if (userNotes.length !== expectedNotes.length) {
-                isCorrect = false;
-            } else {
-                const masterNoteSet = new Set();
-                if (currentQuestion.mode === 'constructVertically') {
-                    const { root, quality, inversion } = currentQuestion.answer;
-                    Object.values(STRING_SETS).forEach(stringSet => {
-                        const shapes = findTriadShapes(root, quality, inversion, stringSet);
-                        shapes.flat().forEach(note => masterNoteSet.add(`${note.string}-${note.fret}`));
-                    });
-                } else { // constructHorizontally
-                    const { root, quality, inversions, stringSetName } = currentQuestion.answer;
-                    inversions.forEach(inv => {
-                        const shapes = findTriadShapes(root, quality, inv, STRING_SETS[stringSetName]);
-                        shapes.flat().forEach(note => masterNoteSet.add(`${note.string}-${note.fret}`));
-                    });
-                }
-                isCorrect = userNotes.every(note => masterNoteSet.has(`${note.string}-${note.fret}`));
-            }
+            const correctNotes = currentQuestion.answer.notes;
+            const correctNoteIdSet = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
+            isCorrect = userNotes.length === correctNotes.length && userNotes.every(n => correctNoteIdSet.has(`${n.string}-${n.fret}`));
         }
         
         const newScore = isCorrect ? score + 1 : score;

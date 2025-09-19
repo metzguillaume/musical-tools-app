@@ -12,11 +12,115 @@ export const SEMITONE_TO_DEGREE = {
 const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const NOTE_TO_MIDI_BASE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
+export const NOTE_TO_MIDI_CLASS = {
+    'C': 0, 'B#': 0, 'C#': 1, 'C♯': 1, 'Db': 1, 'D♭': 1, 'D': 2, 'D#': 3, 'D♯': 3, 'Eb': 3, 'E♭': 3,
+    'E': 4, 'Fb': 4, 'F♭': 4, 'F': 5, 'E#': 5, 'E♯': 5, 'F#': 6, 'F♯': 6, 'Gb': 6, 'G♭': 6, 'G': 7,
+    'G#': 8, 'G♯': 8, 'Ab': 8, 'A♭': 8, 'A': 9, 'A#': 10, 'A♯': 10, 'Bb': 10, 'B♭': 10, 'B': 11, 'Cb': 11, 'C♭': 11,
+};
+
+const ENHARMONIC_SPELLINGS = {
+    1: [{ name: 'C♯', weight: 1 }, { name: 'D♭', weight: 4 }],
+    3: [{ name: 'D♯', weight: 1 }, { name: 'E♭', weight: 4 }],
+    6: [{ name: 'F♯', weight: 3 }, { name: 'G♭', weight: 2 }],
+    8: [{ name: 'G♯', weight: 2 }, { name: 'A♭', weight: 3 }],
+    10: [{ name: 'A♯', weight: 1 }, { name: 'B♭', weight: 4 }],
+};
+
+const INTERVAL_TO_DEGREE_NUMBER = {
+    0: '1', 1: '2', 2: '2', 3: '3', 4: '3', 5: '4',
+    6: '5', 7: '5', 8: '6', 9: '6', 10: '7', 11: '7'
+};
+
+// --- Core Functions ---
+
+export const normalizeNoteName = (name) => {
+    if (!name) return '';
+    return name.replace('♯', '#').replace('♭', 'b').replace('𝄪', '##').replace('𝄫', 'bb');
+};
+
+export const getWeightedEnharmonicName = (noteName) => {
+    const midiClass = NOTE_TO_MIDI_CLASS[noteName];
+    const spellings = ENHARMONIC_SPELLINGS[midiClass];
+    if (!spellings) return noteName;
+
+    const totalWeight = spellings.reduce((sum, s) => sum + s.weight, 0);
+    let random = Math.random() * totalWeight;
+
+    for (const spelling of spellings) {
+        if (random < spelling.weight) return spelling.name;
+        random -= spelling.weight;
+    }
+    return spellings[0].name;
+};
+
+export const getDiatonicNoteName = (rootNoteName, targetMidi, intervalNumberStr) => {
+    if (intervalNumberStr === 'Unison' || intervalNumberStr === 'Octave') {
+        return rootNoteName.charAt(0).toUpperCase() + rootNoteName.slice(1).replace(/[0-9]/g, '');
+    }
+    if (intervalNumberStr === 'Tritone') {
+         const sharpNotes = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+         return sharpNotes[targetMidi % 12];
+    }
+
+    const number = parseInt(intervalNumberStr.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(number)) return null;
+
+    const rootLetter = rootNoteName.charAt(0);
+    const rootLetterIndex = NOTE_LETTERS.indexOf(rootLetter);
+    if (rootLetterIndex === -1) return null;
+
+    const targetLetter = NOTE_LETTERS[(rootLetterIndex + number - 1) % 7];
+    const targetMidiClass = targetMidi % 12;
+    const naturalNoteMidiClass = NOTE_TO_MIDI_BASE[targetLetter];
+
+    let accidentalValue = targetMidiClass - naturalNoteMidiClass;
+    if (accidentalValue < -6) accidentalValue += 12;
+    if (accidentalValue > 6) accidentalValue -= 12;
+
+    let accidental = '';
+    if (accidentalValue === 1) accidental = '♯';
+    else if (accidentalValue === 2) accidental = '𝄪';
+    else if (accidentalValue === -1) accidental = '♭';
+    else if (accidentalValue === -2) accidental = '𝄫';
+
+    return `${targetLetter}${accidental}`;
+};
+
+/**
+ * **NEW AND IMPROVED**: Calculates the diatonically correct note names for a given chord.
+ * This is the new "single source of truth" for chord spellings.
+ */
+export const getChordNoteNames = (rootNoteName, quality) => {
+    const chordKey = Object.keys(CHORDS).find(k => k.toLowerCase() === quality.toLowerCase());
+    const chordData = chordKey ? CHORDS[chordKey] : null;
+
+    if (!chordData) {
+        console.error(`Chord quality '${quality}' not found.`);
+        return null;
+    }
+    
+    const rootMidi = NOTE_TO_MIDI[rootNoteName];
+    if (rootMidi === undefined) {
+        console.error(`Root note '${rootNoteName}' not found.`);
+        return null;
+    }
+
+    const noteNames = chordData.intervals.map(interval => {
+        const targetMidi = rootMidi + interval;
+        const degreeNumberStr = INTERVAL_TO_DEGREE_NUMBER[interval];
+        return getDiatonicNoteName(rootNoteName, targetMidi, degreeNumberStr);
+    });
+    return noteNames.filter(Boolean);
+};
+
+
+// --- Data Objects and Other Functions from your original file ---
+
 const SCALE_INTERVALS = {
     'Major': [0, 2, 4, 5, 7, 9, 11],
     'Natural Minor': [0, 2, 3, 5, 7, 8, 10],
     'Harmonic Minor': [0, 2, 3, 5, 7, 8, 11],
-    'Melodic Minor': [0, 2, 3, 5, 7, 9, 11], // Ascending
+    'Melodic Minor': [0, 2, 3, 5, 7, 9, 11],
 };
 
 const DIATONIC_CHORD_QUALITIES = {
@@ -31,7 +135,7 @@ const DIATONIC_CHORD_QUALITIES = {
 };
 
 export const QUALITY_TO_SUFFIX = {
-    'Major': '', 'Minor': 'm', 'Diminished': 'dim', 'Augmented': 'aug', // CHANGED: '+' is now 'aug'
+    'Major': '', 'Minor': 'm', 'Diminished': 'dim', 'Augmented': 'aug',
     'Major 7th': 'maj7', 'Minor 7th': 'm7', 'Dominant 7th': '7', 'Half-Diminished 7th': 'm7b5',
     'Diminished 7th': '°7', 'Minor-Major 7th': 'm(maj7)', 'Augmented Major 7th': '+maj7',
     'Sus2': 'sus2', 'Sus4': 'sus4',
@@ -79,10 +183,10 @@ export const TRIAD_DEFINITIONS = {
 };
 
 export const NOTE_TO_MIDI = {
-    'C': 48, 'C#': 49, 'Db': 49, 'D': 50, 'D#': 51, 'Eb': 51, 'E': 52, 'F': 53,
-    'F#': 54, 'Gb': 54, 'G': 55, 'G#': 56, 'Ab': 56, 'A': 57, 'A#': 58, 'Bb': 58, 'B': 59,
-    'Cb': 59, 'B#': 60, 'E#': 53, 'Fb': 52, 'Bbb': 57, 'Abb': 55,
-    'C##': 50, 'D##': 52, 'F##': 55, 'G##': 57, 'A##': 59
+    'C': 48, 'C#': 49, 'C♯': 49, 'Db': 49, 'D♭': 49, 'D': 50, 'D#': 51, 'D♯': 51, 'Eb': 51, 'E♭': 51, 'E': 52, 'F': 53,
+    'F#': 54, 'F♯': 54, 'Gb': 54, 'G♭': 54, 'G': 55, 'G#': 56, 'G♯': 56, 'Ab': 56, 'A♭': 56, 'A': 57, 'A#': 58, 'A♯': 58, 'Bb': 58, 'B♭': 58, 'B': 59,
+    'Cb': 59, 'C♭': 59, 'B#': 60, 'B♯': 60, 'E#': 53, 'E♯': 53, 'Fb': 52, 'F♭': 52, 'Bbb': 57, 'B♭♭': 57, 'Abb': 55, 'A♭♭': 55,
+    'C##': 50, 'C𝄪': 50, 'D##': 52, 'D𝄪': 52, 'F##': 55, 'F𝄪': 55, 'G##': 57, 'G𝄪': 57, 'A##': 59, 'A𝄪': 59,
 };
 
 export const ENHARMONIC_MAP = {
@@ -91,15 +195,10 @@ export const ENHARMONIC_MAP = {
     'Cb': 'B', 'B#': 'C', 'E#': 'F', 'Fb': 'E'
 };
 
-// UPDATED: The note map has been completely rewritten to be more comprehensive and accurate.
 export const CANONICAL_NOTE_MAP = {
-    // Octave 2
     'E2': { string: 6, fret: 0 }, 'F2': { string: 6, fret: 1 }, 'F#2': { string: 6, fret: 2 }, 'G2': { string: 6, fret: 3 }, 'G#2': { string: 6, fret: 4 }, 'A2': { string: 5, fret: 0 }, 'A#2': { string: 5, fret: 1 }, 'B2': { string: 5, fret: 2 },
-    // Octave 3
     'C3': { string: 5, fret: 3 }, 'C#3': { string: 5, fret: 4 }, 'D3': { string: 4, fret: 0 }, 'D#3': { string: 4, fret: 1 }, 'E3': { string: 4, fret: 2 }, 'F3': { string: 4, fret: 3 }, 'F#3': { string: 4, fret: 4 }, 'G3': { string: 3, fret: 0 }, 'G#3': { string: 3, fret: 1 }, 'A3': { string: 3, fret: 2 }, 'A#3': { string: 2, fret: 3 }, 'B3': { string: 2, fret: 0 },
-    // Octave 4
     'C4': { string: 2, fret: 1 }, 'C#4': { string: 2, fret: 2 }, 'D4': { string: 2, fret: 3 }, 'D#4': { string: 2, fret: 4 }, 'E4': { string: 1, fret: 0 }, 'F4': { string: 1, fret: 1 }, 'F#4': { string: 1, fret: 2 }, 'G4': { string: 1, fret: 3 }, 'G#4': { string: 1, fret: 4 }, 'A4': { string: 1, fret: 5 }, 'A#4': { string: 1, fret: 6 }, 'B4': { string: 1, fret: 7 },
-    // Octave 5
     'C5': { string: 1, fret: 8 }, 'C#5': { string: 1, fret: 9 }, 'D5': { string: 1, fret: 10 }, 'D#5': { string: 1, fret: 11 }, 'E5': { string: 1, fret: 12 }, 'F5': { string: 1, fret: 13 }, 'F#5': { string: 1, fret: 14 }, 'G5': { string: 1, fret: 15 },
 };
 
@@ -156,7 +255,6 @@ export const getDiatonicChords = (rootNoteName, scaleName, complexity) => {
         const quality = qualities[index];
         const suffix = QUALITY_TO_SUFFIX[quality] ?? '';
         
-        // FIX: Roman numerals are now cased based on quality
         let roman = ROMAN_NUMERALS[index];
         if (quality.includes('Minor')) {
             roman = roman.toLowerCase();

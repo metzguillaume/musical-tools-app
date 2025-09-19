@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { SCALES, CHORDS, getNotesFor, NOTE_TO_MIDI, SEMITONE_TO_DEGREE } from '../../utils/musicTheory.js';
+import { 
+    SCALES, 
+    CHORDS, 
+    getNotesFor, 
+    NOTE_TO_MIDI, 
+    SEMITONE_TO_DEGREE,
+    getScaleNotes,      // Added for diatonic spelling
+    getChordNoteNames   // Added for diatonic spelling
+} from '../../utils/musicTheory.js';
 import { fretboardModel } from '../../utils/fretboardUtils.js';
 
 export const useDiagramMaker = () => {
@@ -172,24 +180,58 @@ export const useDiagramMaker = () => {
         else setSelectedName(Object.keys(CHORDS)[0]);
     }, [selectedType]);
 
+    // ================================================================================= //
+    // ===== THIS IS THE CORRECTED useEffect HOOK FOR NOTE GENERATION & SPELLING ===== //
+    // ================================================================================= //
     useEffect(() => {
         const rootMidi = NOTE_TO_MIDI[selectedRoot];
         if (rootMidi === undefined) return;
+        
         if (isManualMode) {
+            // Update degrees and root status for existing notes when root changes in manual mode
             setDisplayedNotes(prev => prev.map(note => {
                 const interval = (note.midi - rootMidi) % 12;
+                const positiveInterval = interval < 0 ? interval + 12 : interval;
                 return { 
                     ...note, 
-                    degree: SEMITONE_TO_DEGREE[interval < 0 ? interval + 12 : interval] || '?', 
+                    degree: SEMITONE_TO_DEGREE[positiveInterval] || '?', 
                     isRoot: note.midi % 12 === rootMidi % 12,
-                    label: fretboardModel[6 - note.string][note.fret].note // FIX: ensure note name is always correct
+                    // Note name from model doesn't change, just its relation to the root
+                    label: fretboardModel[6 - note.string][note.fret].note 
                 };
             }));
         } else {
-            const intervals = (selectedType === 'Scale' ? SCALES : CHORDS)[selectedName]?.intervals;
+            // Logic for generating scales/chords automatically with correct note names
+            const sourceData = selectedType === 'Scale' ? SCALES : CHORDS;
+            const intervals = sourceData[selectedName]?.intervals;
+
             if (intervals) {
-                const notes = getNotesFor(selectedRoot, intervals, fretboardModel);
-                setDisplayedNotes(notes.map(n => ({ ...n, overrideColor: null, overrideLabel: null })));
+                // 1. Get the diatonically correct note names for the current context.
+                const correctNoteNames = selectedType === 'Scale'
+                    ? getScaleNotes(selectedRoot, selectedName)
+                    : getChordNoteNames(selectedRoot, selectedName);
+
+                // 2. Create a map from MIDI class (0-11) to the correct note name string.
+                const midiToCorrectNameMap = {};
+                if (correctNoteNames && correctNoteNames.length > 0) {
+                    correctNoteNames.forEach((name, index) => {
+                        const midiClass = (rootMidi + intervals[index]) % 12;
+                        midiToCorrectNameMap[midiClass] = name;
+                    });
+                }
+                
+                // 3. Find all positions for the required notes on the fretboard.
+                const notesOnFretboard = getNotesFor(selectedRoot, intervals, fretboardModel);
+                
+                // 4. Map over the found notes and apply the correct label from our map.
+                const correctlyLabelledNotes = notesOnFretboard.map(note => ({
+                    ...note,
+                    label: midiToCorrectNameMap[note.midi % 12] || note.label, // Use map, fallback to original if needed
+                    overrideColor: null,
+                    overrideLabel: null,
+                }));
+
+                setDisplayedNotes(correctlyLabelledNotes);
             }
         }
     }, [selectedRoot, selectedType, selectedName, isManualMode]);

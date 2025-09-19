@@ -1,9 +1,7 @@
-// src/components/caged/useCagedQuiz.js
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { fretboardModel } from '../../utils/fretboardUtils.js';
 import { CAGED_SHAPES, ROOT_NOTE_OPTIONS } from './cagedConstants.js';
-import { NOTE_TO_MIDI, SEMITONE_TO_DEGREE } from '../../utils/musicTheory.js';
+import { NOTE_TO_MIDI, SEMITONE_TO_DEGREE, getWeightedEnharmonicName, getChordNoteNames, NOTE_TO_MIDI_CLASS, normalizeNoteName } from '../../utils/musicTheory.js';
 
 export const useCagedQuiz = (quizMode, activeShapes, onProgressUpdate) => {
     const [score, setScore] = useState(0);
@@ -36,19 +34,38 @@ export const useCagedQuiz = (quizMode, activeShapes, onProgressUpdate) => {
             const shapeData = CAGED_SHAPES[quality][shape];
             const rootNoteInShape = shapeData.notes.find(n => n.d === 'R');
             const randomFret = Math.floor(Math.random() * 10);
-            const root = fretboardModel[6 - rootNoteInShape.s][randomFret].note;
+            
+            const baseRootName = fretboardModel[6 - rootNoteInShape.s][randomFret].note;
+            const finalRootName = getWeightedEnharmonicName(baseRootName);
             const fretOffset = randomFret - rootNoteInShape.f;
+
+            const correctNoteNames = getChordNoteNames(finalRootName, quality);
+            const midiToNameMap = {};
+            if (correctNoteNames) {
+                correctNoteNames.forEach(name => {
+                    const midiClass = NOTE_TO_MIDI_CLASS[name];
+                    if (midiClass !== undefined) midiToNameMap[midiClass] = name;
+                });
+            }
 
             const answerNotes = shapeData.notes.map(note => {
                 const fret = note.f + fretOffset;
                 if (fret < 0 || fret > 15) return null;
                 const finalNoteInfo = fretboardModel[6 - note.s][fret];
-                return { ...note, string: note.s, fret, isRoot: note.d === 'R', label: finalNoteInfo.note, midi: finalNoteInfo.midi };
+                
+                const correctLabel = midiToNameMap[finalNoteInfo.midi % 12] || finalNoteInfo.note;
+
+                return { ...note, string: note.s, fret, isRoot: note.d === 'R', label: correctLabel, midi: finalNoteInfo.midi };
             }).filter(Boolean);
 
             if (answerNotes.length !== shapeData.notes.length) continue;
             const mutedMarkers = shapeData.muted.map(s => ({ string: s, fret: -1, label: 'X' }));
-            question = { notes: [...answerNotes, ...mutedMarkers], answer: { root, quality, shape, notes: answerNotes }, prompt: `Construct ${root} ${quality} (${shape} shape)`, mode: currentModeForQuestion };
+            question = { 
+                notes: [...answerNotes, ...mutedMarkers], 
+                answer: { root: finalRootName, quality, shape, notes: answerNotes }, 
+                prompt: `Construct ${finalRootName} ${quality} (${shape} shape)`, 
+                mode: currentModeForQuestion 
+            };
         }
 
         setCurrentQuestion(question);
@@ -70,41 +87,27 @@ export const useCagedQuiz = (quizMode, activeShapes, onProgressUpdate) => {
         if (isAnswered || !currentQuestion) return;
         const correct = currentQuestion.answer;
         let isCorrect = false;
-        const correctEnharmonicRoot = ROOT_NOTE_OPTIONS.find(opt => opt.value === correct.root || opt.altValue === correct.root);
-        const correctAnswerText = `${correctEnharmonicRoot.display} ${correct.quality} (${correct.shape} shape)`;
+        const correctAnswerText = `${correct.root} ${correct.quality} (${correct.shape} shape)`;
 
         if (currentQuestion.mode === 'identify') {
             const userRoot = userAnswer.root || '';
-            const correctGroup = ROOT_NOTE_OPTIONS.find(opt => opt.value === correct.root || opt.altValue === correct.root);
-            const isRootCorrect = correctGroup && (userRoot === correctGroup.value || userRoot === correctGroup.altValue);
-            isCorrect = isRootCorrect && userAnswer.quality === correct.quality && userAnswer.shape === correct.shape;
-        } else { // 'construct' mode
+            // **FIXED**: Normalize the correct root and use a more robust lookup method.
+            const normalizedCorrectRoot = normalizeNoteName(correct.root);
+            const correctGroup = ROOT_NOTE_OPTIONS.find(opt => opt.value === normalizedCorrectRoot || opt.altValue === normalizedCorrectRoot);
+            
+            const rootIsCorrect = correctGroup && (userRoot === correctGroup.value || (correctGroup.altValue && userRoot === correctGroup.altValue));
+            isCorrect = rootIsCorrect && userAnswer.quality === correct.quality && userAnswer.shape === correct.shape;
+        } else {
             const correctNotes = correct.notes;
             const userNotes = userAnswer.notes || [];
-
-            // A helper function to compare two sets of notes.
-            const setsAreEqual = (setA, setB) => {
-                if (setA.size !== setB.size) return false;
-                for (const item of setA) {
-                    if (!setB.has(item)) return false;
-                }
-                return true;
-            };
-
-            if (correctNotes.length !== userNotes.length) {
-                isCorrect = false;
-            } else {
+            const setsAreEqual = (setA, setB) => { if (setA.size !== setB.size) return false; for (const item of setA) { if (!setB.has(item)) return false; } return true; };
+            if (correctNotes.length !== userNotes.length) { isCorrect = false; } 
+            else {
                 const userSet = new Set(userNotes.map(n => `${n.string}-${n.fret}`));
-
-                // 1. Check against the original, lower position
                 const correctSetOriginal = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
                 const isMatchAtOriginal = setsAreEqual(userSet, correctSetOriginal);
-
-                // 2. Check against the octave-up position
                 const correctSetOctaveUp = new Set(correctNotes.map(n => `${n.string}-${n.fret + 12}`));
                 const isMatchAtOctaveUp = setsAreEqual(userSet, correctSetOctaveUp);
-                
-                // The answer is correct if it matches either position.
                 isCorrect = isMatchAtOriginal || isMatchAtOctaveUp;
             }
         }
@@ -148,7 +151,7 @@ export const useCagedQuiz = (quizMode, activeShapes, onProgressUpdate) => {
             const rootMidi = NOTE_TO_MIDI[currentQuestion.answer.root];
             const interval = (noteInfo.midi - rootMidi) % 12;
             const degree = SEMITONE_TO_DEGREE[interval < 0 ? interval + 12 : interval];
-            const enrichedNote = { string, fret, label: noteInfo.note, midi: noteInfo.midi, isRoot: noteInfo.midi % 12 === rootMidi % 12, degree: degree };
+            const enrichedNote = { string, fret, label: noteInfo.note, midi: noteInfo.midi, isRoot: noteInfo.midi % 12 === (rootMidi % 12), degree: degree };
             newNotes = [...currentNotes, enrichedNote];
         }
         setUserAnswer({ notes: newNotes });

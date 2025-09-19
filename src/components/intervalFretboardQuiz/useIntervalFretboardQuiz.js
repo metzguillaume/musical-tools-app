@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTools } from '../../context/ToolsContext';
 import { fretboardModel, getDegree } from '../../utils/fretboardUtils.js';
+import { getDiatonicNoteName, getWeightedEnharmonicName } from '../../utils/musicTheory.js';
 
 export const quizData = {
     qualities: ['Diminished', 'Minor', 'Perfect', 'Major', 'Augmented'],
@@ -18,7 +19,6 @@ export const quizData = {
 };
 
 export const useIntervalFretboardQuiz = (autoAdvance, playAudio, onProgressUpdate) => {
-    // UPDATED: No longer needs bpm here, as the context function will access it
     const { playFretboardNotes } = useTools();
 
     const [score, setScore] =useState(0);
@@ -57,16 +57,22 @@ export const useIntervalFretboardQuiz = (autoAdvance, playAudio, onProgressUpdat
             });
             if (possibleTargets.length > 0) {
                 const targetNote = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
+                
+                // UPDATED: Apply weighted naming logic to the root note
+                const finalRootName = getWeightedEnharmonicName(rootNote.note);
+                const correctTargetLabel = getDiatonicNoteName(finalRootName, targetNote.midi, interval.name.number);
+
                 const rootNoteForQuestion = { 
                     string: 6 - rootStringIndex, 
                     fret: rootFret, 
-                    label: rootNote.note, 
+                    label: finalRootName, 
                     isRoot: true, 
                     midi: rootNote.midi,
                     degree: '1'
                 };
                 const targetNoteForQuestion = {
                     ...targetNote,
+                    label: correctTargetLabel,
                     degree: getDegree(rootNote.midi, targetNote.midi)
                 };
 

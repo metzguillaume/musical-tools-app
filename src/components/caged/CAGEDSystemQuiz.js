@@ -6,6 +6,7 @@ import FretboardDiagram from '../common/FretboardDiagram';
 import { useCagedQuiz } from './useCagedQuiz';
 import { CagedQuizControls } from './CagedQuizControls';
 import { ROOT_NOTE_OPTIONS, SHAPE_ORDER } from './cagedConstants.js';
+import { normalizeNoteName } from '../../utils/musicTheory.js';
 
 // A small, local component for the review section's toggle
 const ShowDegreesToggle = ({ isChecked, onChange }) => (
@@ -161,7 +162,8 @@ const CAGEDSystemQuiz = ({ onProgressUpdate }) => {
     const renderReviewFeedback = () => {
         if (!isReviewing) return null;
         const { question, userAnswer: itemUserAnswer, wasCorrect } = itemToDisplay;
-        const correctEnharmonicRoot = ROOT_NOTE_OPTIONS.find(opt => opt.value === question.answer.root || opt.altValue === question.answer.root);
+        const normalizedRoot = normalizeNoteName(question.answer.root);
+        const correctEnharmonicRoot = ROOT_NOTE_OPTIONS.find(opt => opt.value === normalizedRoot || opt.altValue === normalizedRoot);
         const correctAnswerText = `${correctEnharmonicRoot.display} ${question.answer.quality} (${question.answer.shape} shape)`;
         let userAnswerText;
         if (question.mode === 'identify') userAnswerText = `${itemUserAnswer.root || '?'} ${itemUserAnswer.quality || '?'} (${itemUserAnswer.shape || '?'})`;

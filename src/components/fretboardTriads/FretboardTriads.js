@@ -5,7 +5,7 @@ import QuizLayout from '../common/QuizLayout';
 import FretboardDiagram from '../common/FretboardDiagram';
 import { useFretboardTriads, ROOT_NOTE_OPTIONS, TRIAD_QUALITIES, TRIAD_INVERSIONS } from './useFretboardTriads';
 import { FretboardTriadsControls } from './FretboardTriadsControls';
-import { getTriadNoteNamesAsMap } from '../../utils/fretboardUtils';
+import { getChordNoteNames, CHORDS, NOTE_TO_MIDI_CLASS } from '../../utils/musicTheory';
 
 const FretboardTriads = ({ onProgressUpdate }) => {
     const { addLogEntry, savePreset, presetToLoad, clearPresetToLoad } = useTools();
@@ -88,10 +88,24 @@ const FretboardTriads = ({ onProgressUpdate }) => {
 
         const { question } = itemToDisplay;
         
-        // --- Logic for AFTER answering (isAnswered or isReviewing is true) ---
         if (isAnswered || isReviewing) {
             const { root, quality } = question.answer;
-            const correctNoteNamesMap = getTriadNoteNamesAsMap(root, quality);
+
+            // --- CORRECTED LOGIC ---
+            const correctNoteNamesMap = {};
+            const correctNoteNames = getChordNoteNames(root, quality);
+            const intervals = CHORDS[quality]?.intervals;
+            const rootMidiClass = NOTE_TO_MIDI_CLASS[root];
+
+            if (correctNoteNames && intervals && rootMidiClass !== undefined) {
+                 intervals.forEach((interval, index) => {
+                    const midiClass = (rootMidiClass + interval) % 12;
+                    if (correctNoteNames[index]) {
+                       correctNoteNamesMap[midiClass] = correctNoteNames[index];
+                    }
+                 });
+            }
+            // --- END CORRECTION ---
 
             const getNoteLabel = (note) => {
                 if (settings.postAnswerDisplay === 'degrees') return note.degree;
@@ -105,7 +119,7 @@ const FretboardTriads = ({ onProgressUpdate }) => {
             const styledCorrectNotes = correctNotes.map(note => ({
                 ...note,
                 overrideLabel: getNoteLabel(note),
-                overrideColor: note.isRoot ? '#22c55e' : '#3b82f6', // Green for root, blue for others
+                overrideColor: note.isRoot ? '#22c55e' : '#3b82f6',
             }));
 
             if (wasCorrect) {
@@ -116,12 +130,12 @@ const FretboardTriads = ({ onProgressUpdate }) => {
             const correctNoteIdSet = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
             const incorrectClicksStyled = userNotes
                 .filter(n => !correctNoteIdSet.has(`${n.string}-${n.fret}`))
-                .map(note => ({ ...note, label: note.label, overrideColor: '#f97316' }));
+                .map(note => ({ ...note, label: getNoteLabel(note), overrideColor: '#f97316' }));
 
             return [...styledCorrectNotes, ...incorrectClicksStyled];
         }
 
-        // --- Logic for BEFORE answering ---
+        // Logic for before answering
         if (question.mode === 'identify') {
             if (settings.showRootHint) {
                 return question.notes.map(note => ({
@@ -129,9 +143,8 @@ const FretboardTriads = ({ onProgressUpdate }) => {
                     label: '',
                     overrideColor: note.isRoot ? '#22c55e' : undefined,
                 }));
-            } else {
-                return question.notes.map(note => ({ ...note, isRoot: false, label: '' }));
             }
+            return question.notes.map(note => ({ ...note, isRoot: false, label: '' }));
         }
         return (userAnswer.notes || []).map(n => ({ ...n, overrideColor: '#3b82f6' }));
 
@@ -178,7 +191,7 @@ const FretboardTriads = ({ onProgressUpdate }) => {
           <span>Auto-Advance</span>
           <div className="relative">
               <input type="checkbox" checked={settings.autoAdvance} onChange={() => handleSettingChange('autoAdvance', !settings.autoAdvance)} className="sr-only peer" />
-              <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </div>
       </label>
     );

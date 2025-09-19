@@ -48,39 +48,7 @@ export const getDegree = (rootMidi, targetMidi) => {
     return SEMITONE_TO_DEGREE[positiveInterval] || '?';
 };
 
-const NOTE_TO_MIDI_CLASS = {
-    'C': 0, 'B#': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
-    'E': 4, 'Fb': 4, 'F': 5, 'E#': 5, 'F#': 6, 'Gb': 6, 'G': 7,
-    'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11, 'Cb': 11,
-};
 
-export const getTriadNoteNamesAsMap = (rootNoteName, quality) => {
-    const intervals = TRIAD_DEFINITIONS.qualities[quality];
-    if (!intervals) return {};
-
-    const SHARP_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const FLAT_NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-
-    // Use flats for keys with 'b' in the name, and for F major. Otherwise use sharps.
-    const useFlats = (rootNoteName.includes('b') || rootNoteName === 'F');
-    const scale = useFlats ? FLAT_NOTES : SHARP_NOTES;
-    
-    const rootMidiClass = NOTE_TO_MIDI_CLASS[rootNoteName];
-    if (rootMidiClass === undefined) return {};
-
-    const noteMap = {};
-    intervals.forEach(interval => {
-        const noteMidiClass = (rootMidiClass + interval) % 12;
-        noteMap[noteMidiClass] = scale[noteMidiClass];
-    });
-
-    // Handle exceptions where the simple rule doesn't produce the most common spelling
-    if (rootNoteName === 'F#' && (quality === 'Major' || quality === 'Augmented')) noteMap[10] = 'A#';
-    if (rootNoteName === 'Gb' && (quality === 'Major' || quality === 'Minor')) noteMap[10] = 'Bb';
-    if (rootNoteName === 'C#' && (quality === 'Major' || quality === 'Augmented')) noteMap[5] = 'E#';
-
-    return noteMap;
-};
 
 
 /**

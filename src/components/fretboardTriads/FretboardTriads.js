@@ -127,12 +127,16 @@ const FretboardTriads = ({ onProgressUpdate }) => {
             }
 
             const userNotes = itemToDisplay.userAnswer.notes || [];
-            const correctNoteIdSet = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
-            const incorrectClicksStyled = userNotes
-                .filter(n => !correctNoteIdSet.has(`${n.string}-${n.fret}`))
-                .map(note => ({ ...note, label: getNoteLabel(note), overrideColor: '#f97316' }));
 
-            return [...styledCorrectNotes, ...incorrectClicksStyled];
+// Normalize the correct notes for comparison.
+const correctNoteNormalizedSet = new Set(correctNotes.map(n => `${n.string}-${n.fret % 12}`));
+
+const incorrectClicksStyled = userNotes
+    // A user note is incorrect if its normalized version isn't in the correct set.
+    .filter(n => !correctNoteNormalizedSet.has(`${n.string}-${n.fret % 12}`))
+    .map(note => ({ ...note, label: getNoteLabel(note), overrideColor: '#f97316' }));
+
+return [...styledCorrectNotes, ...incorrectClicksStyled];
         }
 
         // Logic for before answering

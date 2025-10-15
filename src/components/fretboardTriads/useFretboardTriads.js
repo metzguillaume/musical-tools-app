@@ -165,17 +165,32 @@ export const useFretboardTriads = (questionSettings, onProgressUpdate) => {
         if (currentQuestion.mode === 'identify') {
             const { root, quality, inversion } = currentQuestion.answer;
             const userAnswerRootMidi = NOTE_TO_MIDI_CLASS[userAnswer.root];
-            const correctAnswerRootMidi = NOTE_TO_MIDI_CLASS[root];
-            isCorrect = userAnswerRootMidi === correctAnswerRootMidi && userAnswer.quality === quality && userAnswer.inversion === inversion;
-        } else {
-            const userNotes = userAnswer.notes || [];
-            const correctNotes = currentQuestion.answer.notes;
-            const correctNoteIdSet = new Set(correctNotes.map(n => `${n.string}-${n.fret}`));
-            isCorrect = userNotes.length === correctNotes.length && userNotes.every(n => correctNoteIdSet.has(`${n.string}-${n.fret}`));
-        }
-        
-        const newScore = isCorrect ? score + 1 : score;
-        const newTotalAsked = totalAsked + 1;
+                  const correctAnswerRootMidi = NOTE_TO_MIDI_CLASS[root];
+      isCorrect = userAnswerRootMidi === correctAnswerRootMidi && userAnswer.quality === quality && userAnswer.inversion === inversion;
+    } else { // Construct modes
+  const userNotes = userAnswer.notes || [];
+  const correctNotes = currentQuestion.answer.notes;
+
+  // First, a simple check on the number of notes.
+  if (userNotes.length !== correctNotes.length) {
+    isCorrect = false;
+  } else {
+    // Normalize both sets of notes to their base octave representation.
+    // We sort them to ensure the order doesn't matter for comparison.
+    const normalizeAndSort = (notes) => 
+        notes.map(n => `${n.string}-${n.fret % 12}`).sort();
+
+    const userNormalized = normalizeAndSort(userNotes);
+    const correctNormalized = normalizeAndSort(correctNotes);
+    
+    // Check if the normalized arrays are identical.
+    isCorrect = JSON.stringify(userNormalized) === JSON.stringify(correctNormalized);
+  }
+}
+    const newScore = isCorrect ? score + 1 : score;
+
+
+    const newTotalAsked = totalAsked + 1;
 
         if (isCorrect) {
             setScore(newScore);

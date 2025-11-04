@@ -1,3 +1,5 @@
+// src/hooks/useMetronomeLogic.js
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import * as Tone from 'tone';
 
@@ -8,10 +10,18 @@ export const useMetronomeLogic = (unlockAudio) => {
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
     const [countdownClicks, setCountdownClicks] = useState(4);
     
+    // +++ FIX 1: Add a ref to hold the current countdownClicks value
+    const countdownClicksRef = useRef(countdownClicks);
+
     const metronomePlayer = useRef(null);
     const countdownPlayers = useRef([]);
     const transportEventRef = useRef({ id: null, beatCounter: 0 });
     const scheduledTaskRef = useRef(null); 
+
+    // +++ FIX 2: Keep the ref in sync with the state
+    useEffect(() => {
+        countdownClicksRef.current = countdownClicks;
+    }, [countdownClicks]);
 
     useEffect(() => {
         let clickLoaded = false;
@@ -79,13 +89,18 @@ export const useMetronomeLogic = (unlockAudio) => {
         transportEventRef.current.id = transport.scheduleRepeat(time => {
             const task = scheduledTaskRef.current;
             if (!task || !task.callback || task.interval <= 0) {
+                // This is the "normal" metronome click
                 if (metronomePlayer.current && metronomePlayer.current.loaded) {
                     metronomePlayer.current.start(time);
                 }
                 return;
             }
+            // This is the "scheduled task" logic (for NoteGenerator)
             const mainInterval = task.interval;
-            const countIn = countdownClicks > 0 ? countdownClicks : 0;
+            
+            // +++ FIX 3: Read from the ref instead of the state
+            const countIn = countdownClicksRef.current > 0 ? countdownClicksRef.current : 0;
+            
             const cycleLength = mainInterval + countIn;
             const positionInCycle = transportEventRef.current.beatCounter % cycleLength;
             
@@ -108,10 +123,10 @@ export const useMetronomeLogic = (unlockAudio) => {
         }, "4n");
         
         if (transport.state !== 'started') {
-            transport.start(Tone.now() + 0.1);
+            transport.start(); // This was the fix for the RhythmTool sync
         }
         setIsMetronomePlaying(true);
-    }, [bpm, isMetronomeReady, countdownClicks]);
+    }, [bpm, isMetronomeReady]);
 
     const stopMetronome = useCallback(() => {
         const transport = Tone.getTransport();
@@ -123,16 +138,12 @@ export const useMetronomeLogic = (unlockAudio) => {
         setIsMetronomePlaying(false);
     }, []);
 
+    // +++ THIS IS CORRECT +++
+    // setMetronomeSchedule now *only* sets the task.
+    // It no longer stops or starts the metronome.
     const setMetronomeSchedule = useCallback((task) => {
-        const wasPlaying = Tone.getTransport().state === 'started';
-        if (wasPlaying) {
-            stopMetronome();
-        }
         scheduledTaskRef.current = task;
-        if (wasPlaying) {
-             setTimeout(() => { startMetronome(); }, 50);
-        }
-    }, [startMetronome, stopMetronome]);
+    }, []); // No dependencies needed
 
     const toggleMetronome = useCallback(async () => {
         await unlockAudio();
@@ -141,16 +152,19 @@ export const useMetronomeLogic = (unlockAudio) => {
     }, [isMetronomePlaying, stopMetronome, startMetronome, unlockAudio]);
 
     useEffect(() => { 
+        // Changed this from isMetronomePlaying to state === 'started'
+        // to be more robust.
         if (Tone.getTransport().state === 'started') {
             Tone.getTransport().bpm.value = bpm;
         }
     }, [bpm]);
 
-    // --- THIS IS THE FIX ---
-    // We now export metronomePlayer and countdownPlayers
+    // This return statement is correct and exports all necessary functions
     return { 
         bpm, setBpm, 
         isMetronomePlaying, toggleMetronome, 
+        startMetronome,
+        stopMetronome,
         metronomeVolume, setMetronomeVolume, 
         isMetronomeReady, setMetronomeSchedule, 
         countdownClicks, setCountdownClicks,

@@ -1,3 +1,5 @@
+// src/context/ToolsContext.js
+
 import React, { createContext, useState, useContext, useCallback, useEffect, useMemo, useRef } from 'react';
 import * as Tone from 'tone';
 import { usePracticeLogLogic } from './usePracticeLogLogic';
@@ -24,6 +26,7 @@ const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
 
 export const ToolsProvider = ({ children }) => {
+    // +++ FIX: Re-added all the missing useState definitions +++
     const [activeTool, setActiveTool] = useState(null);
     const [activeTab, setActiveTab] = useState('welcome');
     const [openCategory, setOpenCategory] = useState(null);
@@ -32,29 +35,23 @@ export const ToolsProvider = ({ children }) => {
     const [routineStepIndex, setRoutineStepIndex] = useState(0);
     const [routineProgress, setRoutineProgress] = useState(null);
     const [lastRoutineResultId, setLastRoutineResultId] = useState(null);
+    // +++ END FIX +++
 
-    // +++ FIX 1: Use a more robust oscillator-based priming method +++
     const unlockAudio = useCallback(async () => { 
         if (Tone.context.state === 'suspended') { 
             try { 
                 await Tone.start(); 
                 console.log("Audio Context unlocked and running.");
-
-                // Prime the audio context with a silent oscillator.
-                // This is more reliable for waking up hardware than a silent buffer.
                 const dummyOsc = new Tone.Oscillator(0, "sine").toDestination();
-                dummyOsc.volume.value = -Infinity; // Completely silent
+                dummyOsc.volume.value = -Infinity;
                 dummyOsc.start(Tone.now());
                 dummyOsc.stop(Tone.now() + 0.01);
-                // Schedule disposal after it stops
                 setTimeout(() => dummyOsc.dispose(), 50);
-
             } catch (e) { 
                 console.error("Could not start Audio Context", e); 
             } 
         } 
     }, []);
-    // +++ END OF FIX 1 +++
     
     const navigate = useCallback((tabName) => { unlockAudio(); setActiveTab(tabName); setOpenCategory(null); }, [unlockAudio]);
     const handleCategoryClick = useCallback((categoryName) => { setOpenCategory(prev => prev === categoryName ? null : categoryName); }, []);
@@ -62,22 +59,17 @@ export const ToolsProvider = ({ children }) => {
     
     useEffect(() => { const oneTimeUnlock = () => unlockAudio(); window.addEventListener('click', oneTimeUnlock, { once: true }); return () => window.removeEventListener('click', oneTimeUnlock); }, [unlockAudio]);
 
-    // Keep-alive interval
     useEffect(() => {
         const keepAudioAlive = setInterval(async () => {
             if (Tone.context.state === 'suspended') {
                 try {
                     await Tone.context.resume(); 
-                    console.log("AudioContext auto-resumed from suspended state.");
                 } catch (e) {
                     console.error("Failed to auto-resume AudioContext.", e);
                 }
             }
         }, 500); 
-
-        return () => {
-            clearInterval(keepAudioAlive);
-        };
+        return () => { clearInterval(keepAudioAlive); };
     }, []); 
 
     const clearPresetToLoad = useCallback(() => setPresetToLoad(null), []);
@@ -92,7 +84,6 @@ export const ToolsProvider = ({ children }) => {
     const routinesLogic = useRoutinesLogic();
     const { presets, updatePreset, ...presetsLogic } = usePresetsLogic(routinesLogic.routines);
 
-    // This dedicated player logic is still correct and necessary
     const rhythmNotePlayer = useRef(null);
     const [isRhythmNoteReady, setIsRhythmNoteReady] = useState(false);
     useEffect(() => {
@@ -101,7 +92,6 @@ export const ToolsProvider = ({ children }) => {
             url: url,
             onload: () => {
                 setIsRhythmNoteReady(true);
-                console.log("Dedicated rhythm note sound loaded.");
             },
             fadeOut: 0.1
         }).toDestination();
@@ -109,13 +99,15 @@ export const ToolsProvider = ({ children }) => {
             rhythmNotePlayer.current?.dispose();
         };
     }, []);
-    // ---
 
+    // +++ FIX: Depend on the stable 'setMetronomeSchedule' function, not the 'metronome' object
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (metronome.setMetronomeSchedule) {
             metronome.setMetronomeSchedule(null);
         }
-    }, [activeTab, metronome]);
+    }, [activeTab, metronome.setMetronomeSchedule]);
+    // +++ END FIX +++
 
     const loadPreset = useCallback((presetToLoad) => { 
         updatePreset(presetToLoad.id, { ...presetToLoad, lastUsed: new Date().toISOString() }); 
@@ -168,6 +160,9 @@ export const ToolsProvider = ({ children }) => {
         activeTab, navigate, openCategory, handleCategoryClick,
         ...log, ...metronome, ...drone, ...timer, ...stopwatch, ...audioPlayers, 
         
+        startMetronome: metronome.startMetronome,
+        stopMetronome: metronome.stopMetronome,
+        
         rhythmNotePlayer,
         isRhythmNoteReady,
 
@@ -188,7 +183,8 @@ export const ToolsProvider = ({ children }) => {
         loadPreset, startRoutine, nextRoutineStep, endRoutine, updateRoutineProgress, finishRoutine,
         setRoutineProgress, setLastRoutineResultId, clearPresetToLoad,
         isRhythmNoteReady
-    ]);
+    ]
+    );
 
     return (
         <ToolsContext.Provider value={value}>

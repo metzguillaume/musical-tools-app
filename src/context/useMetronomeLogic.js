@@ -79,7 +79,6 @@ export const useMetronomeLogic = (unlockAudio) => {
         transportEventRef.current.id = transport.scheduleRepeat(time => {
             const task = scheduledTaskRef.current;
             if (!task || !task.callback || task.interval <= 0) {
-                // MODIFIED: Added safety check
                 if (metronomePlayer.current && metronomePlayer.current.loaded) {
                     metronomePlayer.current.start(time);
                 }
@@ -95,14 +94,12 @@ export const useMetronomeLogic = (unlockAudio) => {
             if (positionInCycle < countIn) {
                 const countdownNumber = positionInCycle;
                 const player = countdownPlayers.current[countdownNumber];
-                // MODIFIED: Added safety check
                 if (player && player.loaded) {
                     player.start(time);
                 } else if (metronomePlayer.current && metronomePlayer.current.loaded) {
                     metronomePlayer.current.start(time);
                 }
             } else {
-                // MODIFIED: Added safety check
                 if (metronomePlayer.current && metronomePlayer.current.loaded) {
                     metronomePlayer.current.start(time);
                 }
@@ -144,8 +141,20 @@ export const useMetronomeLogic = (unlockAudio) => {
     }, [isMetronomePlaying, stopMetronome, startMetronome, unlockAudio]);
 
     useEffect(() => { 
-        if (isMetronomePlaying) Tone.getTransport().bpm.value = bpm;
-    }, [bpm, isMetronomePlaying]);
+        if (Tone.getTransport().state === 'started') {
+            Tone.getTransport().bpm.value = bpm;
+        }
+    }, [bpm]);
 
-    return { bpm, setBpm, isMetronomePlaying, toggleMetronome, metronomeVolume, setMetronomeVolume, isMetronomeReady, setMetronomeSchedule, countdownClicks, setCountdownClicks };
+    // --- THIS IS THE FIX ---
+    // We now export metronomePlayer and countdownPlayers
+    return { 
+        bpm, setBpm, 
+        isMetronomePlaying, toggleMetronome, 
+        metronomeVolume, setMetronomeVolume, 
+        isMetronomeReady, setMetronomeSchedule, 
+        countdownClicks, setCountdownClicks,
+        metronomePlayer,
+        countdownPlayers
+    };
 };

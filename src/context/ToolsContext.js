@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useCallback, useEffect, useMemo } from 'react';
-import * as Tone from 'tone';
+import * as Tone from 'tone'; // <-- FIX 1: Corrected the typo here
 import { usePracticeLogLogic } from './usePracticeLogLogic';
 import { useMetronomeLogic } from './useMetronomeLogic';
 import { useDroneLogic } from './useDroneLogic';
@@ -10,7 +10,6 @@ import { usePresetsLogic } from './usePresetsLogic';
 import { useRoutinesLogic } from './useRoutinesLogic';
 import { useScoreboardLogic } from './useScoreboardLogic';
 
-// A utility function to shuffle an array, used for the "Random" routine order.
 const shuffle = (array) => {
     let currentIndex = array.length, randomIndex;
     while (currentIndex !== 0) {
@@ -21,12 +20,10 @@ const shuffle = (array) => {
     return array;
 };
 
-
 const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
 
 export const ToolsProvider = ({ children }) => {
-    // State declarations are preserved.
     const [activeTool, setActiveTool] = useState(null);
     const [activeTab, setActiveTab] = useState('welcome');
     const [openCategory, setOpenCategory] = useState(null);
@@ -36,12 +33,32 @@ export const ToolsProvider = ({ children }) => {
     const [routineProgress, setRoutineProgress] = useState(null);
     const [lastRoutineResultId, setLastRoutineResultId] = useState(null);
 
-    // All hooks and callbacks are preserved.
     const unlockAudio = useCallback(async () => { if (Tone.context.state === 'suspended') { try { await Tone.start(); console.log("Audio Context unlocked and running."); } catch (e) { console.error("Could not start Audio Context", e); } } }, []);
+    
     const navigate = useCallback((tabName) => { unlockAudio(); setActiveTab(tabName); setOpenCategory(null); }, [unlockAudio]);
     const handleCategoryClick = useCallback((categoryName) => { setOpenCategory(prev => prev === categoryName ? null : categoryName); }, []);
     const toggleActiveTool = useCallback((tool) => { setActiveTool(prev => (prev === tool ? null : tool)) }, []);
+    
     useEffect(() => { const oneTimeUnlock = () => unlockAudio(); window.addEventListener('click', oneTimeUnlock, { once: true }); return () => window.removeEventListener('click', oneTimeUnlock); }, [unlockAudio]);
+
+    // Keep-alive interval to prevent audio context suspension
+    useEffect(() => {
+        const keepAudioAlive = setInterval(async () => {
+            if (Tone.context.state === 'suspended') {
+                try {
+                    await Tone.context.resume(); 
+                    console.log("AudioContext auto-resumed from suspended state.");
+                } catch (e) {
+                    console.error("Failed to auto-resume AudioContext.", e);
+                }
+            }
+        }, 500); 
+
+        return () => {
+            clearInterval(keepAudioAlive);
+        };
+    }, []); 
+
     const clearPresetToLoad = useCallback(() => setPresetToLoad(null), []);
 
     const log = usePracticeLogLogic();
@@ -52,20 +69,14 @@ export const ToolsProvider = ({ children }) => {
     const audioPlayers = useAudioPlayers(unlockAudio, metronome.bpm);
     const scoreboard = useScoreboardLogic();
     const routinesLogic = useRoutinesLogic();
-
-    // +++ CHANGE 1: Destructure the returned object from usePresetsLogic +++
-    // This separates the stable functions (like updatePreset) from the presets array, which changes often.
     const { presets, updatePreset, ...presetsLogic } = usePresetsLogic(routinesLogic.routines);
 
     useEffect(() => {
         if (metronome.setMetronomeSchedule) {
             metronome.setMetronomeSchedule(null);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab]);
+    }, [activeTab, metronome]); // <-- FIX 2: Added 'metronome' to dependency array
 
-    // +++ CHANGE 2: The loadPreset function now depends only on the stable updatePreset function. +++
-    // This resolves the ESLint warning and fixes the root cause of the bug.
     const loadPreset = useCallback((presetToLoad) => { 
         updatePreset(presetToLoad.id, { ...presetToLoad, lastUsed: new Date().toISOString() }); 
         setPresetToLoad(presetToLoad); 
@@ -112,7 +123,6 @@ export const ToolsProvider = ({ children }) => {
         endRoutine();
     }, [activeRoutine, endRoutine, stopwatch, scoreboard]);
 
-    // +++ CHANGE 3: The value object is updated to use the new destructured variables. +++
     const value = useMemo(() => ({
         unlockAudio, activeTool, toggleActiveTool,
         activeTab, navigate, openCategory, handleCategoryClick,

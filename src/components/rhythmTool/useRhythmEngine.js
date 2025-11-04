@@ -40,9 +40,9 @@ export const useRhythmEngine = () => {
 
     const { 
         unlockAudio, 
-        fretboardPlayers, 
-        fretboardVolume,
-        areFretboardSoundsReady,
+        rhythmNotePlayer,
+        isRhythmNoteReady,
+        fretboardVolume, 
         countdownPlayers,
         metronomeVolume,
         isMetronomeReady, 
@@ -128,7 +128,6 @@ export const useRhythmEngine = () => {
         }
     }, [settings.mode, handleSettingChange]);
 
-    // This function is correct. The problem is not here.
     const stopRhythm = useCallback(() => {
         transportEventsRef.current.forEach(eventId => Tone.Transport.clear(eventId));
         transportEventsRef.current = [];
@@ -149,12 +148,15 @@ export const useRhythmEngine = () => {
             return;
         }
         
-        if (!isMetronomeReady || !areFretboardSoundsReady) {
+        transportEventsRef.current.forEach(eventId => Tone.Transport.clear(eventId));
+        transportEventsRef.current = [];
+        
+        if (!isMetronomeReady || !isRhythmNoteReady) {
             alert("Audio is still loading, please wait a moment.");
             return;
         }
 
-        await unlockAudio();
+        await unlockAudio(); // This now primes the audio hardware
         setIsPlaying(true);
 
         const rhythmToPlay = settings.mode === 'read' ? quizAnswer : measures;
@@ -165,40 +167,44 @@ export const useRhythmEngine = () => {
         transport.bpm.value = bpm;
         
         let sequenceStartTime;
-        const now = Tone.now() + 0.1;
 
         if (isMetronomePlaying) {
-            // Metronome is on. Sync to it.
+            // Metronome is ON. Sync to its clock.
+            const now = transport.seconds;
             const nextMeasureTime = transport.nextSubdivision('1m');
             sequenceStartTime = nextMeasureTime - (countdownClicks * quarterNoteDuration);
             if (sequenceStartTime < now) { 
                 sequenceStartTime = nextMeasureTime + transport.toSeconds('1m') - (countdownClicks * quarterNoteDuration);
             }
         } else {
-            // Metronome is off. We are in control.
-            
-            // +++ FIX PART 1: Clean up transport state BEFORE starting. +++
-            // This guarantees we are in a pristine state.
+            // Metronome is OFF. We control the clock.
             transport.stop();
             transport.cancel();
             transport.position = 0;
-
-            // Now, set up and start the transport.
             transport.timeSignature = [timeSignature.beats, timeSignature.beatType];
-            sequenceStartTime = now;
-            transport.start(now);
+            
+            // This is the AudioContext time we will start the transport
+            const contextNow = Tone.now() + 0.1; 
+            
+            // +++ THE FIX +++
+            // sequenceStartTime must be in TRANSPORT TIME.
+            // Since we just reset the transport to 0, our start time is 0 + a small buffer.
+            sequenceStartTime = 0.1; 
+            // +++ END OF FIX +++
+            
+            // Tell the transport to START at 'contextNow', which maps its 0-point
+            // to the AudioContext's 'contextNow'
+            transport.start(contextNow);
         }
 
         const rhythmStartTime = sequenceStartTime + (countdownClicks * quarterNoteDuration);
-        transportEventsRef.current = [];
 
-        // ... (Countdown scheduling logic - this is fine) ...
+        // ... (Countdown scheduling logic) ...
         if (countdownClicks > 0 && countdownPlayers.current?.length > 0) {
             for (let i = 0; i < countdownClicks; i++) {
                 const clickTime = sequenceStartTime + i * quarterNoteDuration;
-                const player = countdownPlayers.current[i] || countdownPlayers.current[0];
-                
                 const eventId = transport.scheduleOnce(time => {
+                    const player = countdownPlayers.current[i] || countdownPlayers.current[0];
                     if (player?.loaded) {
                         player.volume.value = metronomeVolume;
                         player.start(time);
@@ -208,7 +214,7 @@ export const useRhythmEngine = () => {
             }
         }
 
-        // ... (Rhythm scheduling logic - this is fine) ...
+        // ... (Rhythm scheduling logic) ...
         let scheduleTime = rhythmStartTime;
         rhythmToPlay.forEach((measure) => {
             measure.forEach((item) => {
@@ -216,10 +222,9 @@ export const useRhythmEngine = () => {
                 
                 if (item.type === 'note') {
                     const eventId = transport.scheduleOnce(time => {
-                        if (fretboardPlayers.current?.has('4-5')) {
-                            const player = fretboardPlayers.current.player('4-5');
-                            player.volume.value = fretboardVolume;
-                            player.start(time);
+                        if (rhythmNotePlayer.current?.loaded) {
+                            rhythmNotePlayer.current.volume.value = fretboardVolume;
+                            rhythmNotePlayer.current.start(time);
                         }
                     }, scheduleTime);
                     transportEventsRef.current.push(eventId);
@@ -237,27 +242,34 @@ export const useRhythmEngine = () => {
         });
 
         // ... (Cleanup event logic) ...
+        const cleanupTime = scheduleTime + 0.1;
         const cleanupEvent = transport.scheduleOnce(time => {
             Tone.Draw.schedule(() => {
                 setCurrentlyPlayingId(null);
                 setIsPlaying(false);
             }, time);
             
-            // +++ FIX PART 2: ONLY schedule the stop. +++
-            // Do not reset position or cancel here.
             if (!isMetronomePlaying) {
-                transport.stop(time + 0.1);
-                // transport.cancel(time + 0.1); // <-- REMOVED
-                // transport.position = 0;         // <-- REMOVED
+                // This correctly sequences the stop and cancel to avoid a race condition.
+                transport.stop(time); 
+                transport.scheduleOnce(() => {
+                    transport.cancel();
+                    transport.position = 0;
+                }, time + 0.05); // Run this 50ms after stopping
             }
+            
+            // This was the other fix, ensuring the events are *actually* cleared.
+            transportEventsRef.current.forEach(eventId => Tone.Transport.clear(eventId));
             transportEventsRef.current = [];
-        }, scheduleTime + 0.1); // Schedule cleanup just after the last note
+
+        }, cleanupTime); 
+        
         transportEventsRef.current.push(cleanupEvent);
 
     }, [
         settings, measures, quizAnswer, isPlaying, isMetronomePlaying, bpm,
         unlockAudio, stopRhythm,
-        fretboardPlayers, fretboardVolume, areFretboardSoundsReady,
+        rhythmNotePlayer, isRhythmNoteReady, fretboardVolume,
         countdownPlayers, metronomeVolume, isMetronomeReady
     ]);
 

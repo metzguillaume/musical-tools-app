@@ -1,5 +1,5 @@
-import React, { createContext, useState, useContext, useCallback, useEffect, useMemo } from 'react';
-import * as Tone from 'tone'; // <-- FIX 1: Corrected the typo here
+import React, { createContext, useState, useContext, useCallback, useEffect, useMemo, useRef } from 'react';
+import * as Tone from 'tone';
 import { usePracticeLogLogic } from './usePracticeLogLogic';
 import { useMetronomeLogic } from './useMetronomeLogic';
 import { useDroneLogic } from './useDroneLogic';
@@ -33,7 +33,28 @@ export const ToolsProvider = ({ children }) => {
     const [routineProgress, setRoutineProgress] = useState(null);
     const [lastRoutineResultId, setLastRoutineResultId] = useState(null);
 
-    const unlockAudio = useCallback(async () => { if (Tone.context.state === 'suspended') { try { await Tone.start(); console.log("Audio Context unlocked and running."); } catch (e) { console.error("Could not start Audio Context", e); } } }, []);
+    // +++ FIX 1: Use a more robust oscillator-based priming method +++
+    const unlockAudio = useCallback(async () => { 
+        if (Tone.context.state === 'suspended') { 
+            try { 
+                await Tone.start(); 
+                console.log("Audio Context unlocked and running.");
+
+                // Prime the audio context with a silent oscillator.
+                // This is more reliable for waking up hardware than a silent buffer.
+                const dummyOsc = new Tone.Oscillator(0, "sine").toDestination();
+                dummyOsc.volume.value = -Infinity; // Completely silent
+                dummyOsc.start(Tone.now());
+                dummyOsc.stop(Tone.now() + 0.01);
+                // Schedule disposal after it stops
+                setTimeout(() => dummyOsc.dispose(), 50);
+
+            } catch (e) { 
+                console.error("Could not start Audio Context", e); 
+            } 
+        } 
+    }, []);
+    // +++ END OF FIX 1 +++
     
     const navigate = useCallback((tabName) => { unlockAudio(); setActiveTab(tabName); setOpenCategory(null); }, [unlockAudio]);
     const handleCategoryClick = useCallback((categoryName) => { setOpenCategory(prev => prev === categoryName ? null : categoryName); }, []);
@@ -41,7 +62,7 @@ export const ToolsProvider = ({ children }) => {
     
     useEffect(() => { const oneTimeUnlock = () => unlockAudio(); window.addEventListener('click', oneTimeUnlock, { once: true }); return () => window.removeEventListener('click', oneTimeUnlock); }, [unlockAudio]);
 
-    // Keep-alive interval to prevent audio context suspension
+    // Keep-alive interval
     useEffect(() => {
         const keepAudioAlive = setInterval(async () => {
             if (Tone.context.state === 'suspended') {
@@ -71,11 +92,30 @@ export const ToolsProvider = ({ children }) => {
     const routinesLogic = useRoutinesLogic();
     const { presets, updatePreset, ...presetsLogic } = usePresetsLogic(routinesLogic.routines);
 
+    // This dedicated player logic is still correct and necessary
+    const rhythmNotePlayer = useRef(null);
+    const [isRhythmNoteReady, setIsRhythmNoteReady] = useState(false);
+    useEffect(() => {
+        const url = `${process.env.PUBLIC_URL}/sounds/fretboard/4-5.mp3`;
+        rhythmNotePlayer.current = new Tone.Player({
+            url: url,
+            onload: () => {
+                setIsRhythmNoteReady(true);
+                console.log("Dedicated rhythm note sound loaded.");
+            },
+            fadeOut: 0.1
+        }).toDestination();
+        return () => {
+            rhythmNotePlayer.current?.dispose();
+        };
+    }, []);
+    // ---
+
     useEffect(() => {
         if (metronome.setMetronomeSchedule) {
             metronome.setMetronomeSchedule(null);
         }
-    }, [activeTab, metronome]); // <-- FIX 2: Added 'metronome' to dependency array
+    }, [activeTab, metronome]);
 
     const loadPreset = useCallback((presetToLoad) => { 
         updatePreset(presetToLoad.id, { ...presetToLoad, lastUsed: new Date().toISOString() }); 
@@ -127,6 +167,10 @@ export const ToolsProvider = ({ children }) => {
         unlockAudio, activeTool, toggleActiveTool,
         activeTab, navigate, openCategory, handleCategoryClick,
         ...log, ...metronome, ...drone, ...timer, ...stopwatch, ...audioPlayers, 
+        
+        rhythmNotePlayer,
+        isRhythmNoteReady,
+
         presets, updatePreset, ...presetsLogic, 
         ...routinesLogic,
         exportRoutine: (r) => routinesLogic.exportRoutine(r, presets),
@@ -142,7 +186,8 @@ export const ToolsProvider = ({ children }) => {
         log, metronome, drone, timer, stopwatch, audioPlayers, presets, updatePreset, presetsLogic, routinesLogic, scoreboard,
         presetToLoad, activeRoutine, routineStepIndex, routineProgress, lastRoutineResultId,
         loadPreset, startRoutine, nextRoutineStep, endRoutine, updateRoutineProgress, finishRoutine,
-        setRoutineProgress, setLastRoutineResultId, clearPresetToLoad
+        setRoutineProgress, setLastRoutineResultId, clearPresetToLoad,
+        isRhythmNoteReady
     ]);
 
     return (

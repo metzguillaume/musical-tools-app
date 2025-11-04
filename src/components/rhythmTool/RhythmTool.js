@@ -1,3 +1,5 @@
+// src/components/rhythmTool/RhythmTool.js
+
 import React, { useState, useEffect } from 'react';
 import { DndContext, DragOverlay, useDraggable } from '@dnd-kit/core';
 import { useTools } from '../../context/ToolsContext';
@@ -5,11 +7,12 @@ import { useRhythmEngine } from './useRhythmEngine';
 import InfoModal from '../common/InfoModal';
 import QuizLayout from '../common/QuizLayout';
 import { RhythmToolControls } from './RhythmToolControls';
-import { Measure } from './Measure'; // <-- Import new component
+import { Measure } from './Measure';
 import { PALETTE_ITEMS, TIME_SIGNATURES } from './rhythmConstants';
 
 // --- Draggable Item (for the palette) ---
 const DraggableNote = ({ id, item }) => {
+    // ... (no changes in this component)
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: id,
         data: item,
@@ -30,8 +33,7 @@ const RhythmTool = (props) => {
         savePreset, 
         presetToLoad, 
         clearPresetToLoad,
-        isMetronomePlaying, 
-        toggleMetronome     
+        // +++ FIX: REMOVED isMetronomePlaying, toggleMetronome +++
     } = useTools();
     
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
@@ -52,6 +54,7 @@ const RhythmTool = (props) => {
         actions 
     } = useRhythmEngine();
 
+    // ... (useEffect for preset loading - no changes) ...
     useEffect(() => {
         if (presetToLoad && presetToLoad.gameId === 'rhythm-trainer') {
             const presetSettings = { ...presetToLoad.settings };
@@ -69,6 +72,7 @@ const RhythmTool = (props) => {
         }
     }, [presetToLoad, clearPresetToLoad, setSettings, setBpm]);
 
+    // ... (handleSavePreset - no changes) ...
     const handleSavePreset = () => {
         const name = prompt("Enter a name for your preset:", "My Rhythm Setting");
         if (name && name.trim() !== "") {
@@ -84,6 +88,7 @@ const RhythmTool = (props) => {
         }
     };
     
+    // ... (Drag handlers - no changes) ...
     const handleDragStart = (event) => {
         setActiveDragItem(event.active.data.current);
     };
@@ -98,17 +103,25 @@ const RhythmTool = (props) => {
         }
     };
 
+    // +++ FIX: This toggle now controls the LOCAL useMetronome setting +++
     const topControlsContent = (
       <label className="flex items-center gap-2 cursor-pointer font-semibold">
           <span>Metronome</span>
           <div className="relative">
-              <input type="checkbox" checked={isMetronomePlaying} onChange={toggleMetronome} className="sr-only peer" />
+              <input 
+                  type="checkbox" 
+                  checked={settings.useMetronome} 
+                  onChange={() => actions.handleSettingChange('useMetronome', !settings.useMetronome)} 
+                  className="sr-only peer" 
+              />
               <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </div>
       </label>
     );
+    // +++ END FIX +++
 
     const footerContent = (
+        // ... (no changes)
         <div className="flex items-center gap-4">
             <button 
                 onClick={isPlaying ? actions.stopRhythm : actions.playRhythm}
@@ -127,6 +140,7 @@ const RhythmTool = (props) => {
     );
 
     const mainContent = (
+        // ... (no changes)
         <div className="flex flex-col xl:flex-row gap-4">
             {!isQuizMode && (
                 <div className="xl:w-1/5 p-2 bg-slate-900 rounded-lg flex flex-col gap-2 self-start">
@@ -175,6 +189,7 @@ const RhythmTool = (props) => {
     return (
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="flex flex-col md:flex-row items-start w-full gap-4">
+                {/* ... (InfoModal - no changes) ... */}
                 <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Rhythm Trainer Guide">
                     <p>Welcome to the Rhythm Trainer! This tool has two modes:</p>
                     <h4 className="font-bold text-indigo-300 mt-4">Write Mode</h4>
@@ -203,6 +218,7 @@ const RhythmTool = (props) => {
                     {mainContent}
                 </QuizLayout>
                 
+                {/* ... (DragOverlay - no changes) ... */}
                 <DragOverlay>
                     {activeDragItem ? (
                         <div className="p-2 bg-blue-500 rounded-md text-white font-mono text-4xl cursor-grabbing shadow-xl">
@@ -211,6 +227,7 @@ const RhythmTool = (props) => {
                     ) : null}
                 </DragOverlay>
 
+                {/* ... (Controls panels - no changes) ... */}
                 <div className={`hidden md:block bg-slate-700 rounded-lg transition-all duration-300 ease-in-out ${isControlsOpen ? 'w-80 p-4' : 'w-0 p-0 overflow-hidden'}`}>
                     <div className={`${!isControlsOpen && 'hidden'}`}>
                         <h3 className="text-xl font-bold text-teal-300 mb-4">Settings & Controls</h3>

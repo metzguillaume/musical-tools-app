@@ -1,3 +1,5 @@
+// src/hooks/useRhythmEngine.js
+
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import * as Tone from 'tone';
@@ -10,10 +12,12 @@ const DEFAULT_SETTINGS = {
     mode: 'write', 
     countdownClicks: 4,
     showBeatDisplay: true,
+    useMetronome: true, // +++ FIX: Added local metronome setting
 };
 
 const createEmptyMeasure = () => ([]);
 
+// ... (generateQuizRhythm - no changes) ...
 const generateQuizRhythm = (settings) => {
     const { measureCount } = settings;
     const quizMeasures = [];
@@ -48,21 +52,27 @@ export const useRhythmEngine = () => {
         isMetronomeReady, 
         bpm,
         setBpm,
-        isMetronomePlaying
+        // +++ FIX: Removed isMetronomePlaying, startMetronome, stopMetronome +++
+        metronomePlayer // +++ FIX: Added metronomePlayer for the sound +++
     } = useTools();
 
+    // +++ FIX: Removed metronomeWasPlayingRef +++
+
     const beatsPerMeasure = useMemo(() => {
+        // ... (no changes)
         const { beats, beatType } = settings.timeSignature;
         return (beats * (4 / beatType)); 
     }, [settings.timeSignature]);
 
     const measureDurations = useMemo(() => {
+        // ... (no changes)
         return measures.map(measure => 
             measure.reduce((sum, item) => sum + item.duration, 0)
         );
     }, [measures]);
 
     const handleSettingChange = useCallback((key, value) => {
+        // ... (no changes)
         setSettings(prev => {
             const newSettings = { ...prev, [key]: value };
             if (key === 'timeSignature') {
@@ -80,7 +90,6 @@ export const useRhythmEngine = () => {
                     setQuizAnswer(quiz);
                     setMeasures(quiz);
                 } else {
-                    setQuizAnswer(null);
                     setMeasures(Array.from({ length: newSettings.measureCount }, createEmptyMeasure));
                 }
             }
@@ -89,6 +98,7 @@ export const useRhythmEngine = () => {
     }, []);
 
     const removeMeasure = useCallback((measureIndex) => {
+        // ... (no changes)
         setMeasures(prevMeasures => {
             if (prevMeasures.length <= 1) return prevMeasures; 
             const newMeasures = [...prevMeasures];
@@ -99,6 +109,7 @@ export const useRhythmEngine = () => {
     }, []);
 
     const addRhythmItem = useCallback((measureIndex, item) => {
+        // ... (no changes)
         if (settings.mode === 'read') return; 
         setMeasures(prevMeasures => {
             const newMeasures = [...prevMeasures];
@@ -112,6 +123,7 @@ export const useRhythmEngine = () => {
     }, [beatsPerMeasure, measureDurations, settings.mode]);
 
     const removeRhythmItem = useCallback((measureIndex, itemId) => {
+        // ... (no changes)
         if (settings.mode === 'read') return;
         setMeasures(prevMeasures => {
             const newMeasures = [...prevMeasures];
@@ -121,6 +133,7 @@ export const useRhythmEngine = () => {
     }, [settings.mode]);
     
     const clearBoard = useCallback(() => {
+        // ... (no changes)
         setMeasures(Array.from({ length: 1 }, createEmptyMeasure)); 
         setSettings(prev => ({...prev, measureCount: 1}));
         if (settings.mode === 'read') {
@@ -128,19 +141,19 @@ export const useRhythmEngine = () => {
         }
     }, [settings.mode, handleSettingChange]);
 
+    // +++ FIX: Simplified stopRhythm to only control Tone.Transport +++
     const stopRhythm = useCallback(() => {
         transportEventsRef.current.forEach(eventId => Tone.Transport.clear(eventId));
         transportEventsRef.current = [];
 
-        if (!isMetronomePlaying) {
-            Tone.Transport.stop();
-            Tone.Transport.cancel(); 
-            Tone.Transport.position = 0; 
-        }
+        // Stop and reset the transport
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
+        Tone.Transport.position = 0;
         
         setCurrentlyPlayingId(null);
         setIsPlaying(false);
-    }, [isMetronomePlaying]);
+    }, []); // +++ FIX: Removed dependencies
 
     const playRhythm = useCallback(async () => {
         if (isPlaying) {
@@ -156,8 +169,10 @@ export const useRhythmEngine = () => {
             return;
         }
 
-        await unlockAudio(); // This now primes the audio hardware
+        await unlockAudio(); 
         setIsPlaying(true);
+
+        // +++ FIX: Removed all global metronome logic (wasPlayingRef, stopMetronome()) +++
 
         const rhythmToPlay = settings.mode === 'read' ? quizAnswer : measures;
         const { countdownClicks, timeSignature } = settings;
@@ -166,40 +181,17 @@ export const useRhythmEngine = () => {
         
         transport.bpm.value = bpm;
         
-        let sequenceStartTime;
-
-        if (isMetronomePlaying) {
-            // Metronome is ON. Sync to its clock.
-            const now = transport.seconds;
-            const nextMeasureTime = transport.nextSubdivision('1m');
-            sequenceStartTime = nextMeasureTime - (countdownClicks * quarterNoteDuration);
-            if (sequenceStartTime < now) { 
-                sequenceStartTime = nextMeasureTime + transport.toSeconds('1m') - (countdownClicks * quarterNoteDuration);
-            }
-        } else {
-            // Metronome is OFF. We control the clock.
-            transport.stop();
-            transport.cancel();
-            transport.position = 0;
-            transport.timeSignature = [timeSignature.beats, timeSignature.beatType];
-            
-            // This is the AudioContext time we will start the transport
-            const contextNow = Tone.now() + 0.1; 
-            
-            // +++ THE FIX +++
-            // sequenceStartTime must be in TRANSPORT TIME.
-            // Since we just reset the transport to 0, our start time is 0 + a small buffer.
-            sequenceStartTime = 0.1; 
-            // +++ END OF FIX +++
-            
-            // Tell the transport to START at 'contextNow', which maps its 0-point
-            // to the AudioContext's 'contextNow'
-            transport.start(contextNow);
-        }
-
+        transport.stop();
+        transport.cancel();
+        transport.position = 0;
+        transport.timeSignature = [timeSignature.beats, timeSignature.beatType];
+        
+        const sequenceStartTime = 0.1; 
+        transport.start(Tone.now(), sequenceStartTime); // Start transport at an offset to sync with AudioContext
+        
         const rhythmStartTime = sequenceStartTime + (countdownClicks * quarterNoteDuration);
 
-        // ... (Countdown scheduling logic) ...
+        // --- Countdown scheduling ---
         if (countdownClicks > 0 && countdownPlayers.current?.length > 0) {
             for (let i = 0; i < countdownClicks; i++) {
                 const clickTime = sequenceStartTime + i * quarterNoteDuration;
@@ -214,7 +206,23 @@ export const useRhythmEngine = () => {
             }
         }
 
-        // ... (Rhythm scheduling logic) ...
+        // +++ FIX: Add local metronome scheduling +++
+        if (settings.useMetronome && isMetronomeReady && metronomePlayer.current) {
+            const measureDuration = beatsPerMeasure * quarterNoteDuration;
+            const totalDuration = measureDuration * rhythmToPlay.length;
+            
+            // Schedule repeating clicks for the duration of the rhythm
+            const metronomeEventId = transport.scheduleRepeat(time => {
+                if (metronomePlayer.current?.loaded) {
+                    metronomePlayer.current.volume.value = metronomeVolume;
+                    metronomePlayer.current.start(time);
+                }
+            }, quarterNoteDuration, rhythmStartTime, totalDuration); // Schedule repeats
+            
+            transportEventsRef.current.push(metronomeEventId);
+        }
+
+        // --- Rhythm scheduling ---
         let scheduleTime = rhythmStartTime;
         rhythmToPlay.forEach((measure) => {
             measure.forEach((item) => {
@@ -224,7 +232,11 @@ export const useRhythmEngine = () => {
                     const eventId = transport.scheduleOnce(time => {
                         if (rhythmNotePlayer.current?.loaded) {
                             rhythmNotePlayer.current.volume.value = fretboardVolume;
+                            
+                            // +++ FIX 2: Schedule start AND stop +++
                             rhythmNotePlayer.current.start(time);
+                            // Stop note just before its duration ends, allowing for 10ms fadeOut
+                            rhythmNotePlayer.current.stop(time + itemDuration - 0.01); 
                         }
                     }, scheduleTime);
                     transportEventsRef.current.push(eventId);
@@ -241,7 +253,7 @@ export const useRhythmEngine = () => {
             });
         });
 
-        // ... (Cleanup event logic) ...
+        // --- Cleanup event ---
         const cleanupTime = scheduleTime + 0.1;
         const cleanupEvent = transport.scheduleOnce(time => {
             Tone.Draw.schedule(() => {
@@ -249,16 +261,15 @@ export const useRhythmEngine = () => {
                 setIsPlaying(false);
             }, time);
             
-            if (!isMetronomePlaying) {
-                // This correctly sequences the stop and cancel to avoid a race condition.
-                transport.stop(time); 
-                transport.scheduleOnce(() => {
-                    transport.cancel();
-                    transport.position = 0;
-                }, time + 0.05); // Run this 50ms after stopping
-            }
+            transport.stop(time); 
+            transport.scheduleOnce(() => {
+                transport.cancel();
+                transport.position = 0;
+
+                // +++ FIX: Removed all global metronome logic +++
+
+            }, time + 0.05);
             
-            // This was the other fix, ensuring the events are *actually* cleared.
             transportEventsRef.current.forEach(eventId => Tone.Transport.clear(eventId));
             transportEventsRef.current = [];
 
@@ -267,10 +278,12 @@ export const useRhythmEngine = () => {
         transportEventsRef.current.push(cleanupEvent);
 
     }, [
-        settings, measures, quizAnswer, isPlaying, isMetronomePlaying, bpm,
-        unlockAudio, stopRhythm,
+        // +++ FIX: Cleaned up dependencies +++
+        settings, measures, quizAnswer, isPlaying, bpm,
+        unlockAudio, stopRhythm, beatsPerMeasure,
         rhythmNotePlayer, isRhythmNoteReady, fretboardVolume,
-        countdownPlayers, metronomeVolume, isMetronomeReady
+        countdownPlayers, metronomeVolume, isMetronomeReady,
+        metronomePlayer // Added
     ]);
 
     return {

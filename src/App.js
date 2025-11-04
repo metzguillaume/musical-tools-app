@@ -22,6 +22,7 @@ import RoutineRunner from './components/routines/RoutineRunner'; // UPDATED
 import ScoreboardPage from './components/routines/ScoreboardPage'; // UPDATED
 import PresetsManagerPage from './components/presets/PresetsManagerPage';
 import MusicCircles from './components/musicCircles/MusicCircles';
+import RhythmTool from './components/rhythmTool/RhythmTool';
 
 // The main UI component is now stateless and driven entirely by the context.
 const AppContent = () => {
@@ -66,7 +67,7 @@ const showMusicCircles = process.env.REACT_APP_SHOW_MUSIC_CIRCLES === 'true';
     {
       name: 'Theory',
       tools: [
-        { id: 'intervals-quiz', name: 'Interval Practice' }, { id: 'triad-quiz', name: 'Triad & Tetrads Quiz' }, { id: 'chord-trainer', name: 'Chord Trainer' },
+        { id: 'intervals-quiz', name: 'Interval Practice' }, { id: 'triad-quiz', name: 'Triad & Tetrads Quiz' }, { id: 'chord-trainer', name: 'Chord Trainer' },{ id: 'rhythm-trainer', name: 'Rhythm Trainer' },
       ],
     },
     {
@@ -153,6 +154,7 @@ const showMusicCircles = process.env.REACT_APP_SHOW_MUSIC_CIRCLES === 'true';
                   {activeTab === 'routines-hub' && <RoutinesPage />} 
                   {activeTab === 'scoreboard' && <ScoreboardPage />}
                   {activeTab === 'presets-manager' && <PresetsManagerPage />}
+                  {activeTab === 'rhythm-trainer' && <RhythmTool />}
               </>
           )}
       </main>

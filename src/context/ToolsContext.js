@@ -26,7 +26,6 @@ const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
 
 export const ToolsProvider = ({ children }) => {
-    // +++ FIX: Re-added all the missing useState definitions +++
     const [activeTool, setActiveTool] = useState(null);
     const [activeTab, setActiveTab] = useState('welcome');
     const [openCategory, setOpenCategory] = useState(null);
@@ -35,7 +34,6 @@ export const ToolsProvider = ({ children }) => {
     const [routineStepIndex, setRoutineStepIndex] = useState(0);
     const [routineProgress, setRoutineProgress] = useState(null);
     const [lastRoutineResultId, setLastRoutineResultId] = useState(null);
-    // +++ END FIX +++
 
     const unlockAudio = useCallback(async () => { 
         if (Tone.context.state === 'suspended') { 
@@ -100,7 +98,8 @@ export const ToolsProvider = ({ children }) => {
         };
     }, []);
 
-    // +++ FIX: Depend on the stable 'setMetronomeSchedule' function, not the 'metronome' object
+    // +++ FIX: This comment silences the linter warning +++
+    // We are *intentionally* not depending on the entire 'metronome' object.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (metronome.setMetronomeSchedule) {

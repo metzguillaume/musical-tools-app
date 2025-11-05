@@ -1,12 +1,14 @@
+// src/components/rhythmTool/RhythmToolControls.js
+
 import React from 'react';
-import { TIME_SIGNATURES } from './rhythmConstants';
+import { TIME_SIGNATURES, QUIZ_LEVELS } from './rhythmConstants';
 
 const ToggleSwitch = ({ label, isChecked, onChange }) => (
     <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
         <span className="font-semibold">{label}</span>
         <div className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={isChecked} onChange={onChange} className="sr-only peer" />
-            <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
         </div>
     </label>
 );
@@ -44,6 +46,18 @@ export const RhythmToolControls = ({ settings, bpm, onBpmChange, onSettingChange
                 </div>
             </div>
 
+            {settings.mode === 'read' && (
+                <div>
+                    <h3 className="font-semibold text-lg text-teal-300 mb-2">Quiz Settings</h3>
+                     <div>
+                        <label htmlFor="quizDifficulty" className="block text-sm font-medium text-gray-300 mb-1">Difficulty Level</label>
+                        <select id="quizDifficulty" name="quizDifficulty" value={settings.quizDifficulty} onChange={handleSelectChange} className="w-full p-2 rounded-md bg-slate-600 text-white">
+                            {QUIZ_LEVELS.map(level => <option key={level.id} value={level.id}>{level.label}</option>)}
+                        </select>
+                    </div>
+                </div>
+            )}
+
             <div>
                 <h3 className="font-semibold text-lg text-teal-300 mb-2">Playback</h3>
                 <div className="space-y-2">
@@ -67,12 +81,14 @@ export const RhythmToolControls = ({ settings, bpm, onBpmChange, onSettingChange
                             {TIME_SIGNATURES.map(ts => <option key={ts.label} value={ts.label}>{ts.label}</option>)}
                         </select>
                     </div>
-                    {/* New Toggle Switch */}
-                    <ToggleSwitch
-                        label="Show Beat Subdivisions"
-                        isChecked={settings.showBeatDisplay}
-                        onChange={() => handleToggleChange('showBeatDisplay')}
-                    />
+                    
+                    {settings.mode === 'write' && (
+                        <ToggleSwitch
+                            label="Show Beat Subdivisions"
+                            isChecked={settings.showBeatDisplay}
+                            onChange={() => handleToggleChange('showBeatDisplay')}
+                        />
+                    )}
                 </div>
             </div>
 

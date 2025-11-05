@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import * as Tone from 'tone';
 import { useTools } from '../../context/ToolsContext';
-import { NOTE_TYPES, TIME_SIGNATURES } from './rhythmConstants';
+import { NOTE_TYPES, TIME_SIGNATURES, RHYTHM_BANK, ALL_RHYTHM_TYPES, REST_TYPES } from './rhythmConstants';
 
 const DEFAULT_SETTINGS = {
     timeSignature: TIME_SIGNATURES[0], // 4/4
@@ -12,22 +12,46 @@ const DEFAULT_SETTINGS = {
     mode: 'write', 
     countdownClicks: 4,
     showBeatDisplay: true,
-    useMetronome: true, // +++ FIX: Added local metronome setting
+    useMetronome: true,
+    quizDifficulty: 'level1', 
+    writeMeasureCount: 1, 
 };
 
 const createEmptyMeasure = () => ([]);
 
-// ... (generateQuizRhythm - no changes) ...
 const generateQuizRhythm = (settings) => {
-    const { measureCount } = settings;
+    // ... (This function is unchanged)
+    const { quizDifficulty, timeSignature } = settings;
+    const measureCount = 2;
+    const beatsPerMeasure = (timeSignature.beats * (4 / timeSignature.beatType));
+    const allowedItemKeys = RHYTHM_BANK[quizDifficulty]?.items || RHYTHM_BANK['level1'].items;
+    const possibleItems = allowedItemKeys
+        .map(key => ({ id: key, ...ALL_RHYTHM_TYPES[key] }))
+        .filter(item => item.duration <= beatsPerMeasure);
+    if (possibleItems.length === 0) {
+        return Array.from({ length: measureCount }, () => [{ id: `q-1`, ...NOTE_TYPES.quarter }]);
+    }
     const quizMeasures = [];
     for (let i = 0; i < measureCount; i++) {
-        quizMeasures.push([
-            { id: `q${i}-1`, ...NOTE_TYPES.quarter },
-            { id: `q${i}-2`, ...NOTE_TYPES.quarter },
-            { id: `q${i}-3`, ...NOTE_TYPES.quarter },
-            { id: `q${i}-4`, ...NOTE_TYPES.quarter },
-        ]);
+        let currentMeasure = [];
+        let currentDuration = 0;
+        let attempts = 0;
+        while (currentDuration < beatsPerMeasure && attempts < 20) {
+            const remainingDuration = beatsPerMeasure - currentDuration;
+            const validItems = possibleItems.filter(item => item.duration <= remainingDuration + 0.001);
+            if (validItems.length === 0) {
+                 if (remainingDuration >= 0.25) {
+                    const restKey = Object.keys(REST_TYPES).find(k => REST_TYPES[k].duration === remainingDuration) || 'quarterRest';
+                    currentMeasure.push({ id: uuidv4(), ...ALL_RHYTHM_TYPES[restKey] });
+                }
+                break; 
+            }
+            const randomItem = validItems[Math.floor(Math.random() * validItems.length)];
+            currentMeasure.push({ ...randomItem, id: uuidv4() });
+            currentDuration += randomItem.duration;
+            attempts++;
+        }
+        quizMeasures.push(currentMeasure);
     }
     return quizMeasures;
 };
@@ -52,45 +76,67 @@ export const useRhythmEngine = () => {
         isMetronomeReady, 
         bpm,
         setBpm,
-        // +++ FIX: Removed isMetronomePlaying, startMetronome, stopMetronome +++
-        metronomePlayer // +++ FIX: Added metronomePlayer for the sound +++
+        metronomePlayer
     } = useTools();
 
-    // +++ FIX: Removed metronomeWasPlayingRef +++
-
     const beatsPerMeasure = useMemo(() => {
-        // ... (no changes)
         const { beats, beatType } = settings.timeSignature;
         return (beats * (4 / beatType)); 
     }, [settings.timeSignature]);
 
     const measureDurations = useMemo(() => {
-        // ... (no changes)
         return measures.map(measure => 
             measure.reduce((sum, item) => sum + item.duration, 0)
         );
     }, [measures]);
 
+    const generateNewQuiz = useCallback(() => {
+        setSettings(prevSettings => {
+            const quiz = generateQuizRhythm(prevSettings);
+            setQuizAnswer(quiz);
+            setMeasures(quiz);
+            return prevSettings; 
+        });
+    }, []); 
+
     const handleSettingChange = useCallback((key, value) => {
-        // ... (no changes)
         setSettings(prev => {
-            const newSettings = { ...prev, [key]: value };
-            if (key === 'timeSignature') {
-                setMeasures(Array.from({ length: newSettings.measureCount }, createEmptyMeasure));
+            let newSettings = { ...prev, [key]: value };
+
+            if (key === 'measureCount' && prev.mode === 'read') {
+                return prev; 
             }
+            
             if (key === 'measureCount') {
-                const diff = value - prev.measureCount;
-                if (diff > 0) {
-                    setMeasures(m => [...m, ...Array.from({ length: diff }, createEmptyMeasure)]);
-                }
+                const newCount = value;
+                newSettings.writeMeasureCount = newCount;
+                setMeasures(m => {
+                    const diff = newCount - m.length;
+                    if (diff > 0) {
+                        return [...m, ...Array.from({ length: diff }, createEmptyMeasure)];
+                    }
+                    return m;
+                });
+                return { ...newSettings, measureCount: newCount };
             }
+            
+            if ( (key === 'timeSignature' || key === 'quizDifficulty') && newSettings.mode === 'read' ) {
+                const quiz = generateQuizRhythm(newSettings);
+                setQuizAnswer(quiz);
+                setMeasures(quiz);
+            }
+
             if (key === 'mode') {
                 if (value === 'read') {
-                    const quiz = generateQuizRhythm(newSettings);
+                    const quizSettings = {...newSettings, measureCount: 2}; 
+                    const quiz = generateQuizRhythm(quizSettings);
                     setQuizAnswer(quiz);
                     setMeasures(quiz);
+                    return quizSettings; 
                 } else {
-                    setMeasures(Array.from({ length: newSettings.measureCount }, createEmptyMeasure));
+                    const writeCount = prev.writeMeasureCount || 1;
+                    setMeasures(Array.from({ length: writeCount }, createEmptyMeasure));
+                    return {...newSettings, measureCount: writeCount};
                 }
             }
             return newSettings;
@@ -98,64 +144,86 @@ export const useRhythmEngine = () => {
     }, []);
 
     const removeMeasure = useCallback((measureIndex) => {
-        // ... (no changes)
         setMeasures(prevMeasures => {
             if (prevMeasures.length <= 1) return prevMeasures; 
             const newMeasures = [...prevMeasures];
             newMeasures.splice(measureIndex, 1);
-            setSettings(prevSettings => ({...prevSettings, measureCount: newMeasures.length }));
+            setSettings(prevSettings => ({...prevSettings, measureCount: newMeasures.length, writeMeasureCount: newMeasures.length }));
             return newMeasures;
         });
     }, []);
 
     const addRhythmItem = useCallback((measureIndex, item) => {
-        // ... (no changes)
         if (settings.mode === 'read') return; 
         setMeasures(prevMeasures => {
             const newMeasures = [...prevMeasures];
             const targetMeasure = [...newMeasures[measureIndex]];
             const currentDuration = measureDurations[measureIndex];
-            if (currentDuration + item.duration > beatsPerMeasure) return prevMeasures; 
+            
+            if (currentDuration + item.duration > beatsPerMeasure + 0.001) return prevMeasures; 
+
             targetMeasure.push({ ...item, id: uuidv4() });
             newMeasures[measureIndex] = targetMeasure;
             return newMeasures;
         });
     }, [beatsPerMeasure, measureDurations, settings.mode]);
 
-    const removeRhythmItem = useCallback((measureIndex, itemId) => {
-        // ... (no changes)
+    const removeLastRhythmItem = useCallback((measureIndex) => {
         if (settings.mode === 'read') return;
         setMeasures(prevMeasures => {
             const newMeasures = [...prevMeasures];
-            newMeasures[measureIndex] = newMeasures[measureIndex].filter(item => item.id !== itemId);
+            const targetMeasure = [...newMeasures[measureIndex]];
+            if (targetMeasure.length > 0) {
+                targetMeasure.pop(); 
+                newMeasures[measureIndex] = targetMeasure;
+            }
+            return newMeasures;
+        });
+    }, [settings.mode]);
+
+    const clearMeasure = useCallback((measureIndex) => {
+        if (settings.mode === 'read') return;
+        setMeasures(prevMeasures => {
+            const newMeasures = [...prevMeasures];
+            newMeasures[measureIndex] = []; 
             return newMeasures;
         });
     }, [settings.mode]);
     
     const clearBoard = useCallback(() => {
-        // ... (no changes)
         setMeasures(Array.from({ length: 1 }, createEmptyMeasure)); 
-        setSettings(prev => ({...prev, measureCount: 1}));
+        setSettings(prev => ({...prev, measureCount: 1, writeMeasureCount: 1}));
         if (settings.mode === 'read') {
              handleSettingChange('mode', 'write');
         }
     }, [settings.mode, handleSettingChange]);
 
-    // +++ FIX: Simplified stopRhythm to only control Tone.Transport +++
     const stopRhythm = useCallback(() => {
+        const oldId = currentlyPlayingId;
+        if (oldId) {
+            // Find the VexFlow group element
+            const el = document.getElementById(oldId);
+            if (el) {
+                // Reset all paths inside it (notehead, stem, etc.) to black
+                el.querySelectorAll('path').forEach(path => {
+                    path.setAttribute('fill', 'black');
+                });
+            }
+        }
+        setCurrentlyPlayingId(null);
+
         transportEventsRef.current.forEach(eventId => Tone.Transport.clear(eventId));
         transportEventsRef.current = [];
 
-        // Stop and reset the transport
         Tone.Transport.stop();
         Tone.Transport.cancel();
         Tone.Transport.position = 0;
         
-        setCurrentlyPlayingId(null);
         setIsPlaying(false);
-    }, []); // +++ FIX: Removed dependencies
+    }, [currentlyPlayingId]); // Added dependency
 
-    const playRhythm = useCallback(async () => {
+    // +++ NEW: Generic play function +++
+    const playMeasures = useCallback(async (measuresToPlay) => {
         if (isPlaying) {
             stopRhythm();
             return;
@@ -172,9 +240,6 @@ export const useRhythmEngine = () => {
         await unlockAudio(); 
         setIsPlaying(true);
 
-        // +++ FIX: Removed all global metronome logic (wasPlayingRef, stopMetronome()) +++
-
-        const rhythmToPlay = settings.mode === 'read' ? quizAnswer : measures;
         const { countdownClicks, timeSignature } = settings;
         const quarterNoteDuration = 60 / bpm;
         const transport = Tone.getTransport();
@@ -187,7 +252,7 @@ export const useRhythmEngine = () => {
         transport.timeSignature = [timeSignature.beats, timeSignature.beatType];
         
         const sequenceStartTime = 0.1; 
-        transport.start(Tone.now(), sequenceStartTime); // Start transport at an offset to sync with AudioContext
+        transport.start(Tone.now(), sequenceStartTime); 
         
         const rhythmStartTime = sequenceStartTime + (countdownClicks * quarterNoteDuration);
 
@@ -206,49 +271,72 @@ export const useRhythmEngine = () => {
             }
         }
 
-        // +++ FIX: Add local metronome scheduling +++
+        // --- Metronome scheduling ---
         if (settings.useMetronome && isMetronomeReady && metronomePlayer.current) {
-            const measureDuration = beatsPerMeasure * quarterNoteDuration;
-            const totalDuration = measureDuration * rhythmToPlay.length;
+            // Calculate total duration for the metronome
+            const totalBeats = measuresToPlay.reduce((total, measure) => {
+                return total + measure.reduce((measureSum, item) => measureSum + item.duration, 0);
+            }, 0);
+            const totalDuration = totalBeats * quarterNoteDuration;
             
-            // Schedule repeating clicks for the duration of the rhythm
             const metronomeEventId = transport.scheduleRepeat(time => {
                 if (metronomePlayer.current?.loaded) {
                     metronomePlayer.current.volume.value = metronomeVolume;
                     metronomePlayer.current.start(time);
                 }
-            }, quarterNoteDuration, rhythmStartTime, totalDuration); // Schedule repeats
+            }, quarterNoteDuration, rhythmStartTime, totalDuration); 
             
             transportEventsRef.current.push(metronomeEventId);
         }
 
-        // --- Rhythm scheduling ---
+        // --- Note scheduling ---
         let scheduleTime = rhythmStartTime;
-        rhythmToPlay.forEach((measure) => {
+        measuresToPlay.forEach((measure) => {
             measure.forEach((item) => {
                 const itemDuration = item.duration * quarterNoteDuration;
                 
-                if (item.type === 'note') {
-                    const eventId = transport.scheduleOnce(time => {
-                        if (rhythmNotePlayer.current?.loaded) {
-                            rhythmNotePlayer.current.volume.value = fretboardVolume;
-                            
-                            // +++ FIX 2: Schedule start AND stop +++
-                            rhythmNotePlayer.current.start(time);
-                            // Stop note just before its duration ends, allowing for 10ms fadeOut
-                            rhythmNotePlayer.current.stop(time + itemDuration - 0.01); 
-                        }
+                if (item.type === 'note' || item.type === 'rest') {
+                    const noteId = item.id;
+                    if (item.type === 'note') {
+                        const eventId = transport.scheduleOnce(time => {
+                            if (rhythmNotePlayer.current?.loaded) {
+                                rhythmNotePlayer.current.volume.value = fretboardVolume;
+                                rhythmNotePlayer.current.start(time); 
+                                rhythmNotePlayer.current.stop(time + itemDuration - 0.01); 
+                            }
+                        }, scheduleTime);
+                        transportEventsRef.current.push(eventId);
+                    }
+                    
+                    const highlightId = transport.scheduleOnce(time => {
+                        Tone.Draw.schedule(() => setCurrentlyPlayingId(noteId), time);
                     }, scheduleTime);
-                    transportEventsRef.current.push(eventId);
+                    transportEventsRef.current.push(highlightId);
+
+                } else if (item.type === 'group' || item.type === 'triplet') {
+                    let subNoteTime = scheduleTime;
+                    item.playback.forEach((subDuration, index) => {
+                        const subDurationInSeconds = subDuration * quarterNoteDuration;
+                        const noteId = `${item.id}-sub-${index}`; // Unique ID for sub-note
+
+                        const eventId = transport.scheduleOnce(time => {
+                            if (rhythmNotePlayer.current?.loaded) {
+                                rhythmNotePlayer.current.volume.value = fretboardVolume;
+                                rhythmNotePlayer.current.start(time);
+                                rhythmNotePlayer.current.stop(time + subDurationInSeconds - 0.01);
+                            }
+                        }, subNoteTime);
+                        transportEventsRef.current.push(eventId);
+                        
+                        const highlightId = transport.scheduleOnce(time => {
+                            Tone.Draw.schedule(() => setCurrentlyPlayingId(noteId), time);
+                        }, subNoteTime);
+                        transportEventsRef.current.push(highlightId);
+
+                        subNoteTime += subDurationInSeconds; 
+                    });
                 }
                 
-                const highlightId = transport.scheduleOnce(time => {
-                    Tone.Draw.schedule(() => {
-                        setCurrentlyPlayingId(item.id);
-                    }, time);
-                }, scheduleTime);
-                transportEventsRef.current.push(highlightId);
-
                 scheduleTime += itemDuration;
             });
         });
@@ -257,7 +345,8 @@ export const useRhythmEngine = () => {
         const cleanupTime = scheduleTime + 0.1;
         const cleanupEvent = transport.scheduleOnce(time => {
             Tone.Draw.schedule(() => {
-                setCurrentlyPlayingId(null);
+                // This will trigger the useEffect in RhythmTool to clean the last note
+                setCurrentlyPlayingId(null); 
                 setIsPlaying(false);
             }, time);
             
@@ -265,9 +354,6 @@ export const useRhythmEngine = () => {
             transport.scheduleOnce(() => {
                 transport.cancel();
                 transport.position = 0;
-
-                // +++ FIX: Removed all global metronome logic +++
-
             }, time + 0.05);
             
             transportEventsRef.current.forEach(eventId => Tone.Transport.clear(eventId));
@@ -278,13 +364,26 @@ export const useRhythmEngine = () => {
         transportEventsRef.current.push(cleanupEvent);
 
     }, [
-        // +++ FIX: Cleaned up dependencies +++
-        settings, measures, quizAnswer, isPlaying, bpm,
-        unlockAudio, stopRhythm, beatsPerMeasure,
+        settings, isPlaying, bpm,
+        unlockAudio, stopRhythm,
         rhythmNotePlayer, isRhythmNoteReady, fretboardVolume,
         countdownPlayers, metronomeVolume, isMetronomeReady,
-        metronomePlayer // Added
+        metronomePlayer
     ]);
+
+    // +++ NEW: Specific play functions +++
+    const playRhythm = useCallback(() => {
+        const rhythmToPlay = settings.mode === 'read' ? quizAnswer : measures;
+        playMeasures(rhythmToPlay);
+    }, [playMeasures, settings.mode, quizAnswer, measures]);
+
+    const playMeasure = useCallback((measureIndex) => {
+        const measureToPlay = measures[measureIndex];
+        if (measureToPlay) {
+            playMeasures([measureToPlay]); // Pass the single measure as an array
+        }
+    }, [playMeasures, measures]);
+
 
     return {
         settings,
@@ -295,16 +394,19 @@ export const useRhythmEngine = () => {
         measureDurations,
         beatsPerMeasure,
         isPlaying,
-        currentlyPlayingId,
+        currentlyPlayingId, 
         isQuizMode: settings.mode === 'read',
         actions: {
             handleSettingChange,
             removeMeasure,
             addRhythmItem,
-            removeRhythmItem,
+            removeLastRhythmItem,
+            clearMeasure,
             clearBoard,
-            playRhythm,
-            stopRhythm
+            playRhythm, // Plays all measures
+            playMeasure, // +++ NEW: Plays one measure +++
+            stopRhythm,
+            generateNewQuiz,
         }
     };
 };

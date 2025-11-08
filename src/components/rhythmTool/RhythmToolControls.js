@@ -1,17 +1,7 @@
 // src/components/rhythmTool/RhythmToolControls.js
 
 import React from 'react';
-import { TIME_SIGNATURES, QUIZ_LEVELS } from './rhythmConstants';
-
-const ToggleSwitch = ({ label, isChecked, onChange }) => (
-    <label className="flex items-center justify-between gap-2 cursor-pointer p-2 bg-slate-600 rounded-md">
-        <span className="font-semibold">{label}</span>
-        <div className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={isChecked} onChange={onChange} className="sr-only peer" />
-            <div className="w-11 h-6 bg-gray-500 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-300 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-        </div>
-    </label>
-);
+import { TIME_SIGNATURES, RHYTHM_CHOICES } from './rhythmConstants'; 
 
 export const RhythmToolControls = ({ settings, bpm, onBpmChange, onSettingChange, onSavePreset }) => {
     
@@ -31,9 +21,27 @@ export const RhythmToolControls = ({ settings, bpm, onBpmChange, onSettingChange
             onSettingChange(name, value);
         }
     };
+
+    const handleRhythmToggle = (key) => {
+        const currentSelection = settings.allowedRhythms || [];
+        const isAlreadySelected = currentSelection.includes(key);
+        let newSelection;
+
+        if (isAlreadySelected) {
+            newSelection = currentSelection.filter(itemKey => itemKey !== key);
+        } else {
+            newSelection = [...currentSelection, key];
+        }
+        onSettingChange('allowedRhythms', newSelection);
+    };
     
-    const handleToggleChange = (key) => {
-        onSettingChange(key, !settings[key]);
+    // +++ NEW: Updated labels to reflect pattern logic +++
+    const complexityLabels = {
+        1: "Level 1: Basic Patterns",
+        2: "Level 2: Common 16th Patterns",
+        3: "Level 3: Dotted 8th Patterns",
+        4: "Level 4: Syncopated 16ths",
+        5: "Level 5: All Patterns (Triplets)"
     };
 
     return (
@@ -49,12 +57,45 @@ export const RhythmToolControls = ({ settings, bpm, onBpmChange, onSettingChange
             {settings.mode === 'read' && (
                 <div>
                     <h3 className="font-semibold text-lg text-teal-300 mb-2">Quiz Settings</h3>
-                     <div>
-                        <label htmlFor="quizDifficulty" className="block text-sm font-medium text-gray-300 mb-1">Difficulty Level</label>
-                        <select id="quizDifficulty" name="quizDifficulty" value={settings.quizDifficulty} onChange={handleSelectChange} className="w-full p-2 rounded-md bg-slate-600 text-white">
-                            {QUIZ_LEVELS.map(level => <option key={level.id} value={level.id}>{level.label}</option>)}
-                        </select>
-                    </div>
+                     <div className="space-y-4">
+                        
+                        <div>
+                            <label htmlFor="quizMeasureCount" className="block text-sm font-medium text-gray-300 mb-1">Measures per Question: <span className="font-bold text-teal-300">{settings.quizMeasureCount}</span></label>
+                            <input type="range" id="quizMeasureCount" name="quizMeasureCount" min="1" max="4" step="1" value={settings.quizMeasureCount} onChange={handleSliderChange} className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer" />
+                        </div>
+
+                        {/* +++ Complexity Slider (labels are updated) +++ */}
+                        <div>
+                            <label htmlFor="quizComplexity" className="block text-sm font-medium text-gray-300 mb-1">
+                                Complexity Level: <span className="font-bold text-teal-300">{complexityLabels[settings.quizComplexity]}</span>
+                            </label>
+                            <input type="range" id="quizComplexity" name="quizComplexity" min="1" max="5" step="1" value={settings.quizComplexity} onChange={handleSliderChange} className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer" />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Include Rhythms</label>
+                            <div className="space-y-3">
+                                {RHYTHM_CHOICES.map(group => (
+                                    <div key={group.label}>
+                                        <h4 className="text-xs font-semibold text-gray-400 uppercase mb-1">{group.label}</h4>
+                                        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                                            {group.items.map(item => (
+                                                <label key={item.key} className="flex items-center space-x-2 cursor-pointer p-1 rounded-md hover:bg-slate-700">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={settings.allowedRhythms.includes(item.key)}
+                                                        onChange={() => handleRhythmToggle(item.key)}
+                                                        className="h-4 w-4 rounded bg-slate-800 border-gray-500 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span className="text-sm text-gray-200">{item.label}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                     </div>
                 </div>
             )}
 
@@ -81,14 +122,6 @@ export const RhythmToolControls = ({ settings, bpm, onBpmChange, onSettingChange
                             {TIME_SIGNATURES.map(ts => <option key={ts.label} value={ts.label}>{ts.label}</option>)}
                         </select>
                     </div>
-                    
-                    {settings.mode === 'write' && (
-                        <ToggleSwitch
-                            label="Show Beat Subdivisions"
-                            isChecked={settings.showBeatDisplay}
-                            onChange={() => handleToggleChange('showBeatDisplay')}
-                        />
-                    )}
                 </div>
             </div>
 

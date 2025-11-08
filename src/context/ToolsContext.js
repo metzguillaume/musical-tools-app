@@ -12,6 +12,7 @@ import { usePresetsLogic } from './usePresetsLogic';
 import { useRoutinesLogic } from './useRoutinesLogic';
 import { useScoreboardLogic } from './useScoreboardLogic';
 
+// ... (shuffle function - no changes) ...
 const shuffle = (array) => {
     let currentIndex = array.length, randomIndex;
     while (currentIndex !== 0) {
@@ -26,6 +27,7 @@ const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
 
 export const ToolsProvider = ({ children }) => {
+    // ... (state, unlockAudio, navigation, etc - no changes) ...
     const [activeTool, setActiveTool] = useState(null);
     const [activeTab, setActiveTab] = useState('welcome');
     const [openCategory, setOpenCategory] = useState(null);
@@ -91,22 +93,21 @@ export const ToolsProvider = ({ children }) => {
             onload: () => {
                 setIsRhythmNoteReady(true);
             },
-            fadeOut: 0.1
+            // +++ FIX: Changed from 0.1 to 0.01 to remove staccato +++
+            fadeOut: 0.01
         }).toDestination();
         return () => {
             rhythmNotePlayer.current?.dispose();
         };
     }, []);
 
-    // +++ FIX: This comment silences the linter warning +++
-    // We are *intentionally* not depending on the entire 'metronome' object.
+    // ... (rest of the file is unchanged) ...
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (metronome.setMetronomeSchedule) {
             metronome.setMetronomeSchedule(null);
         }
     }, [activeTab, metronome.setMetronomeSchedule]);
-    // +++ END FIX +++
 
     const loadPreset = useCallback((presetToLoad) => { 
         updatePreset(presetToLoad.id, { ...presetToLoad, lastUsed: new Date().toISOString() }); 

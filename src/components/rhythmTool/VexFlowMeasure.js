@@ -1,9 +1,11 @@
 // src/components/rhythmTool/VexFlowMeasure.js
 
-import React, { useRef, useEffect, useCallback } from 'react';
-import { Renderer, Stave, StaveNote, Voice, Formatter, Beam, Fraction, Tuplet, Dot } from 'vexflow';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { Renderer, Stave, StaveNote, Voice, Formatter, Beam, Tuplet, Dot } from 'vexflow';
 import { useDroppable } from '@dnd-kit/core';
+import { REST_TYPES } from './rhythmConstants'; 
 
+// ... (getVexNoteConfig is unchanged)
 const getVexNoteConfig = (item) => {
     let duration = 'q'; // default
     let isRest = item.type === 'rest';
@@ -43,15 +45,37 @@ const getVexNoteConfig = (item) => {
     return vexNote;
 };
 
+// ... (getRestsForDuration is unchanged)
+const getRestsForDuration = (duration) => {
+    const rests = [];
+    const sortedRests = Object.entries(REST_TYPES)
+        .map(([key, value]) => ({ key, ...value }))
+        .sort((a, b) => b.duration - a.duration);
+
+    let remaining = duration;
+    
+    for (const rest of sortedRests) {
+        while (remaining >= rest.duration - 0.001) {
+            rests.push(rest);
+            remaining -= rest.duration;
+        }
+    }
+    return rests;
+};
+
+const PADDING = 10; 
 
 export const VexFlowMeasure = ({ 
     measure, 
     timeSignature, 
-    width, // This is now a *minimum* width
+    width, // This is the *default* width
     measureIndex, 
-    isQuizMode, 
+    isQuizMode,
+    beatsPerMeasure,
+    isPlaying 
 }) => {
     const vexflowRef = useRef(null);
+    const [renderedWidth, setRenderedWidth] = useState(width); 
 
     const { setNodeRef } = useDroppable({
         id: `measure-${measureIndex}`,
@@ -62,9 +86,8 @@ export const VexFlowMeasure = ({
     const combinedRef = useCallback(
         (node) => {
             vexflowRef.current = node;
-            setNodeRef(node);
         },
-        [setNodeRef]
+        []
     );
 
     useEffect(() => {
@@ -73,104 +96,142 @@ export const VexFlowMeasure = ({
             
             const renderer = new Renderer(vexflowRef.current, Renderer.Backends.SVG);
             const context = renderer.getContext();
-            context.setFont('Arial', 10).setBackgroundFillStyle('#FFFFFF');
-
-            // --- Note generation ---
+            context.setFont('Arial', 10);
+            
             const notes = [];
             const tuplets = [];
+            const manualBeams = []; 
+            
+            // +++ This check is key for the logic below +++
+            const userDuration = measure.reduce((sum, item) => sum + item.duration, 0);
+            const isMeasureFull = userDuration >= beatsPerMeasure - 0.001;
             
             measure.forEach(item => {
                 if (item.type === 'note' || item.type === 'rest') {
                     const vexNote = getVexNoteConfig(item);
-                    
-                    // +++ THIS IS THE CORRECT FIX +++
-                    // We set the 'id' property on the 'attrs' object.
                     vexNote.attrs.id = item.id; 
-                    
                     notes.push(vexNote);
                 } else if (item.type === 'group' && item.playback) {
-                    item.playback.forEach((pbDuration, index) => {
+                    const groupNotes = item.playback.map((pbDuration, index) => {
                         const noteId = `${item.id}-sub-${index}`;
-                        const vexNote = getVexNoteConfig({ duration: pbDuration, type: 'note' });
-                        
-                        // +++ THIS IS THE CORRECT FIX +++
+                        const vexNote = getVexNoteConfig({ duration: pbDuration, type: 'note' }); 
                         vexNote.attrs.id = noteId;
-
-                        notes.push(vexNote);
+                        return vexNote;
                     });
+                    manualBeams.push(new Beam(groupNotes)); 
+                    notes.push(...groupNotes);
                 } else if (item.type === 'triplet' && item.playback) {
                     const tripletNotes = item.playback.map((pbDuration, index) => {
                         const noteId = `${item.id}-sub-${index}`;
-                        const vexNote = getVexNoteConfig({ duration: 0.5, type: 'note' });
-                        
-                        // +++ THIS IS THE CORRECT FIX +++
+                        const vexNote = getVexNoteConfig({ duration: 0.5, type: 'note' }); 
                         vexNote.attrs.id = noteId;
-
+                        // +++ FIX 1: Force triplet stems down to match +++
+                        vexNote.setStemDirection(StaveNote.STEM_DOWN);
                         return vexNote;
                     });
-                    notes.push(...tripletNotes);
+                    
                     tuplets.push(new Tuplet(tripletNotes)); 
+                    // +++ FIX 1: Re-add manual beam for triplets +++
+                    manualBeams.push(new Beam(tripletNotes)); 
+                    notes.push(...tripletNotes);
                 }
             });
-            
-            const PADDING = 10; // 10px padding on left and right
-            
-            if (notes.length > 0) {
-                const beams = Beam.generateBeams(notes);
 
+            // Auto-fill with rests in write mode
+            let allTickables = [...notes];
+            if (!isQuizMode && !isMeasureFull && userDuration < beatsPerMeasure) {
+                const remainingDuration = beatsPerMeasure - userDuration;
+                if (remainingDuration > 0.001) {
+                    const rests = getRestsForDuration(remainingDuration);
+                    const restVexNotes = rests.map(rest => getVexNoteConfig(rest));
+                    allTickables.push(...restVexNotes);
+                }
+            }
+            
+            const defaultStaveWidth = width - (PADDING * 2);
+
+            if (allTickables.length > 0) {
                 const voice = new Voice({ 
                     num_beats: timeSignature.beats, 
                     beat_value: timeSignature.beatType 
                 });
                 
                 voice.setStrict(false);
-                voice.addTickables(notes);
+                voice.addTickables(allTickables);
 
                 const formatter = new Formatter().joinVoices([voice]);
+                const minRequiredWidth = formatter.preCalculateMinTotalWidth([voice]);
                 
-                formatter.preCalculateMinTotalWidth([voice]);
-                
-                const minRequiredWidth = formatter.getMinTotalWidth();
-                const minWidth = minRequiredWidth + (PADDING * 2);
-                const finalWidth = Math.max(width, minWidth); 
-                
-                renderer.resize(finalWidth, 120); 
+                let finalStaveWidth;
+                let formatWidth;
 
-                const staveWidth = finalWidth - (PADDING * 2);
-                const stave = new Stave(PADDING, 0, staveWidth); 
-                
+                // +++ FIX 2: This is the definitive logic +++
+                if (isMeasureFull && minRequiredWidth > defaultStaveWidth) {
+                    // DENSE MEASURE (Overflow fix)
+                    // Use natural width and expand the container
+                    finalStaveWidth = minRequiredWidth;
+                    formatWidth = minRequiredWidth; // Format to natural size (no stretch)
+                } else {
+                    // SPARSE MEASURE (Empty space fix)
+                    // Use default width and stretch the notes
+                    finalStaveWidth = defaultStaveWidth;
+                    formatWidth = defaultStaveWidth; // Format (stretch) to default size
+                }
+                // +++ END FIX +++
+
+                const finalWidth = finalStaveWidth + (PADDING * 2);
+                renderer.resize(finalWidth, 120); 
+                setRenderedWidth(finalWidth);
+
+                const stave = new Stave(PADDING, 0, finalStaveWidth); 
                 if (timeSignature) {
                     stave.addTimeSignature(timeSignature.label);
                 }
                 stave.setContext(context).draw();
 
-                formatter.format([voice], staveWidth); 
+                // Get notes that are not part of manual groups or tuplets
+                const notesToAutoBeam = notes.filter(n => 
+                    !tuplets.some(t => t.getNotes().includes(n)) &&
+                    !manualBeams.some(b => b.getNotes().includes(n))
+                );
+                const autoBeams = Beam.generateBeams(notesToAutoBeam);
+                
+                formatter.format([voice], formatWidth, { align_rests: true }); 
 
                 voice.draw(context, stave);
-                beams.forEach(beam => beam.setContext(context).draw());
+                [...manualBeams, ...autoBeams].forEach(beam => beam.setContext(context).draw());
                 tuplets.forEach(tuplet => tuplet.setContext(context).draw()); 
+
             } else {
-                // Handle empty measure
-                renderer.resize(width, 120);
-                const staveWidth = width - (PADDING * 2);
-                const stave = new Stave(PADDING, 0, staveWidth); 
+                // Empty measure
+                renderer.resize(width, 120); 
+                setRenderedWidth(width); 
+
+                const stave = new Stave(PADDING, 0, defaultStaveWidth); 
                 if (timeSignature) {
                     stave.addTimeSignature(timeSignature.label);
                 }
                 stave.setContext(context).draw();
             }
         }
-    }, [measure, timeSignature, width, isQuizMode]);
+    }, [measure, timeSignature, width, isQuizMode, beatsPerMeasure]);
 
     return (
         <div 
-            ref={combinedRef} 
-            className={`vexflow-measure bg-white rounded-md border-l-4 transition-all border-gray-400
+            ref={setNodeRef} 
+            className={`vexflow-measure bg-white rounded-md border-l-4 transition-all
                         ${!isQuizMode ? 'cursor-copy' : ''}
+                        ${isPlaying ? 'ring-2 ring-yellow-400 shadow-lg' : 'border-gray-400'}
                       `}
-            style={{ minHeight: '120px' }} // Width is now set automatically
+            // +++ Use dynamic state for width +++
+            style={{ minHeight: '120px', width: `${renderedWidth}px` }} 
         >
-            {/* VexFlow draws directly here. */}
+            <div 
+                ref={combinedRef} 
+                className="w-full h-full"
+            >
+                {/* VexFlow draws directly here. */}
+            </div>
         </div>
     );
 };

@@ -60,6 +60,7 @@ const RhythmTool = (props) => {
         beatsPerMeasure, 
         isPlaying, 
         currentlyPlayingId, 
+        currentlyPlayingMeasureIndex, 
         isQuizMode,
         actions 
     } = useRhythmEngine();
@@ -82,12 +83,12 @@ const RhythmTool = (props) => {
         }
     }, [presetToLoad, clearPresetToLoad, setSettings, setBpm]);
 
-    // +++ FIX: Updated highlight logic for individual notes +++
+    // ... (useEffect for highlighting NOTE - no changes) ...
     useEffect(() => {
         if (lastPlayedId) {
             const el = document.getElementById(lastPlayedId);
             if (el) {
-                // Reset all paths inside the note <g> to black
+                el.setAttribute('fill', 'black');
                 el.querySelectorAll('path').forEach(path => {
                     path.setAttribute('fill', 'black');
                 });
@@ -96,16 +97,16 @@ const RhythmTool = (props) => {
         if (currentlyPlayingId) {
             const el = document.getElementById(currentlyPlayingId);
             if (el) {
-                // Set all paths inside the note <g> to red
+                el.setAttribute('fill', 'red');
                 el.querySelectorAll('path').forEach(path => {
                     path.setAttribute('fill', 'red');
                 });
                 setLastPlayedId(currentlyPlayingId);
             }
         } else if (lastPlayedId) {
-            // Clean up the last note when playback stops
             const el = document.getElementById(lastPlayedId);
             if (el) {
+                el.setAttribute('fill', 'black');
                 el.querySelectorAll('path').forEach(path => {
                     path.setAttribute('fill', 'black');
                 });
@@ -115,7 +116,7 @@ const RhythmTool = (props) => {
     }, [currentlyPlayingId, lastPlayedId]);
 
 
-    // ... (handleSavePreset - no changes) ...
+    // ... (handleSavePreset... no changes) ...
     const handleSavePreset = () => {
         const name = prompt("Enter a name for your preset:", "My Rhythm Setting");
         if (name && name.trim() !== "") {
@@ -131,7 +132,7 @@ const RhythmTool = (props) => {
         }
     };
     
-    // ... (Drag handlers - no changes) ...
+    // ... (Drag Handlers - no changes) ...
     const handleDragStart = (event) => {
         setActiveDragItem(event.active.data.current);
     };
@@ -188,10 +189,9 @@ const RhythmTool = (props) => {
         </div>
     );
 
-    const QUARTER_NOTE_WIDTH = 100;
-    const defaultMeasureWidth = (beatsPerMeasure * QUARTER_NOTE_WIDTH) > 250 ? (beatsPerMeasure * QUARTER_NOTE_WIDTH) : 250;
-    
-    // +++ FIX: Removed activeMeasureIndex logic +++
+    // +++ FIX 2: Set a fixed default width +++
+    // This (4 * 120) is a good standard width for 4/4 and gives 3/4 and 2/4 plenty of space.
+    const defaultMeasureWidth = 480; 
     
     const mainContent = (
         <div className="flex flex-col gap-4">
@@ -201,18 +201,18 @@ const RhythmTool = (props) => {
                 
                 <React.Fragment>
                     {measures.map((measure, index) => (
-                        <div key={index} className="relative flex items-start gap-2">
+                        <div key={index} className="relative flex items-start gap-2 flex-shrink-0">
                             <VexFlowMeasure
                                 measure={measure}
                                 timeSignature={settings.timeSignature}
-                                width={defaultMeasureWidth}
+                                width={defaultMeasureWidth} // Pass the fixed width
                                 measureIndex={index}
                                 isQuizMode={isQuizMode}
-                                // +++ FIX: Removed isPlaying prop +++
+                                beatsPerMeasure={beatsPerMeasure}
+                                isPlaying={index === currentlyPlayingMeasureIndex} 
                             />
                             {!isQuizMode && (
                                 <div className="flex flex-col gap-2 w-20 flex-shrink-0">
-                                    {/* +++ NEW: Play Measure Button +++ */}
                                     <button
                                         onClick={() => actions.playMeasure(index)}
                                         disabled={isPlaying}
@@ -261,10 +261,14 @@ const RhythmTool = (props) => {
             {/* --- Palette Area (Unchanged) --- */}
             {!isQuizMode && (
                 <div className="w-full mt-4 p-2 bg-slate-900 rounded-lg flex flex-col gap-2">
-                    <h3 className="text-sm font-semibold text-gray-400 text-center">Drag Notes</h3>
+                    <h3 className="text-sm font-semibold text-gray-400 text-center">Drag and drop notes to measure</h3>
                     <div className="flex flex-row flex-wrap justify-center gap-2">
                         {PALETTE_ITEMS.map(([key, item]) => (
-                            <DraggableNote key={key} id={key} item={item} />
+                            <DraggableNote 
+                                key={key} 
+                                id={key} 
+                                item={item}
+                            />
                         ))}
                     </div>
                 </div>
@@ -276,9 +280,19 @@ const RhythmTool = (props) => {
         return mainContent;
     }
     
+    // +++ FIX 1: Updated handleLog to ask for custom message +++
     const handleLog = () => {
-        addLogEntry({ game: 'Rhythm Trainer', date: new Date().toLocaleDateString(), remarks: `Rhythm practice session (${settings.mode} mode, ${settings.quizDifficulty}).` });
-        alert("Session logged!");
+        const defaultRemarks = `Rhythm practice (${settings.timeSignature.label}, ${bpm} bpm, ${settings.mode} mode)`;
+        const remarks = prompt("Enter log remarks:", defaultRemarks);
+
+        if (remarks && remarks.trim() !== "") {
+            addLogEntry({ 
+                game: 'Rhythm Trainer', 
+                date: new Date().toLocaleDateString(), 
+                remarks: remarks.trim() 
+            });
+            alert("Session logged!");
+        }
     };
 
     // ... (Rest of component is unchanged) ...
@@ -291,7 +305,7 @@ const RhythmTool = (props) => {
 
                 <QuizLayout
                     title="Rhythm Trainer"
-                    score={0} totalAsked={0} history={[]} 
+                    score={null} totalAsked={null} history={[]} 
                     topControls={topControlsContent} 
                     onLogProgress={handleLog} 
                     onToggleControls={() => setIsControlsOpen(p => !p)}

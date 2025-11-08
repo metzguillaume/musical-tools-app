@@ -1,6 +1,6 @@
 // src/components/rhythmTool/rhythmConstants.js
 
-// +++ UPDATED: Simplified palette, removed pre-beamed groups +++
+// +++ UPDATED: Added new 'group' types +++
 export const NOTE_TYPES = {
     'whole': { duration: 4, type: 'note', label: 'Whole', symbol: '𝅝' },
     'dottedHalf': { duration: 3, type: 'note', label: 'Dotted Half', symbol: '𝅗𝅥.' },
@@ -11,13 +11,28 @@ export const NOTE_TYPES = {
     'eighth': { duration: 0.5, type: 'note', label: 'Eighth', symbol: '♪' },
     'sixteenth': { duration: 0.25, type: 'note', label: 'Sixteenth', symbol: '𝅘𝅥𝅯' },
     
-    // +++ NEW: Added Triplet group +++
+    // +++ NEW Beamed Groups +++
+    'eighthBeamedPair': { 
+        duration: 1, 
+        type: 'group',
+        playback: [0.5, 0.5], 
+        label: 'Two 8ths', 
+        symbol: '♫' // Using '♫' as a simple symbol
+    },
+    'sixteenthBeamedGroup': {
+        duration: 1,
+        type: 'group',
+        playback: [0.25, 0.25, 0.25, 0.25],
+        label: 'Four 16ths',
+        symbol: '♬' // Using '♬' as a simple symbol
+    },
+    
     'tripletEighth': { 
-        duration: 1, // Takes the space of 1 quarter note
-        type: 'triplet', // Special type
-        playback: [1/3, 1/3, 1/3], // Plays 3 notes
+        duration: 1, 
+        type: 'triplet',
+        playback: [1/3, 1/3, 1/3], 
         label: 'Eighth Triplet', 
-        symbol: '³♪' // Placeholder symbol
+        symbol: '³♪'
     },
 };
 
@@ -30,7 +45,11 @@ export const REST_TYPES = {
 };
 
 export const ALL_RHYTHM_TYPES = { ...NOTE_TYPES, ...REST_TYPES };
-export const PALETTE_ITEMS = [ ...Object.entries(NOTE_TYPES), ...Object.entries(REST_TYPES) ];
+// +++ UPDATED: Added new groups to the palette +++
+export const PALETTE_ITEMS = [ 
+    ...Object.entries(NOTE_TYPES), 
+    ...Object.entries(REST_TYPES) 
+];
 
 export const TIME_SIGNATURES = [
     { beats: 4, beatType: 4, label: '4/4' },
@@ -39,34 +58,47 @@ export const TIME_SIGNATURES = [
     { beats: 6, beatType: 8, label: '6/8' },
 ];
 
-export const RHYTHM_BANK = {
-    'level1': {
-        label: 'Level 1: Basic',
-        items: ['quarter', 'half', 'whole', 'quarterRest', 'halfRest']
+export const RHYTHM_CHOICES = [
+    {
+        label: "Notes",
+        items: Object.entries(NOTE_TYPES).map(([key, value]) => ({ key, ...value }))
     },
-    'level2': {
-        label: 'Level 2: Eighths',
-        items: ['quarter', 'half', 'eighth', 'quarterRest', 'eighthRest']
-    },
-    'level3': {
-        label: 'Level 3: Sixteenths',
-        items: ['quarter', 'eighth', 'sixteenth', 'quarterRest', 'eighthRest']
-    },
-    'level4': {
-        label: 'Level 4: Dotted',
-        items: ['dottedQuarter', 'dottedEighth', 'quarter', 'eighth', 'sixteenth', 'quarterRest', 'eighthRest']
-    },
-    'level5': {
-        label: 'Level 5: Triplets',
-        items: ['quarter', 'eighth', 'tripletEighth', 'quarterRest', 'eighthRest']
-    },
-    'level6': {
-        label: 'Level 6: All',
-        items: Object.keys(ALL_RHYTHM_TYPES) // All available items
+    {
+        label: "Rests",
+        items: Object.entries(REST_TYPES).map(([key, value]) => ({ key, ...value }))
     }
-};
+];
 
-export const QUIZ_LEVELS = Object.entries(RHYTHM_BANK).map(([key, value]) => ({
-    id: key,
-    label: value.label,
-}));
+// +++ UPDATED: Simplified pattern bank to use new group types +++
+export const RHYTHM_PATTERN_BANK = [
+    // --- Complexity 1 (Basic On-Beat) ---
+    { duration: 1, types: ['quarter'], notes: ['quarter'], complexity: 1 },
+    { duration: 2, types: ['half'], notes: ['half'], complexity: 1 },
+    { duration: 4, types: ['whole'], notes: ['whole'], complexity: 1 },
+    { duration: 1, types: ['quarterRest'], notes: ['quarterRest'], complexity: 1 },
+    { duration: 2, types: ['halfRest'], notes: ['halfRest'], complexity: 1 },
+    { duration: 4, types: ['wholeRest'], notes: ['wholeRest'], complexity: 1 },
+    { duration: 1, types: ['eighthBeamedPair'], notes: ['eighthBeamedPair'], complexity: 1 }, // <-- USE NEW TYPE
+    { duration: 1, types: ['eighth', 'eighthRest'], notes: ['eighth', 'eighthRest'], complexity: 1 },
+    { duration: 1, types: ['eighthRest', 'eighth'], notes: ['eighthRest', 'eighth'], complexity: 1 },
+
+    // --- Complexity 2 (Basic 16th Patterns) ---
+    { duration: 1, types: ['sixteenthBeamedGroup'], notes: ['sixteenthBeamedGroup'], complexity: 2 }, // <-- USE NEW TYPE
+    { duration: 1, types: ['eighth', 'sixteenth', 'sixteenth'], notes: ['eighth', 'sixteenth', 'sixteenth'], complexity: 2 },
+    { duration: 1, types: ['sixteenth', 'sixteenth', 'eighth'], notes: ['sixteenth', 'sixteenth', 'eighth'], complexity: 2 },
+    { duration: 1, types: ['eighthRest', 'sixteenth', 'sixteenth'], notes: ['eighthRest', 'sixteenth', 'sixteenth'], complexity: 2 },
+    { duration: 1, types: ['sixteenth', 'sixteenth', 'eighthRest'], notes: ['sixteenth', 'sixteenth', 'eighthRest'], complexity: 2 },
+
+    // --- Complexity 3 (Dotted 8th Patterns) ---
+    { duration: 1, types: ['dottedEighth', 'sixteenth'], notes: ['dottedEighth', 'sixteenth'], complexity: 3 },
+    { duration: 1, types: ['sixteenth', 'dottedEighth'], notes: ['sixteenth', 'dottedEighth'], complexity: 3 },
+    { duration: 1.5, types: ['dottedQuarter'], notes: ['dottedQuarter'], complexity: 3 },
+
+    // --- Complexity 4 (Syncopated 16ths) ---
+    { duration: 1, types: ['sixteenth', 'eighth', 'sixteenth'], notes: ['sixteenth', 'eighth', 'sixteenth'], complexity: 4 },
+    { duration: 1, types: ['sixteenthRest', 'eighth', 'sixteenth'], notes: ['sixteenthRest', 'eighth', 'sixteenth'], complexity: 4 },
+    { duration: 1, types: ['sixteenth', 'eighth', 'sixteenthRest'], notes: ['sixteenth', 'eighth', 'sixteenthRest'], complexity: 4 },
+
+    // --- Complexity 5 (Triplets) ---
+    { duration: 1, types: ['tripletEighth'], notes: ['tripletEighth'], complexity: 5 },
+];

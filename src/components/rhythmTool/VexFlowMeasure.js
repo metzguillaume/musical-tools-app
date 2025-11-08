@@ -1,5 +1,7 @@
 // src/components/rhythmTool/VexFlowMeasure.js
 
+// src/components/rhythmTool/VexFlowMeasure.js
+
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Renderer, Stave, StaveNote, Voice, Formatter, Beam, Tuplet, Dot } from 'vexflow';
 import { useDroppable } from '@dnd-kit/core';
@@ -102,44 +104,47 @@ export const VexFlowMeasure = ({
             const tuplets = [];
             const manualBeams = []; 
             
-            // +++ This check is key for the logic below +++
-            const userDuration = measure.reduce((sum, item) => sum + item.duration, 0);
-            const isMeasureFull = userDuration >= beatsPerMeasure - 0.001;
-            
             measure.forEach(item => {
                 if (item.type === 'note' || item.type === 'rest') {
                     const vexNote = getVexNoteConfig(item);
-                    vexNote.attrs.id = item.id; 
+                    vexNote.attrs.id = item.id;
+                    if (item.type === 'note') {
+                        vexNote.setStemDirection(StaveNote.STEM_DOWN);
+                    }
                     notes.push(vexNote);
                 } else if (item.type === 'group' && item.playback) {
                     const groupNotes = item.playback.map((pbDuration, index) => {
                         const noteId = `${item.id}-sub-${index}`;
                         const vexNote = getVexNoteConfig({ duration: pbDuration, type: 'note' }); 
                         vexNote.attrs.id = noteId;
+                        vexNote.setStemDirection(-1); // Force stems down (-1)
                         return vexNote;
                     });
-                    manualBeams.push(new Beam(groupNotes)); 
+                    const beam = new Beam(groupNotes, true); // true = auto_stem
+                    beam.stem_direction = -1; // Force beam stem down
+                    manualBeams.push(beam); 
                     notes.push(...groupNotes);
                 } else if (item.type === 'triplet' && item.playback) {
                     const tripletNotes = item.playback.map((pbDuration, index) => {
                         const noteId = `${item.id}-sub-${index}`;
                         const vexNote = getVexNoteConfig({ duration: 0.5, type: 'note' }); 
                         vexNote.attrs.id = noteId;
-                        // +++ FIX 1: Force triplet stems down to match +++
-                        vexNote.setStemDirection(StaveNote.STEM_DOWN);
+                        vexNote.setStemDirection(-1); // Force stems down (-1)
                         return vexNote;
                     });
                     
                     tuplets.push(new Tuplet(tripletNotes)); 
-                    // +++ FIX 1: Re-add manual beam for triplets +++
-                    manualBeams.push(new Beam(tripletNotes)); 
+                    const beam = new Beam(tripletNotes, true); // true = auto_stem
+                    beam.stem_direction = -1; // Force beam stem down
+                    manualBeams.push(beam);
                     notes.push(...tripletNotes);
                 }
             });
 
             // Auto-fill with rests in write mode
             let allTickables = [...notes];
-            if (!isQuizMode && !isMeasureFull && userDuration < beatsPerMeasure) {
+            const userDuration = measure.reduce((sum, item) => sum + item.duration, 0);
+            if (!isQuizMode && userDuration < beatsPerMeasure) {
                 const remainingDuration = beatsPerMeasure - userDuration;
                 if (remainingDuration > 0.001) {
                     const rests = getRestsForDuration(remainingDuration);
@@ -162,24 +167,21 @@ export const VexFlowMeasure = ({
                 const formatter = new Formatter().joinVoices([voice]);
                 const minRequiredWidth = formatter.preCalculateMinTotalWidth([voice]);
                 
-                let finalStaveWidth;
-                let formatWidth;
-
-                // +++ FIX 2: This is the definitive logic +++
-                if (isMeasureFull && minRequiredWidth > defaultStaveWidth) {
-                    // DENSE MEASURE (Overflow fix)
-                    // Use natural width and expand the container
-                    finalStaveWidth = minRequiredWidth;
-                    formatWidth = minRequiredWidth; // Format to natural size (no stretch)
-                } else {
-                    // SPARSE MEASURE (Empty space fix)
-                    // Use default width and stretch the notes
-                    finalStaveWidth = defaultStaveWidth;
-                    formatWidth = defaultStaveWidth; // Format (stretch) to default size
-                }
-                // +++ END FIX +++
-
+                // +++ CORRECT FIX FOR DENSE MEASURES +++
+                // Calculate stave width with buffer for dense measures
+                const densityBuffer = 1.25; // 25% extra space for container
+                const minRequiredWithBuffer = minRequiredWidth * densityBuffer;
+                
+                // 1. The stave width (container) should be large enough with buffer
+                const finalStaveWidth = Math.max(defaultStaveWidth, minRequiredWithBuffer);
+                
+                // 2. Format width should be SMALLER than stave to leave margin
+                //    Use 90% of the stave width to ensure notes fit with padding
+                const formatWidth = finalStaveWidth * 0.9;
+                // +++ END CORRECT FIX +++
+                
                 const finalWidth = finalStaveWidth + (PADDING * 2);
+                
                 renderer.resize(finalWidth, 120); 
                 setRenderedWidth(finalWidth);
 
@@ -189,12 +191,16 @@ export const VexFlowMeasure = ({
                 }
                 stave.setContext(context).draw();
 
-                // Get notes that are not part of manual groups or tuplets
                 const notesToAutoBeam = notes.filter(n => 
                     !tuplets.some(t => t.getNotes().includes(n)) &&
                     !manualBeams.some(b => b.getNotes().includes(n))
                 );
                 const autoBeams = Beam.generateBeams(notesToAutoBeam);
+                
+                // Set stem direction on auto-generated beams
+                autoBeams.forEach(beam => {
+                    beam.stem_direction = -1; // Force down
+                });
                 
                 formatter.format([voice], formatWidth, { align_rests: true }); 
 
@@ -223,7 +229,6 @@ export const VexFlowMeasure = ({
                         ${!isQuizMode ? 'cursor-copy' : ''}
                         ${isPlaying ? 'ring-2 ring-yellow-400 shadow-lg' : 'border-gray-400'}
                       `}
-            // +++ Use dynamic state for width +++
             style={{ minHeight: '120px', width: `${renderedWidth}px` }} 
         >
             <div 

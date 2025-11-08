@@ -300,8 +300,37 @@ const RhythmTool = (props) => {
         <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="flex flex-col md:flex-row items-start w-full gap-4">
                 <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Rhythm Trainer Guide">
-                    {/* ... (Info modal content is unchanged) ... */}
+                    <div className="space-y-4 text-gray-300">
+                        <p>Welcome to the Rhythm Trainer! This tool has two modes:</p>
+                        
+                        <div>
+                            <h4 className="font-semibold text-lg text-teal-300 mb-1">Write Mode</h4>
+                            <p>
+                                Compose your own rhythms. Drag notes from the palette at the bottom onto a measure. The measure will automatically fill with rests.
+                            </p>
+                            <ul className="list-disc list-inside ml-4 mt-2">
+                                <li>Use the "Play" button on a measure to hear it.</li>
+                                <li>Use "Play All" to hear all measures.</li>
+                                <li>Click "Undo" to remove the last note added.</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h4 className="font-semibold text-lg text-teal-300 mb-1">Read Quiz Mode</h4>
+                            <p>
+                                Test your rhythm reading skills. The tool will generate a rhythm based on your settings.
+                            </p>
+                            <ul className="list-disc list-inside ml-4 mt-2">
+                                <li>Press "Check Answer" to hear the rhythm played back.</li>
+                                <li>Use the settings panel to control the quiz parameters.</li>
+                                <li>**Complexity:** Controls *how* rhythms are combined, from simple on-beats to complex syncopation.</li>
+                                <li>**Include Rhythms:** Select which *ingredients* (notes/rests) are allowed in the quiz.</li>
+                            </ul>
+                        </div>
+
+                    </div>
                 </InfoModal>
+                {/* +++ END INFO MODAL +++ */}
 
                 <QuizLayout
                     title="Rhythm Trainer"

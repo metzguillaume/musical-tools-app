@@ -44,6 +44,9 @@ export const RhythmToolControls = ({ settings, bpm, onBpmChange, onSettingChange
         5: "Level 5: All Patterns (Triplets)"
     };
 
+    // Filter out 6/8 time signature temporarily
+    const availableTimeSignatures = TIME_SIGNATURES.filter(ts => ts.label !== '6/8');
+
     return (
         <div className="space-y-4">
             <div>
@@ -119,7 +122,7 @@ export const RhythmToolControls = ({ settings, bpm, onBpmChange, onSettingChange
                      <div>
                         <label htmlFor="timeSignature" className="block text-sm font-medium text-gray-300 mb-1">Time Signature</label>
                         <select id="timeSignature" name="timeSignature" value={settings.timeSignature.label} onChange={handleSelectChange} className="w-full p-2 rounded-md bg-slate-600 text-white">
-                            {TIME_SIGNATURES.map(ts => <option key={ts.label} value={ts.label}>{ts.label}</option>)}
+                            {availableTimeSignatures.map(ts => <option key={ts.label} value={ts.label}>{ts.label}</option>)}
                         </select>
                     </div>
                 </div>

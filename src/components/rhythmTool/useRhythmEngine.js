@@ -139,7 +139,6 @@ export const useRhythmEngine = () => {
     const [currentlyPlayingId, setCurrentlyPlayingId] = useState(null);
     const [currentlyPlayingMeasureIndex, setCurrentlyPlayingMeasureIndex] = useState(null);
     const transportEventsRef = useRef([]);
-    // +++ REMOVED: globalMetronomeWasPlaying ref +++
 
     const { 
         unlockAudio, 
@@ -151,7 +150,6 @@ export const useRhythmEngine = () => {
         isMetronomeReady, 
         setBpm: setGlobalBpm, 
         metronomePlayer,
-        // +++ REMOVED: startMetronome and isMetronomePlaying +++
         stopMetronome,
     } = useTools();
 
@@ -302,13 +300,10 @@ export const useRhythmEngine = () => {
         Tone.Transport.position = 0;
         
         setIsPlaying(false);
+    }, []); 
 
-        // +++ FIX: Removed restart logic +++
-        // (No logic here)
-
-    }, []); // <-- Removed startMetronome dependency
-
-    const playMeasures = useCallback(async (measuresToPlay) => {
+    // +++ FIX 1: Add 'indexOffset' parameter +++
+    const playMeasures = useCallback(async (measuresToPlay, indexOffset = 0) => {
         if (isPlaying) {
             stopRhythm();
             return;
@@ -325,9 +320,7 @@ export const useRhythmEngine = () => {
         await unlockAudio(); 
         setIsPlaying(true);
 
-        // +++ FIX: Stop global metronome. No need to remember state. +++
         stopMetronome();
-        // +++ END FIX +++
 
         const { countdownClicks, timeSignature, useMetronome } = settings; 
         const quarterNoteDuration = 60 / bpm;
@@ -375,11 +368,13 @@ export const useRhythmEngine = () => {
         }
 
         let scheduleTime = rhythmStartTime;
-        measuresToPlay.forEach((measure, measureIndex) => { 
+        // +++ FIX 2: Loop with 'i' and calculate the correct 'measureIndex' +++
+        measuresToPlay.forEach((measure, i) => { 
+            const measureIndex = indexOffset + i; // This is the correct index
             
             const firstNoteTime = scheduleTime;
             const highlightMeasureEvent = transport.scheduleOnce(time => {
-                Tone.Draw.schedule(() => setCurrentlyPlayingMeasureIndex(measureIndex), time);
+                Tone.Draw.schedule(() => setCurrentlyPlayingMeasureIndex(measureIndex), time); // Use correct index
             }, firstNoteTime);
             transportEventsRef.current.push(highlightMeasureEvent);
 
@@ -432,7 +427,8 @@ export const useRhythmEngine = () => {
             });
 
             const measureFullDuration = beatsPerMeasure * quarterNoteDuration;
-            scheduleTime = rhythmStartTime + ( (measureIndex + 1) * measureFullDuration );
+            // +++ FIX 3: Use 'i' for time calculation +++
+            scheduleTime = rhythmStartTime + ( (i + 1) * measureFullDuration );
         });
 
         const cleanupTime = rhythmStartTime + totalDurationInSeconds + 0.1;
@@ -442,8 +438,6 @@ export const useRhythmEngine = () => {
                 setCurrentlyPlayingId(null); 
                 setCurrentlyPlayingMeasureIndex(null); 
                 setIsPlaying(false);
-                // +++ FIX: Removed restart logic +++
-                // (No logic here)
             }, time);
             
             transport.stop(time); 
@@ -469,18 +463,19 @@ export const useRhythmEngine = () => {
         metronomeVolume,
         rhythmNotePlayer,
         beatsPerMeasure,
-        stopMetronome // <-- Removed isMetronomePlaying and startMetronome
+        stopMetronome
     ]);
 
+    // +++ FIX 4: Call playMeasures with the correct offsets +++
     const playRhythm = useCallback(() => {
         const rhythmToPlay = settings.mode === 'read' ? quizAnswer : measures;
-        playMeasures(rhythmToPlay);
+        playMeasures(rhythmToPlay, 0); // Play all measures starting from index 0
     }, [playMeasures, settings.mode, quizAnswer, measures]);
 
     const playMeasure = useCallback((measureIndex) => {
         const measureToPlay = measures[measureIndex];
         if (measureToPlay) {
-            playMeasures([measureToPlay]);
+            playMeasures([measureToPlay], measureIndex); // Play one measure, passing its real index
         }
     }, [playMeasures, measures]);
 

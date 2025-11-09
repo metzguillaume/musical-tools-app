@@ -121,7 +121,8 @@ const generateQuizRhythm = (settings) => {
 };
 
 
-export const useRhythmEngine = () => {
+// +++ FIX 1: Accept presetToLoad and clearPresetToLoad as props +++
+export const useRhythmEngine = ({ presetToLoad, clearPresetToLoad }) => {
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
     const [bpm, setLocalBpm] = useState(60); 
 
@@ -167,6 +168,43 @@ export const useRhythmEngine = () => {
         const { beats, beatType } = settings.timeSignature;
         return (beats * (4 / beatType)); 
     }, [settings.timeSignature]);
+
+    // +++ FIX 2: Add this useEffect to handle preset loading +++
+    useEffect(() => {
+        if (presetToLoad && presetToLoad.gameId === 'rhythm-trainer') {
+            const presetSettings = { ...presetToLoad.settings };
+            
+            // 1. Handle BPM
+            if (presetSettings.bpm) {
+                setBpm(presetSettings.bpm); // This is the local/global setter
+            }
+            delete presetSettings.bpm; 
+
+            // 2. Fix timeSignature (it's an object)
+            if (presetSettings.timeSignature?.label) {
+                presetSettings.timeSignature = TIME_SIGNATURES.find(
+                    ts => ts.label === presetSettings.timeSignature.label
+                ) || TIME_SIGNATURES[0];
+            }
+
+            // 3. Set the new settings
+            const newSettings = { ...DEFAULT_SETTINGS, ...presetSettings };
+            setSettings(newSettings); 
+
+            // 4. Manually regenerate measures based on new settings (THE MISSING STEP)
+            if (newSettings.mode === 'read') {
+                const quiz = generateQuizRhythm(newSettings);
+                setQuizAnswer(quiz);
+                setMeasures(quiz);
+            } else {
+                const writeCount = newSettings.writeMeasureCount || 1;
+                setMeasures(Array.from({ length: writeCount }, createEmptyMeasure));
+            }
+            
+            clearPresetToLoad();
+        }
+    }, [presetToLoad, clearPresetToLoad, setBpm]); // <-- Dependencies are correct
+
 
     const measureDurations = useMemo(() => {
         return measures.map(measure => 
@@ -231,7 +269,7 @@ export const useRhythmEngine = () => {
         });
     }, []);
 
-    // ... (removeMeasure, addRhythmItem, etc. are unchanged) ...
+    // ... (rest of the file is unchanged: removeMeasure, addRhythmItem, etc.) ...
     const removeMeasure = useCallback((measureIndex) => {
         setMeasures(prevMeasures => {
             if (prevMeasures.length <= 1) return prevMeasures; 
@@ -302,7 +340,6 @@ export const useRhythmEngine = () => {
         setIsPlaying(false);
     }, []); 
 
-    // +++ FIX 1: Add 'indexOffset' parameter +++
     const playMeasures = useCallback(async (measuresToPlay, indexOffset = 0) => {
         if (isPlaying) {
             stopRhythm();
@@ -368,13 +405,12 @@ export const useRhythmEngine = () => {
         }
 
         let scheduleTime = rhythmStartTime;
-        // +++ FIX 2: Loop with 'i' and calculate the correct 'measureIndex' +++
         measuresToPlay.forEach((measure, i) => { 
-            const measureIndex = indexOffset + i; // This is the correct index
+            const measureIndex = indexOffset + i;
             
             const firstNoteTime = scheduleTime;
             const highlightMeasureEvent = transport.scheduleOnce(time => {
-                Tone.Draw.schedule(() => setCurrentlyPlayingMeasureIndex(measureIndex), time); // Use correct index
+                Tone.Draw.schedule(() => setCurrentlyPlayingMeasureIndex(measureIndex), time);
             }, firstNoteTime);
             transportEventsRef.current.push(highlightMeasureEvent);
 
@@ -427,7 +463,6 @@ export const useRhythmEngine = () => {
             });
 
             const measureFullDuration = beatsPerMeasure * quarterNoteDuration;
-            // +++ FIX 3: Use 'i' for time calculation +++
             scheduleTime = rhythmStartTime + ( (i + 1) * measureFullDuration );
         });
 
@@ -466,16 +501,15 @@ export const useRhythmEngine = () => {
         stopMetronome
     ]);
 
-    // +++ FIX 4: Call playMeasures with the correct offsets +++
     const playRhythm = useCallback(() => {
         const rhythmToPlay = settings.mode === 'read' ? quizAnswer : measures;
-        playMeasures(rhythmToPlay, 0); // Play all measures starting from index 0
+        playMeasures(rhythmToPlay, 0); 
     }, [playMeasures, settings.mode, quizAnswer, measures]);
 
     const playMeasure = useCallback((measureIndex) => {
         const measureToPlay = measures[measureIndex];
         if (measureToPlay) {
-            playMeasures([measureToPlay], measureIndex); // Play one measure, passing its real index
+            playMeasures([measureToPlay], measureIndex); 
         }
     }, [playMeasures, measures]);
 

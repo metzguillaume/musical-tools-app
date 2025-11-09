@@ -13,10 +13,12 @@ import { CagedQuizControls } from '../caged/CagedQuizControls';
 import { IntervalEarTrainerControls } from '../earTraining/IntervalEarTrainerControls';
 import { MelodicEarTrainerControls } from '../earTraining/MelodicEarTrainerControls';
 import { ChordTrainerControls } from '../chordTrainer/ChordTrainerControls';
-// +++ IMPORT the FretboardTriadsControls component +++
 import { FretboardTriadsControls } from '../fretboardTriads/FretboardTriadsControls';
 import { ChordEarTrainerControls } from '../earTraining/chordRecognition/ChordEarTrainerControls';
 import { ProgressionEarTrainerControls } from '../earTraining/progressionRecognition/ProgressionEarTrainerControls';
+// +++ ADD THIS IMPORT (you may need to correct the path) +++
+import { RhythmToolControls } from '../rhythmTool/RhythmToolControls';
+
 
 // Map game IDs to their corresponding controls component
 const controlsMap = {
@@ -30,21 +32,19 @@ const controlsMap = {
     'interval-ear-trainer': IntervalEarTrainerControls,
     'melodic-ear-trainer': MelodicEarTrainerControls,
     'chord-trainer': ChordTrainerControls,
-    // +++ ADD the new entry for Fretboard Triads +++
     'fretboard-triads': FretboardTriadsControls,
     'chord-ear-trainer': ChordEarTrainerControls,
     'progression-ear-trainer': ProgressionEarTrainerControls,
+    // +++ ADD THIS ENTRY +++
+    'rhythm-trainer': RhythmToolControls,
 };
 
 const PresetEditorModal = ({ preset, onSave, onCancel }) => {
-    // A single state object to hold all changes to the preset
     const [editedPreset, setEditedPreset] = useState({ ...preset });
-    // State for managing collapsible sections within some control components
     const [openSections, setOpenSections] = useState({ general: true, quiz: true, selection: true, playback: true, question: true, options: true, display: true, automation: true });
 
     const ControlsComponent = controlsMap[preset.gameId];
 
-    // Generic handler for simple key-value changes in the 'settings' object
     const handleSettingChange = (key, value) => {
         setEditedPreset(p => ({ ...p, settings: { ...p.settings, [key]: value } }));
     };
@@ -57,7 +57,6 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
         onSave(editedPreset);
     };
 
-    // This function builds the specific set of props needed by each unique controls component
     const getControlsProps = () => {
         const baseProps = {
             settings: editedPreset.settings,
@@ -74,7 +73,7 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                     onAudioDirectionChange: (val) => handleSettingChange('audioDirection', val),
                     localVolume: editedPreset.settings.fretboardVolume,
                     onLocalVolumeChange: (val) => handleSettingChange('fretboardVolume', val),
-                    onVolumeSet: () => {}, // Not needed in editor
+                    onVolumeSet: () => {}, 
                     onIntervalSelectionChange: (name) => handleSettingChange('selectedIntervals', { ...editedPreset.settings.selectedIntervals, [name]: !editedPreset.settings.selectedIntervals[name] }),
                     onQuickSelect: (quality) => {
                         const newSelection = { ...editedPreset.settings.selectedIntervals };
@@ -102,10 +101,9 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
             case 'progression-ear-trainer':
                 return {
                     ...baseProps,
-        // The generic onSettingChange from baseProps works for these components
-                        onRandomKey: () => {}, // Dummy function for editor
-                    onApplySettings: () => {}, // Dummy function for editor
-    };
+                    onRandomKey: () => {}, 
+                    onApplySettings: () => {}, 
+                };
 
             case 'caged-system-quiz':
                  return {
@@ -137,7 +135,6 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                     onCountdownChange: (val) => setEditedPreset(p => ({...p, automation: {...p.automation, countdownClicks: val }})),
                 };
             
-            // +++ ADD a case for Fretboard Triads to handle its specific onSettingChange prop +++
             case 'fretboard-triads':
                 return {
                     ...baseProps,
@@ -149,7 +146,22 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                     },
                 };
             
-            // This default case handles NoteGenerator, IntervalGenerator, and others with similar automation props
+            // +++ ADD THIS NEW CASE FOR THE RHYTHM TRAINER +++
+            case 'rhythm-trainer':
+                return {
+                    ...baseProps,
+                    // Extract bpm from settings for the slider
+                    bpm: editedPreset.settings.bpm || 60, 
+                    // Handle bpm changes by updating the settings object
+                    onBpmChange: (newBpm) => {
+                        setEditedPreset(p => ({
+                            ...p,
+                            settings: { ...p.settings, bpm: newBpm }
+                        }));
+                    },
+                    // onSettingChange is already handled by baseProps
+                };
+            
             default:
                 const hasAutomation = preset.gameId === 'note-generator' || preset.gameId === 'interval-generator';
                 if (hasAutomation) {

@@ -1,4 +1,5 @@
 // src/context/defaultPresets.js
+import { TIME_SIGNATURES } from '../components/rhythmTool/rhythmConstants';
 
 /**
  * Defines the default, non-deletable presets that are available to the user from the start.
@@ -265,6 +266,30 @@ export const defaultPresets = [
             rootNote: 'C',
             scaleType: 'Major',
             showLabels: true,
+        },
+    },
+    // +++ ADD THIS NEW PRESET FOR RHYTHM TRAINER +++
+    {
+        id: 'default-15',
+        name: 'Default Rhythm Quiz',
+        gameId: 'rhythm-trainer',
+        gameName: 'Rhythm Trainer',
+        isDefault: true,
+        settings: {
+            timeSignature: TIME_SIGNATURES[0], // 4/4
+            measureCount: 1,
+            mode: 'read', 
+            countdownClicks: 4,
+            showBeatDisplay: true,
+            useMetronome: true,
+            writeMeasureCount: 1, 
+            quizMeasureCount: 1, 
+            quizComplexity: 1, 
+            allowedRhythms: [
+                'half', 'quarter', 'eighth', 'sixteenth',
+                'wholeRest', 'quarterRest', 'eighthRest'
+            ],
+            bpm: 60 // This is the default BPM
         },
     },
 ];

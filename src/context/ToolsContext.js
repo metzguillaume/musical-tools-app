@@ -93,7 +93,6 @@ export const ToolsProvider = ({ children }) => {
             onload: () => {
                 setIsRhythmNoteReady(true);
             },
-            // +++ FIX: Changed from 0.1 to 0.01 to remove staccato +++
             fadeOut: 0.01
         }).toDestination();
         return () => {
@@ -101,13 +100,13 @@ export const ToolsProvider = ({ children }) => {
         };
     }, []);
 
-    // ... (rest of the file is unchanged) ...
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // +++ THIS IS THE LINTER FIX +++
     useEffect(() => {
         if (metronome.setMetronomeSchedule) {
             metronome.setMetronomeSchedule(null);
         }
-    }, [activeTab, metronome.setMetronomeSchedule]);
+    }, [activeTab, metronome]); // <-- Changed dependency
+    // +++ END FIX +++
 
     const loadPreset = useCallback((presetToLoad) => { 
         updatePreset(presetToLoad.id, { ...presetToLoad, lastUsed: new Date().toISOString() }); 

@@ -51,9 +51,10 @@ const RhythmTool = (props) => {
     const [activeDragItem, setActiveDragItem] = useState(null);
     const [lastPlayedId, setLastPlayedId] = useState(null);
 
+    // +++ FIX: Pass preset props into the hook +++
     const { 
         settings, 
-        setSettings,
+        // setSettings, // No longer used directly
         bpm,
         setBpm,
         measures, 
@@ -63,25 +64,10 @@ const RhythmTool = (props) => {
         currentlyPlayingMeasureIndex, 
         isQuizMode,
         actions 
-    } = useRhythmEngine();
+    } = useRhythmEngine({ presetToLoad, clearPresetToLoad });
 
-    // ... (useEffect for preset loading - no changes) ...
-    useEffect(() => {
-        if (presetToLoad && presetToLoad.gameId === 'rhythm-trainer') {
-            const presetSettings = { ...presetToLoad.settings };
-            if (presetToLoad.settings.timeSignature?.label) {
-                presetSettings.timeSignature = TIME_SIGNATURES.find(
-                    ts => ts.label === presetToLoad.settings.timeSignature.label
-                ) || TIME_SIGNATURES[0];
-            }
-            if (presetSettings.bpm) {
-                setBpm(presetSettings.bpm);
-            }
-            delete presetSettings.bpm; 
-            setSettings(prev => ({...prev, ...presetSettings})); 
-            clearPresetToLoad();
-        }
-    }, [presetToLoad, clearPresetToLoad, setSettings, setBpm]);
+    // +++ FIX: This useEffect is now GONE, as the logic is inside useRhythmEngine +++
+    // (The old, buggy preset-loading useEffect has been removed)
 
     // ... (useEffect for highlighting NOTE - no changes) ...
     useEffect(() => {
@@ -189,8 +175,7 @@ const RhythmTool = (props) => {
         </div>
     );
 
-    // +++ FIX 2: Set a fixed default width +++
-    // This (4 * 120) is a good standard width for 4/4 and gives 3/4 and 2/4 plenty of space.
+    // ... (defaultMeasureWidth - no changes) ...
     const defaultMeasureWidth = 480; 
     
     const mainContent = (
@@ -205,7 +190,7 @@ const RhythmTool = (props) => {
                             <VexFlowMeasure
                                 measure={measure}
                                 timeSignature={settings.timeSignature}
-                                width={defaultMeasureWidth} // Pass the fixed width
+                                width={defaultMeasureWidth}
                                 measureIndex={index}
                                 isQuizMode={isQuizMode}
                                 beatsPerMeasure={beatsPerMeasure}
@@ -280,7 +265,7 @@ const RhythmTool = (props) => {
         return mainContent;
     }
     
-    // +++ FIX 1: Updated handleLog to ask for custom message +++
+    // ... (handleLog - no changes) ...
     const handleLog = () => {
         const defaultRemarks = `Rhythm practice (${settings.timeSignature.label}, ${bpm} bpm, ${settings.mode} mode)`;
         const remarks = prompt("Enter log remarks:", defaultRemarks);
@@ -330,7 +315,6 @@ const RhythmTool = (props) => {
 
                     </div>
                 </InfoModal>
-                {/* +++ END INFO MODAL +++ */}
 
                 <QuizLayout
                     title="Rhythm Trainer"

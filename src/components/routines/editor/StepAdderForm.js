@@ -4,7 +4,7 @@ import PresetSelector from './PresetSelector';
 const gameToCategoryMap = {
     'Note Generator': 'Generators', 'Interval Generator': 'Generators', 'Chord Progression Generator': 'Generators', 'Diagram Maker': 'Generators',
     'Interval Practice': 'Theory', 'Triad & Tetrads Quiz': 'Theory', 'Chord Trainer': 'Theory',
-    'Fretboard Intervals': 'Fretboard', 'CAGED System Quiz': 'Fretboard', 'Fretboard Triads': 'Fretboard',
+    'Fretboard Intervals': 'Fretboard', 'CAGED System Quiz': 'Fretboard', 'Fretboard Triads': 'Fretboard','Pentatonic Shapes': 'Fretboard',
     'Interval Recognition': 'Ear Training', 'Melodic Recognition': 'Ear Training',
     'Chord Recognition': 'Ear Training', 'Progression Recognition': 'Ear Training',
 };

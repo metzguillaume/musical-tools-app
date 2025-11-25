@@ -18,6 +18,7 @@ import { ChordEarTrainerControls } from '../earTraining/chordRecognition/ChordEa
 import { ProgressionEarTrainerControls } from '../earTraining/progressionRecognition/ProgressionEarTrainerControls';
 // +++ ADD THIS IMPORT (you may need to correct the path) +++
 import { RhythmToolControls } from '../rhythmTool/RhythmToolControls';
+import { PentatonicQuizControls } from '../pentatonic/PentatonicQuizControls';
 
 
 // Map game IDs to their corresponding controls component
@@ -37,6 +38,7 @@ const controlsMap = {
     'progression-ear-trainer': ProgressionEarTrainerControls,
     // +++ ADD THIS ENTRY +++
     'rhythm-trainer': RhythmToolControls,
+    'pentatonic-shapes-quiz': PentatonicQuizControls,
 };
 
 const PresetEditorModal = ({ preset, onSave, onCancel }) => {
@@ -95,6 +97,17 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                     volume: editedPreset.settings.fretboardVolume,
                     onVolumeChange: (val) => handleSettingChange('fretboardVolume', val),
                 };
+
+            case 'pentatonic-shapes-quiz':
+                return {
+                    ...baseProps,
+                    quizMode: editedPreset.settings.quizMode,
+                    onQuizModeChange: (val) => handleSettingChange('quizMode', val),
+                    onSettingToggle: (type, key) => {
+                        if (type === 'shapes') handleSettingChange('shapes', { ...editedPreset.settings.shapes, [key]: !editedPreset.settings.shapes[key] });
+                        else handleSettingChange(key, !editedPreset.settings[key]);
+                    }
+                };    
 
             case 'melodic-ear-trainer':
             case 'chord-ear-trainer':

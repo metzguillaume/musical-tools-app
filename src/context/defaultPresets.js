@@ -268,6 +268,22 @@ export const defaultPresets = [
             showLabels: true,
         },
     },
+    // Pentatonic Shapes Default
+    {
+        id: 'default-16',
+        name: 'Default Pentatonic Quiz',
+        gameId: 'pentatonic-shapes-quiz',
+        gameName: 'Pentatonic Shapes',
+        isDefault: true,
+        settings: {
+            includeMajor: true,
+            includeMinor: true,
+            shapes: { C: true, A: true, G: true, E: true, D: true },
+            completeModeStartWithRoots: false,
+            quizMode: 'mixed',
+            autoAdvance: true,
+        },
+    },
     // +++ ADD THIS NEW PRESET FOR RHYTHM TRAINER +++
     {
         id: 'default-15',

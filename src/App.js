@@ -23,6 +23,7 @@ import ScoreboardPage from './components/routines/ScoreboardPage'; // UPDATED
 import PresetsManagerPage from './components/presets/PresetsManagerPage';
 import MusicCircles from './components/musicCircles/MusicCircles';
 import RhythmTool from './components/rhythmTool/RhythmTool';
+import PentatonicQuiz from './components/pentatonic/PentatonicQuiz';
 
 // The main UI component is now stateless and driven entirely by the context.
 const AppContent = () => {
@@ -75,6 +76,7 @@ const showMusicCircles = process.env.REACT_APP_SHOW_MUSIC_CIRCLES === 'true';
       tools: [
         { id: 'interval-fretboard-quiz', name: 'Fretboard Intervals' }, { id: 'caged-system-quiz', name: 'CAGED System Quiz' },
         { id: 'fretboard-triads', name: 'Fretboard Triads' },
+        { id: 'pentatonic-shapes-quiz', name: 'Pentatonic Shapes' },
       ],
     },
     {
@@ -155,6 +157,7 @@ const showMusicCircles = process.env.REACT_APP_SHOW_MUSIC_CIRCLES === 'true';
                   {activeTab === 'scoreboard' && <ScoreboardPage />}
                   {activeTab === 'presets-manager' && <PresetsManagerPage />}
                   {activeTab === 'rhythm-trainer' && <RhythmTool />}
+                  {activeTab === 'pentatonic-shapes-quiz' && <PentatonicQuiz />}
               </>
           )}
       </main>

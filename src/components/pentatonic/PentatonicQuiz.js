@@ -7,13 +7,13 @@ import { usePentatonicQuiz } from './usePentatonicQuiz';
 import { PentatonicQuizControls } from './PentatonicQuizControls';
 import { STANDARD_CAGED_ORDER, HIGHLIGHT_MASKS } from './pentatonicConstants';
 import { ROOT_NOTE_OPTIONS } from '../caged/cagedConstants';
+import { normalizeNoteName } from '../../utils/musicTheory'; // Added Import
 
 const PentatonicQuiz = ({ onProgressUpdate }) => {
     const { addLogEntry, savePreset, presetToLoad, clearPresetToLoad } = useTools();
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     
-    // State: Object for multi-select modes
     const [quizMode, setQuizMode] = useState({ identify: true, construct: false, complete: false, connect: false });
     
     const [settings, setSettings] = useState({
@@ -30,7 +30,6 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
             const { quizMode: presetQuizMode, ...presetSettings } = presetToLoad.settings;
             setSettings(prev => ({ ...prev, ...presetSettings }));
             
-            // Handle loading legacy presets (string) vs new presets (object)
             if (typeof presetQuizMode === 'string') {
                 if (presetQuizMode === 'mixed') {
                     setQuizMode({ identify: true, construct: true, complete: true, connect: true });
@@ -58,7 +57,6 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
         handleAnswerSelect, handleFretClick, checkAnswer, generateNewQuestion, userAnswer, setUserAnswer 
     } = quizProps;
 
-    // ENTER KEY LISTENER
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -98,6 +96,43 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
             });
             alert(`Preset "${name.trim()}" saved!`);
         }
+    };
+
+    // --- FEEDBACK RENDERER ---
+    const renderFeedback = () => {
+        // 1. Live Mode: Use the feedback state directly from the hook
+        if (!isReviewing) {
+            return (
+                <p className={`text-lg font-bold text-center ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
+                    {feedback.message || <>&nbsp;</>}
+                </p>
+            );
+        }
+
+        // 2. Review Mode: Reconstruct the feedback string from the history item
+        const item = itemToDisplay;
+        if (!item || !item.question) return <>&nbsp;</>;
+
+        const { answer } = item.question;
+        const isCorrect = item.wasCorrect;
+
+        // Format Root Note (e.g. "A#/Bb")
+        const normRoot = normalizeNoteName(answer.root);
+        const rootDisplay = ROOT_NOTE_OPTIONS.find(o => o.value === normRoot || o.altValue === normRoot)?.display || answer.root;
+        
+        // Format Quality (Capitalize)
+        const qualityDisplay = answer.quality.charAt(0).toUpperCase() + answer.quality.slice(1);
+        
+        // Construct Text
+        const answerText = `${rootDisplay} ${qualityDisplay} (${answer.shape} Shape)`;
+        const message = isCorrect ? `Correct! ${answerText}` : `Incorrect. It was ${answerText}.`;
+        const textColor = isCorrect ? 'text-green-400' : 'text-red-400';
+
+        return (
+            <p className={`text-lg font-bold text-center ${textColor}`}>
+                {message}
+            </p>
+        );
     };
 
     const renderPrompt = () => {
@@ -263,11 +298,11 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
                     <ul className="list-disc list-inside space-y-2">
                         <li><strong>Mixing Modes:</strong> Click multiple Game Modes to create a mixed practice session (e.g., Identify + Construct).</li>
                         <li><strong>Qualities & Shapes:</strong> Toggle specific scale qualities or CAGED shapes to focus your practice.</li>
-                        <li><strong>Complete Mode:</strong> Configure the Root note is always included as a hint.</li>
+                        <li><strong>Complete Mode:</strong> Configure how many start notes are shown and whether the Root note is always included as a hint.</li>
                     </ul>
                     
                     <div className="bg-slate-800 p-3 rounded-lg mt-4 border border-slate-600">
-                        <p className="text-xs italic"><strong>Tip:</strong> Use the <span className="font-bold text-white">Save Preset</span> button to save your custom configuration for quick recall in presets on the left side!</p>
+                        <p className="text-xs italic"><strong>Tip:</strong> Use the <span className="font-bold text-white">Save Preset</span> button to save your custom configuration for use in the Routine Hub!</p>
                     </div>
                 </div>
             </InfoModal>
@@ -291,8 +326,9 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
                     <FretboardDiagram notesToDisplay={notesForDiagram} onBoardClick={handleFretClick} showLabels={isAnswered || isReviewing || itemToDisplay.question?.mode === 'complete'} />
                 </div>
                 
+                {/* Updated: Call the new renderFeedback function */}
                 <div className={`my-4 min-h-[40px] flex flex-col justify-center`}>
-                     <p className={`text-lg font-bold text-center ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>{feedback.message || <>&nbsp;</>}</p>
+                     {renderFeedback()}
                 </div>
                 
                 {renderAnswerControls()}

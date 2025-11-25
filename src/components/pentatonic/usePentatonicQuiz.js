@@ -4,7 +4,7 @@ import { PENTATONIC_SHAPES, HIGHLIGHT_MASKS } from './pentatonicConstants.js';
 import { ROOT_NOTE_OPTIONS } from '../caged/cagedConstants.js';
 import { getWeightedEnharmonicName, normalizeNoteName } from '../../utils/musicTheory.js';
 
-export const usePentatonicQuiz = (quizModes, activeShapes, settings, onProgressUpdate) => {
+export const usePentatonicQuiz = (quizMode, activeShapes, settings, onProgressUpdate) => {
     const [score, setScore] = useState(0);
     const [totalAsked, setTotalAsked] = useState(0);
     const [feedback, setFeedback] = useState({ message: '', type: '' });
@@ -21,7 +21,7 @@ export const usePentatonicQuiz = (quizModes, activeShapes, settings, onProgressU
         setReviewIndex(null);
 
         // 1. Filter Active Modes
-        const activeModeKeys = Object.keys(quizModes).filter(k => quizModes[k]);
+        const activeModeKeys = Object.keys(quizMode).filter(k => quizMode[k]);
 
         if (activeShapes.length === 0 || activeModeKeys.length === 0) {
             setCurrentQuestion({ 
@@ -80,7 +80,6 @@ export const usePentatonicQuiz = (quizModes, activeShapes, settings, onProgressU
                 notes: answerNotes,
             };
 
-            // Generate Prompt Data Object (for colorful rendering)
             let promptData = {};
 
             switch (modeToUse) {
@@ -106,21 +105,25 @@ export const usePentatonicQuiz = (quizModes, activeShapes, settings, onProgressU
                     let potentialStartNotes = [...answerNotes];
                     
                     if (settings.completeModeStartWithRoots) {
-                        potentialStartNotes = potentialStartNotes.filter(n => n.isRoot);
+                        const roots = potentialStartNotes.filter(n => n.isRoot);
+                        if (roots.length >= 2) potentialStartNotes = roots;
+                        else potentialStartNotes = potentialStartNotes.filter(n => n.isRoot); 
                     }
 
                     potentialStartNotes.sort(() => 0.5 - Math.random());
 
                     const startNotes = [];
-                    const usedFrets = new Set();
-                    // HARDCODED: User requested 2 notes.
                     const countNeeded = 2; 
 
-                    for (let note of potentialStartNotes) {
-                        if (startNotes.length >= countNeeded) break;
-                        if (!usedFrets.has(note.fret)) {
-                            startNotes.push(note);
-                            usedFrets.add(note.fret);
+                    if (potentialStartNotes.length > 0) {
+                        const firstNote = potentialStartNotes[0];
+                        startNotes.push(firstNote);
+                        const distinctNote = potentialStartNotes.slice(1).find(n => Math.abs(n.fret - firstNote.fret) >= 2);
+                        
+                        if (distinctNote) {
+                            startNotes.push(distinctNote);
+                        } else if (potentialStartNotes.length > 1) {
+                            startNotes.push(potentialStartNotes[1]);
                         }
                     }
 
@@ -167,14 +170,14 @@ export const usePentatonicQuiz = (quizModes, activeShapes, settings, onProgressU
         setFeedback({ message: '', type: '' });
         setUserAnswer(modeToUse === 'identify' ? { root: null, quality: null, shape: null } : { notes: [] });
 
-    }, [activeShapes, quizModes, settings]);
+    }, [activeShapes, quizMode, settings]);
 
     useEffect(() => {
         setScore(0);
         setTotalAsked(0);
         setHistory([]);
         generateNewQuestion();
-    }, [quizModes, activeShapes, generateNewQuestion]);
+    }, [quizMode, activeShapes, generateNewQuestion]);
 
     const checkAnswer = useCallback((autoAdvance) => {
         if (isAnswered || !currentQuestion) return;
@@ -227,16 +230,18 @@ export const usePentatonicQuiz = (quizModes, activeShapes, settings, onProgressU
         const newScore = isCorrect ? score + 1 : score;
         const newTotalAsked = totalAsked + 1;
 
+        // GENERATE FEEDBACK TEXT
+        const normalizedRoot = normalizeNoteName(correct.root);
+        const rootDisplay = ROOT_NOTE_OPTIONS.find(opt => opt.value === normalizedRoot || opt.altValue === normalizedRoot)?.display || correct.root;
+        // Capitalize first letter of quality (major/minor)
+        const qualityDisplay = correct.quality.charAt(0).toUpperCase() + correct.quality.slice(1);
+        const answerText = `${rootDisplay} ${qualityDisplay} (${correct.shape} Shape)`;
+
         if (isCorrect) {
             setScore(newScore);
-            setFeedback({ message: 'Correct!', type: 'correct' });
+            setFeedback({ message: `Correct! ${answerText}`, type: 'correct' });
         } else {
-            if (currentQuestion.mode === 'identify') {
-                const correctRootDisplay = ROOT_NOTE_OPTIONS.find(opt => opt.value === normalizeNoteName(correct.root) || opt.altValue === normalizeNoteName(correct.root))?.display || correct.root;
-                setFeedback({ message: `Incorrect. It was ${correctRootDisplay} ${correct.quality} (${correct.shape} Shape).`, type: 'incorrect' });
-            } else {
-                setFeedback({ message: `Incorrect. View the diagram for the solution.`, type: 'incorrect' });
-            }
+            setFeedback({ message: `Incorrect. It was ${answerText}.`, type: 'incorrect' });
         }
         
         setTotalAsked(newTotalAsked);

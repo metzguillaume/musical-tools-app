@@ -4,7 +4,7 @@ import { PENTATONIC_SHAPES, HIGHLIGHT_MASKS } from './pentatonicConstants.js';
 import { ROOT_NOTE_OPTIONS } from '../caged/cagedConstants.js';
 import { getWeightedEnharmonicName, normalizeNoteName } from '../../utils/musicTheory.js';
 
-export const usePentatonicQuiz = (quizMode, activeShapes, settings, onProgressUpdate) => {
+export const usePentatonicQuiz = (quizMode, activeShapes, settings, onProgressUpdate, sessionId) => {
     const [score, setScore] = useState(0);
     const [totalAsked, setTotalAsked] = useState(0);
     const [feedback, setFeedback] = useState({ message: '', type: '' });
@@ -15,6 +15,10 @@ export const usePentatonicQuiz = (quizMode, activeShapes, settings, onProgressUp
     const [reviewIndex, setReviewIndex] = useState(null);
     const timeoutRef = useRef(null);
     const isReviewing = reviewIndex !== null;
+
+    // Destructure specific settings that affect QUESTION GENERATION only.
+    // excluding 'autoAdvance' so toggling it doesn't regenerate the question.
+    const { completeModeStartWithRoots } = settings;
 
     const generateNewQuestion = useCallback(() => {
         clearTimeout(timeoutRef.current);
@@ -104,7 +108,7 @@ export const usePentatonicQuiz = (quizMode, activeShapes, settings, onProgressUp
                 case 'complete':
                     let potentialStartNotes = [...answerNotes];
                     
-                    if (settings.completeModeStartWithRoots) {
+                    if (completeModeStartWithRoots) {
                         const roots = potentialStartNotes.filter(n => n.isRoot);
                         if (roots.length >= 2) potentialStartNotes = roots;
                         else potentialStartNotes = potentialStartNotes.filter(n => n.isRoot); 
@@ -127,7 +131,7 @@ export const usePentatonicQuiz = (quizMode, activeShapes, settings, onProgressUp
                         }
                     }
 
-                    if (startNotes.length < countNeeded && !settings.completeModeStartWithRoots) continue;
+                    if (startNotes.length < countNeeded && !completeModeStartWithRoots) continue;
 
                     promptData = { type: 'complete', quality };
                     question = {
@@ -170,14 +174,26 @@ export const usePentatonicQuiz = (quizMode, activeShapes, settings, onProgressUp
         setFeedback({ message: '', type: '' });
         setUserAnswer(modeToUse === 'identify' ? { root: null, quality: null, shape: null } : { notes: [] });
 
-    }, [activeShapes, quizMode, settings]);
+    }, [activeShapes, quizMode, completeModeStartWithRoots]); // Removed full 'settings' to prevent autoAdvance trigger
 
+    // RESET EFFECT: Only runs when sessionId changes (New Preset / Manual Reset)
     useEffect(() => {
         setScore(0);
         setTotalAsked(0);
         setHistory([]);
+        setFeedback({ message: '', type: '' });
+        setIsAnswered(false);
+        // We invoke generation here to ensure a fresh start
         generateNewQuestion();
-    }, [quizMode, activeShapes, generateNewQuestion]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionId]); 
+
+    // UPDATE EFFECT: Runs when settings change (Controls), but DOES NOT RESET SCORE
+    useEffect(() => {
+        // Only regenerate if not the initial mount (which is handled by the Reset Effect)
+        // Actually, duplicate call is fine/safe, but this ensures we update if user toggles a shape mid-game.
+        generateNewQuestion();
+    }, [generateNewQuestion]);
 
     const checkAnswer = useCallback((autoAdvance) => {
         if (isAnswered || !currentQuestion) return;
@@ -230,10 +246,8 @@ export const usePentatonicQuiz = (quizMode, activeShapes, settings, onProgressUp
         const newScore = isCorrect ? score + 1 : score;
         const newTotalAsked = totalAsked + 1;
 
-        // GENERATE FEEDBACK TEXT
         const normalizedRoot = normalizeNoteName(correct.root);
         const rootDisplay = ROOT_NOTE_OPTIONS.find(opt => opt.value === normalizedRoot || opt.altValue === normalizedRoot)?.display || correct.root;
-        // Capitalize first letter of quality (major/minor)
         const qualityDisplay = correct.quality.charAt(0).toUpperCase() + correct.quality.slice(1);
         const answerText = `${rootDisplay} ${qualityDisplay} (${correct.shape} Shape)`;
 

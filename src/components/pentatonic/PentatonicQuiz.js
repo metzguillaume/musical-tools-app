@@ -7,21 +7,23 @@ import { usePentatonicQuiz } from './usePentatonicQuiz';
 import { PentatonicQuizControls } from './PentatonicQuizControls';
 import { STANDARD_CAGED_ORDER, HIGHLIGHT_MASKS } from './pentatonicConstants';
 import { ROOT_NOTE_OPTIONS } from '../caged/cagedConstants';
-import { normalizeNoteName } from '../../utils/musicTheory'; // Added Import
+import { normalizeNoteName } from '../../utils/musicTheory';
 
 const PentatonicQuiz = ({ onProgressUpdate }) => {
     const { addLogEntry, savePreset, presetToLoad, clearPresetToLoad } = useTools();
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
     const [isControlsOpen, setIsControlsOpen] = useState(false);
     
+    // Reset Trigger (Session ID)
+    const [sessionId, setSessionId] = useState(0);
+
     const [quizMode, setQuizMode] = useState({ identify: true, construct: false, complete: false, connect: false });
-    
     const [settings, setSettings] = useState({
         includeMajor: true,
         includeMinor: true,
         shapes: { C: true, A: true, G: true, E: true, D: true },
         completeModeStartWithRoots: false,
-        completeModeNumNotes: 2,
+        // Removed numNotes from state as it's hardcoded now
         autoAdvance: true
     });
 
@@ -40,6 +42,8 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
                 setQuizMode(presetQuizMode);
             }
             
+            // Force a Game Reset when a Preset is loaded
+            setSessionId(Date.now());
             clearPresetToLoad();
         }
     }, [presetToLoad, clearPresetToLoad]);
@@ -51,12 +55,13 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
         return active;
     }, [settings]);
 
-    const quizProps = usePentatonicQuiz(quizMode, activeShapes, settings, onProgressUpdate);
+    const quizProps = usePentatonicQuiz(quizMode, activeShapes, settings, onProgressUpdate, sessionId);
     const { 
         score, totalAsked, feedback, isAnswered, history, reviewIndex, isReviewing, itemToDisplay, 
         handleAnswerSelect, handleFretClick, checkAnswer, generateNewQuestion, userAnswer, setUserAnswer 
     } = quizProps;
 
+    // ENTER KEY LISTENER
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -98,9 +103,7 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
         }
     };
 
-    // --- FEEDBACK RENDERER ---
     const renderFeedback = () => {
-        // 1. Live Mode: Use the feedback state directly from the hook
         if (!isReviewing) {
             return (
                 <p className={`text-lg font-bold text-center ${feedback.type === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
@@ -109,21 +112,16 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
             );
         }
 
-        // 2. Review Mode: Reconstruct the feedback string from the history item
         const item = itemToDisplay;
         if (!item || !item.question) return <>&nbsp;</>;
 
         const { answer } = item.question;
         const isCorrect = item.wasCorrect;
 
-        // Format Root Note (e.g. "A#/Bb")
         const normRoot = normalizeNoteName(answer.root);
         const rootDisplay = ROOT_NOTE_OPTIONS.find(o => o.value === normRoot || o.altValue === normRoot)?.display || answer.root;
-        
-        // Format Quality (Capitalize)
         const qualityDisplay = answer.quality.charAt(0).toUpperCase() + answer.quality.slice(1);
         
-        // Construct Text
         const answerText = `${rootDisplay} ${qualityDisplay} (${answer.shape} Shape)`;
         const message = isCorrect ? `Correct! ${answerText}` : `Incorrect. It was ${answerText}.`;
         const textColor = isCorrect ? 'text-green-400' : 'text-red-400';
@@ -275,35 +273,21 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
     return (
         <div className="flex flex-col md:flex-row items-start w-full gap-4">
             <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Pentatonic Shapes Guide">
+                {/* ... Keep existing guide content ... */}
                 <div className="space-y-4 text-sm text-gray-300">
                     <p>This tool is designed to help you master the 5 positions of the Pentatonic scale and their relationship to the CAGED system chord shapes.</p>
-
                     <h4 className="font-bold text-indigo-300 mt-4 text-lg">Game Modes</h4>
                     <ul className="list-disc list-inside space-y-2">
-                        <li>
-                            <strong className="text-teal-300">Identify:</strong> Identify the <strong>Root Note</strong>, <strong>Quality</strong> (Major/Minor), and <strong>CAGED Shape</strong> of the displayed pentatonic scale.
-                        </li>
-                        <li>
-                            <strong className="text-teal-300">Construct:</strong> Build the requested Pentatonic shape from scratch on a blank fretboard.
-                        </li>
-                        <li>
-                            <strong className="text-teal-300">Complete:</strong> You are given 2 starting notes. Figure out which Pentatonic pattern they belong to and complete the rest of the shape.
-                        </li>
-                        <li>
-                            <strong className="text-teal-300">Connect:</strong> Visualize the "Chord-Scale" relationship. You will see a "Ghost Chord" (the CAGED chord shape). Build the corresponding Pentatonic scale around it.
-                        </li>
+                        <li><strong className="text-teal-300">Identify:</strong> Name the Root, Quality, and Shape.</li>
+                        <li><strong className="text-teal-300">Construct:</strong> Build the requested Pentatonic shape from scratch.</li>
+                        <li><strong className="text-teal-300">Complete:</strong> Finish the shape given 2 starting notes.</li>
+                        <li><strong className="text-teal-300">Connect:</strong> Build a scale around a ghost chord.</li>
                     </ul>
-
-                    <h4 className="font-bold text-indigo-300 mt-4 text-lg">Controls & Settings</h4>
+                    <h4 className="font-bold text-indigo-300 mt-4 text-lg">Controls</h4>
                     <ul className="list-disc list-inside space-y-2">
-                        <li><strong>Mixing Modes:</strong> Click multiple Game Modes to create a mixed practice session (e.g., Identify + Construct).</li>
-                        <li><strong>Qualities & Shapes:</strong> Toggle specific scale qualities or CAGED shapes to focus your practice.</li>
-                        <li><strong>Complete Mode:</strong> Configure how many start notes are shown and whether the Root note is always included as a hint.</li>
+                        <li><strong>Mixing Modes:</strong> Click multiple Game Modes to create a mixed session.</li>
+                        <li><strong>Settings:</strong> Toggle qualities, shapes, and Complete mode options.</li>
                     </ul>
-                    
-                    <div className="bg-slate-800 p-3 rounded-lg mt-4 border border-slate-600">
-                        <p className="text-xs italic"><strong>Tip:</strong> Use the <span className="font-bold text-white">Save Preset</span> button to save your custom configuration for use in the Routine Hub!</p>
-                    </div>
                 </div>
             </InfoModal>
 
@@ -326,7 +310,6 @@ const PentatonicQuiz = ({ onProgressUpdate }) => {
                     <FretboardDiagram notesToDisplay={notesForDiagram} onBoardClick={handleFretClick} showLabels={isAnswered || isReviewing || itemToDisplay.question?.mode === 'complete'} />
                 </div>
                 
-                {/* Updated: Call the new renderFeedback function */}
                 <div className={`my-4 min-h-[40px] flex flex-col justify-center`}>
                      {renderFeedback()}
                 </div>

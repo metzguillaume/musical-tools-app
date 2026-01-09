@@ -12,7 +12,6 @@ import { usePresetsLogic } from './usePresetsLogic';
 import { useRoutinesLogic } from './useRoutinesLogic';
 import { useScoreboardLogic } from './useScoreboardLogic';
 
-// ... (shuffle function - no changes) ...
 const shuffle = (array) => {
     let currentIndex = array.length, randomIndex;
     while (currentIndex !== 0) {
@@ -27,7 +26,6 @@ const ToolsContext = createContext(null);
 export const useTools = () => useContext(ToolsContext);
 
 export const ToolsProvider = ({ children }) => {
-    // ... (state, unlockAudio, navigation, etc - no changes) ...
     const [activeTool, setActiveTool] = useState(null);
     const [activeTab, setActiveTab] = useState('welcome');
     const [openCategory, setOpenCategory] = useState(null);
@@ -100,13 +98,24 @@ export const ToolsProvider = ({ children }) => {
         };
     }, []);
 
-    // +++ THIS IS THE LINTER FIX +++
+    // FIXED: Only clear the metronome schedule when navigating away from generator pages
+    // that use auto-generate (not on every tab change)
+    const previousTabRef = useRef(activeTab);
     useEffect(() => {
-        if (metronome.setMetronomeSchedule) {
-            metronome.setMetronomeSchedule(null);
+        const generatorPages = ['note-generator', 'interval-generator', 'chord-progression-generator'];
+        const wasOnGeneratorPage = generatorPages.includes(previousTabRef.current);
+        const isOnGeneratorPage = generatorPages.includes(activeTab);
+        
+        // Only clear the schedule if we're navigating AWAY from a generator page
+        if (wasOnGeneratorPage && !isOnGeneratorPage) {
+            if (metronome.setMetronomeSchedule) {
+                metronome.setMetronomeSchedule(null);
+            }
         }
-    }, [activeTab, metronome]); // <-- Changed dependency
-    // +++ END FIX +++
+        
+        previousTabRef.current = activeTab;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, metronome.setMetronomeSchedule]);
 
     const loadPreset = useCallback((presetToLoad) => { 
         updatePreset(presetToLoad.id, { ...presetToLoad, lastUsed: new Date().toISOString() }); 

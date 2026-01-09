@@ -10,15 +10,16 @@ export const useMetronomeLogic = (unlockAudio) => {
     const [isMetronomeReady, setIsMetronomeReady] = useState(false);
     const [countdownClicks, setCountdownClicks] = useState(4);
     
-    // +++ FIX 1: Add a ref to hold the current countdownClicks value
+    // Ref to hold the current countdownClicks value
     const countdownClicksRef = useRef(countdownClicks);
 
     const metronomePlayer = useRef(null);
     const countdownPlayers = useRef([]);
-    const transportEventRef = useRef({ id: null, beatCounter: 0 });
+    
+    // activeInterval: Remembers the last interval to prevent resets during re-renders
+    const transportEventRef = useRef({ id: null, beatCounter: 0, activeInterval: null });
     const scheduledTaskRef = useRef(null); 
-
-    // +++ FIX 2: Keep the ref in sync with the state
+    
     useEffect(() => {
         countdownClicksRef.current = countdownClicks;
     }, [countdownClicks]);
@@ -82,48 +83,61 @@ export const useMetronomeLogic = (unlockAudio) => {
         transport.bpm.value = bpm;
         if (transportEventRef.current.id) transport.clear(transportEventRef.current.id);
         
+        // Always reset counter when starting from a full stop
         if (transport.state === 'stopped') {
             transportEventRef.current.beatCounter = 0;
         }
 
         transportEventRef.current.id = transport.scheduleRepeat(time => {
             const task = scheduledTaskRef.current;
+            const currentBeat = transportEventRef.current.beatCounter;
+
+            // --- SCENARIO A: Normal Metronome (No Auto-Generate) ---
             if (!task || !task.callback || task.interval <= 0) {
-                // This is the "normal" metronome click
                 if (metronomePlayer.current && metronomePlayer.current.loaded) {
                     metronomePlayer.current.start(time);
                 }
+                transportEventRef.current.beatCounter++;
                 return;
             }
-            // This is the "scheduled task" logic (for NoteGenerator)
+
+            // --- SCENARIO B: Auto-Generate Enabled ---
             const mainInterval = task.interval;
-            
-            // +++ FIX 3: Read from the ref instead of the state
             const countIn = countdownClicksRef.current > 0 ? countdownClicksRef.current : 0;
-            
             const cycleLength = mainInterval + countIn;
-            const positionInCycle = transportEventRef.current.beatCounter % cycleLength;
             
-            if (positionInCycle === 0) task.callback();
+            const positionInCycle = currentBeat % cycleLength;
             
+            // 1. Trigger Generation
+            if (positionInCycle === 0) {
+                setTimeout(() => task.callback(), 0);
+            }
+            
+            // 2. Play Sounds
             if (positionInCycle < countIn) {
-                const countdownNumber = positionInCycle;
-                const player = countdownPlayers.current[countdownNumber];
+                // Countdown Phase
+                const countdownNumber = positionInCycle; 
+                const playerIndex = countdownNumber % countdownPlayers.current.length;
+                const player = countdownPlayers.current[playerIndex];
+
                 if (player && player.loaded) {
                     player.start(time);
                 } else if (metronomePlayer.current && metronomePlayer.current.loaded) {
                     metronomePlayer.current.start(time);
                 }
             } else {
+                // Waiting Phase
                 if (metronomePlayer.current && metronomePlayer.current.loaded) {
                     metronomePlayer.current.start(time);
                 }
             }
+
             transportEventRef.current.beatCounter++;
+
         }, "4n");
         
         if (transport.state !== 'started') {
-            transport.start(); // This was the fix for the RhythmTool sync
+            transport.start();
         }
         setIsMetronomePlaying(true);
     }, [bpm, isMetronomeReady]);
@@ -135,15 +149,27 @@ export const useMetronomeLogic = (unlockAudio) => {
         transport.position = 0; 
         transportEventRef.current.id = null;
         transportEventRef.current.beatCounter = 0;
+        transportEventRef.current.activeInterval = null;
+        
         setIsMetronomePlaying(false);
     }, []);
 
-    // +++ THIS IS CORRECT +++
-    // setMetronomeSchedule now *only* sets the task.
-    // It no longer stops or starts the metronome.
+    // FIXED: Simplified logic - only reset beat counter when interval actually changes
     const setMetronomeSchedule = useCallback((task) => {
         scheduledTaskRef.current = task;
-    }, []); // No dependencies needed
+
+        if (task && task.interval > 0) {
+            // Only reset the beat counter if the interval has actually changed
+            if (task.interval !== transportEventRef.current.activeInterval) {
+                transportEventRef.current.beatCounter = 0;
+                transportEventRef.current.activeInterval = task.interval;
+            }
+        } else {
+            // Clear the schedule only when explicitly set to null
+            // Don't clear activeInterval - let it persist for re-renders
+            transportEventRef.current.activeInterval = null;
+        }
+    }, []);
 
     const toggleMetronome = useCallback(async () => {
         await unlockAudio();
@@ -152,14 +178,11 @@ export const useMetronomeLogic = (unlockAudio) => {
     }, [isMetronomePlaying, stopMetronome, startMetronome, unlockAudio]);
 
     useEffect(() => { 
-        // Changed this from isMetronomePlaying to state === 'started'
-        // to be more robust.
         if (Tone.getTransport().state === 'started') {
             Tone.getTransport().bpm.value = bpm;
         }
     }, [bpm]);
 
-    // This return statement is correct and exports all necessary functions
     return { 
         bpm, setBpm, 
         isMetronomePlaying, toggleMetronome, 

@@ -24,6 +24,8 @@ import PresetsManagerPage from './components/presets/PresetsManagerPage';
 import MusicCircles from './components/musicCircles/MusicCircles';
 import RhythmTool from './components/rhythmTool/RhythmTool';
 import PentatonicQuiz from './components/pentatonic/PentatonicQuiz';
+import ChordShapesQuiz from './components/chordShapes/ChordShapesQuiz';
+import ScaleDegreeQuiz from './components/scaleDegreeQuiz/ScaleDegreeQuiz';
 
 // The main UI component is now stateless and driven entirely by the context.
 const AppContent = () => {
@@ -77,6 +79,8 @@ const showMusicCircles = process.env.REACT_APP_SHOW_MUSIC_CIRCLES === 'true';
         { id: 'interval-fretboard-quiz', name: 'Fretboard Intervals' }, { id: 'caged-system-quiz', name: 'CAGED System Quiz' },
         { id: 'fretboard-triads', name: 'Fretboard Triads' },
         { id: 'pentatonic-shapes-quiz', name: 'Pentatonic Shapes' },
+        { id: 'chord-shapes-quiz', name: 'Chord Shapes' },
+        { id: 'scale-degree-quiz', name: 'Scale Degree Quiz' },
       ],
     },
     {
@@ -158,6 +162,8 @@ const showMusicCircles = process.env.REACT_APP_SHOW_MUSIC_CIRCLES === 'true';
                   {activeTab === 'presets-manager' && <PresetsManagerPage />}
                   {activeTab === 'rhythm-trainer' && <RhythmTool />}
                   {activeTab === 'pentatonic-shapes-quiz' && <PentatonicQuiz />}
+                  {activeTab === 'scale-degree-quiz' && <ScaleDegreeQuiz />}
+                  {activeTab === 'chord-shapes-quiz' && <ChordShapesQuiz />}
               </>
           )}
       </main>

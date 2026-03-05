@@ -16,9 +16,10 @@ import { ChordTrainerControls } from '../chordTrainer/ChordTrainerControls';
 import { FretboardTriadsControls } from '../fretboardTriads/FretboardTriadsControls';
 import { ChordEarTrainerControls } from '../earTraining/chordRecognition/ChordEarTrainerControls';
 import { ProgressionEarTrainerControls } from '../earTraining/progressionRecognition/ProgressionEarTrainerControls';
-// +++ ADD THIS IMPORT (you may need to correct the path) +++
 import { RhythmToolControls } from '../rhythmTool/RhythmToolControls';
 import { PentatonicQuizControls } from '../pentatonic/PentatonicQuizControls';
+import { ChordShapesControls } from '../chordShapes/ChordShapesControls';
+import { ScaleDegreeQuizControls } from '../scaleDegreeQuiz/ScaleDegreeQuizControls';
 
 
 // Map game IDs to their corresponding controls component
@@ -36,9 +37,10 @@ const controlsMap = {
     'fretboard-triads': FretboardTriadsControls,
     'chord-ear-trainer': ChordEarTrainerControls,
     'progression-ear-trainer': ProgressionEarTrainerControls,
-    // +++ ADD THIS ENTRY +++
     'rhythm-trainer': RhythmToolControls,
     'pentatonic-shapes-quiz': PentatonicQuizControls,
+    'chord-shapes-quiz': ChordShapesControls,
+    'scale-degree-quiz': ScaleDegreeQuizControls,
 };
 
 const PresetEditorModal = ({ preset, onSave, onCancel }) => {
@@ -75,7 +77,7 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                     onAudioDirectionChange: (val) => handleSettingChange('audioDirection', val),
                     localVolume: editedPreset.settings.fretboardVolume,
                     onLocalVolumeChange: (val) => handleSettingChange('fretboardVolume', val),
-                    onVolumeSet: () => {}, 
+                    onVolumeSet: () => {},
                     onIntervalSelectionChange: (name) => handleSettingChange('selectedIntervals', { ...editedPreset.settings.selectedIntervals, [name]: !editedPreset.settings.selectedIntervals[name] }),
                     onQuickSelect: (quality) => {
                         const newSelection = { ...editedPreset.settings.selectedIntervals };
@@ -90,7 +92,7 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                     openControlSections: openSections,
                     onToggleSection: toggleSection,
                 };
-            
+
             case 'interval-fretboard-quiz':
                 return {
                     ...baseProps,
@@ -107,19 +109,22 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                         if (type === 'shapes') handleSettingChange('shapes', { ...editedPreset.settings.shapes, [key]: !editedPreset.settings.shapes[key] });
                         else handleSettingChange(key, !editedPreset.settings[key]);
                     }
-                };    
+                };
+
+            case 'chord-shapes-quiz':
+                return { ...baseProps };
 
             case 'melodic-ear-trainer':
             case 'chord-ear-trainer':
             case 'progression-ear-trainer':
                 return {
                     ...baseProps,
-                    onRandomKey: () => {}, 
-                    onApplySettings: () => {}, 
+                    onRandomKey: () => {},
+                    onApplySettings: () => {},
                 };
 
             case 'caged-system-quiz':
-                 return {
+                return {
                     ...baseProps,
                     quizMode: editedPreset.settings.quizMode,
                     onQuizModeChange: (val) => handleSettingChange('quizMode', val),
@@ -130,8 +135,8 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                             handleSettingChange(key, !editedPreset.settings[key]);
                         }
                     },
-                 };
-            
+                };
+
             case 'chord-progression-generator':
                 return {
                     ...baseProps,
@@ -147,7 +152,7 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                     countdownClicks: editedPreset.automation?.countdownClicks || 0,
                     onCountdownChange: (val) => setEditedPreset(p => ({...p, automation: {...p.automation, countdownClicks: val }})),
                 };
-            
+
             case 'fretboard-triads':
                 return {
                     ...baseProps,
@@ -158,23 +163,34 @@ const PresetEditorModal = ({ preset, onSave, onCancel }) => {
                         }));
                     },
                 };
-            
-            // +++ ADD THIS NEW CASE FOR THE RHYTHM TRAINER +++
+
             case 'rhythm-trainer':
                 return {
                     ...baseProps,
-                    // Extract bpm from settings for the slider
-                    bpm: editedPreset.settings.bpm || 60, 
-                    // Handle bpm changes by updating the settings object
+                    bpm: editedPreset.settings.bpm || 60,
                     onBpmChange: (newBpm) => {
                         setEditedPreset(p => ({
                             ...p,
                             settings: { ...p.settings, bpm: newBpm }
                         }));
                     },
-                    // onSettingChange is already handled by baseProps
                 };
-            
+
+            case 'scale-degree-quiz':
+                return {
+                    ...baseProps,
+                    onSettingToggle: (type, key) => {
+                        if (type === 'misc') {
+                            handleSettingChange(key, !editedPreset.settings[key]);
+                        } else {
+                            handleSettingChange(type, {
+                                ...editedPreset.settings[type],
+                                [key]: !editedPreset.settings[type]?.[key],
+                            });
+                        }
+                    },
+                };
+
             default:
                 const hasAutomation = preset.gameId === 'note-generator' || preset.gameId === 'interval-generator';
                 if (hasAutomation) {

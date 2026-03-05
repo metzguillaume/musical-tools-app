@@ -20,6 +20,7 @@ const gameToCategoryMap = {
     'CAGED System Quiz': 'Fretboard',
     'Fretboard Triads': 'Fretboard',
     'Pentatonic Shapes': 'Fretboard',
+    'Chord Shapes': 'Fretboard',
     'Interval Recognition': 'Ear Training',
     'Melodic Recognition': 'Ear Training',
     'Chord Recognition': 'Ear Training',
@@ -31,7 +32,7 @@ const categoryOrder = [
     { name: 'Generators', modules: ['Note Generator', 'Interval Generator', 'Chord Progression Generator', 'Diagram Maker'] },
     // +++ FIX 2: Add Rhythm Trainer to the 'Theory' modules list +++
     { name: 'Theory', modules: ['Interval Practice', 'Triad & Tetrads Quiz', 'Chord Trainer', 'Rhythm Trainer'] },
-    { name: 'Fretboard', modules: ['Fretboard Intervals', 'CAGED System Quiz', 'Fretboard Triads', 'Pentatonic Shapes'] },
+    { name: 'Fretboard', modules: ['Fretboard Intervals', 'CAGED System Quiz', 'Fretboard Triads', 'Pentatonic Shapes', 'Chord Shapes'] },
     { name: 'Ear Training', modules: ['Interval Recognition', 'Melodic Recognition', 'Chord Recognition', 'Progression Recognition'] }
 ];
 

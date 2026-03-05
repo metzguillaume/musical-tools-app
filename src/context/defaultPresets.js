@@ -165,6 +165,25 @@ export const defaultPresets = [
             showRootHint: false,
         },
     },
+    // Chord Shapes Default
+    {
+        id: 'default-chord-shapes',
+        name: 'Default Chord Shapes',
+        gameId: 'chord-shapes-quiz',
+        gameName: 'Chord Shapes',
+        isDefault: true,
+        settings: {
+            gameMode: 'construct', 
+            referenceSystem: 'Axis', 
+            showReferenceDegrees: true,
+            autoAdvance: true,
+            allowedQualities: { 
+                'Major': true, 'Minor': true, 
+                'Major 7': false, 'Dominant 7': false, 'Minor 7': false,
+                'Augmented': false, 'Diminished': false
+            }
+        },
+    },
     // Interval Recognition (Ear Training) Default
     {
         id: 'default-09',
@@ -281,6 +300,24 @@ export const defaultPresets = [
             shapes: { C: true, A: true, G: true, E: true, D: true },
             completeModeStartWithRoots: false,
             quizMode: 'mixed',
+            autoAdvance: true,
+        },
+    },
+    {
+        id: 'default-17',
+        name: 'Default Scale Degree Quiz',
+        gameId: 'scale-degree-quiz',
+        gameName: 'Scale Degree Quiz',
+        isDefault: true,
+        settings: {
+            enabledScaleTypes: {
+                majorPentatonic: true,
+                minorPentatonic: true,
+                majorScale: false,
+                naturalMinor: false,
+            },
+            enabledShapes: { E: true, A: true, G: true, C: true, D: true },
+            contextModes: { rootGiven: true, qualityGiven: false },
             autoAdvance: true,
         },
     },

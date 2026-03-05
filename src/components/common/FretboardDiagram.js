@@ -130,8 +130,30 @@ const FretboardDiagram = ({
                 const fillColor = note.overrideColor || ((colorMapEntry && colorMapEntry.active) ? colorMapEntry.color : defaultColor);
                 const strokeColor = note.isRoot ? 'hsl(170, 100%, 75%)' : 'hsl(220, 80%, 85%)';
                 const baseLabel = labelType === 'degree' ? note.degree : note.label;
-                const displayLabel = showLabels ? (note.overrideLabel || baseLabel) : (note.isRoot ? 'R' : '');
+                const displayLabel = showLabels ? (note.overrideLabel !== undefined ? note.overrideLabel : baseLabel) : (note.isRoot ? 'R' : '');
                 const isDragging = draggingNote && draggingNote.string === note.string && draggingNote.fret === note.fret;
+
+                // textOnly: render just a floating label, no circle (used for scaffold/ghost notes)
+                if (note.textOnly) {
+                    return (
+                        <g
+                            key={`note-${note.string}-${note.fret}`}
+                            transform={`translate(${x}, ${y})`}
+                            style={{ pointerEvents: 'none' }}
+                        >
+                            <text
+                                textAnchor="middle"
+                                dy=".35em"
+                                fill={note.overrideColor || 'rgba(255,255,255,0.5)'}
+                                fontSize="0.85rem"
+                                fontWeight="bold"
+                                style={{ userSelect: 'none' }}
+                            >
+                                {displayLabel}
+                            </text>
+                        </g>
+                    );
+                }
 
                 return (
                     <g

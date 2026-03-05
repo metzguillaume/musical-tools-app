@@ -79,7 +79,7 @@ const showMusicCircles = process.env.REACT_APP_SHOW_MUSIC_CIRCLES === 'true';
         { id: 'interval-fretboard-quiz', name: 'Fretboard Intervals' }, { id: 'caged-system-quiz', name: 'CAGED System Quiz' },
         { id: 'fretboard-triads', name: 'Fretboard Triads' },
         { id: 'pentatonic-shapes-quiz', name: 'Pentatonic Shapes' },
-        { id: 'chord-shapes-quiz', name: 'Chord Shapes' },
+        //{ id: 'chord-shapes-quiz', name: 'Chord Shapes' },//
         { id: 'scale-degree-quiz', name: 'Scale Degree Quiz' },
       ],
     },

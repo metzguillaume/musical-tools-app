@@ -11,6 +11,7 @@ import { useAudioPlayers } from './useAudioPlayers';
 import { usePresetsLogic } from './usePresetsLogic';
 import { useRoutinesLogic } from './useRoutinesLogic';
 import { useScoreboardLogic } from './useScoreboardLogic';
+import { useRecorderLogic } from './useRecorderLogic';
 
 const shuffle = (array) => {
     let currentIndex = array.length, randomIndex;
@@ -81,6 +82,7 @@ export const ToolsProvider = ({ children }) => {
     const scoreboard = useScoreboardLogic();
     const routinesLogic = useRoutinesLogic();
     const { presets, updatePreset, ...presetsLogic } = usePresetsLogic(routinesLogic.routines);
+    const recorder = useRecorderLogic();
 
     const rhythmNotePlayer = useRef(null);
     const [isRhythmNoteReady, setIsRhythmNoteReady] = useState(false);
@@ -184,13 +186,15 @@ export const ToolsProvider = ({ children }) => {
         activeRoutine, routineStepIndex, routineProgress, setRoutineProgress,
         startRoutine, nextRoutineStep, endRoutine, updateRoutineProgress, finishRoutine,
         lastRoutineResultId, setLastRoutineResultId,
+        recorder,
     }), [
         unlockAudio, activeTool, toggleActiveTool, activeTab, navigate, openCategory, handleCategoryClick,
         log, metronome, drone, timer, stopwatch, audioPlayers, presets, updatePreset, presetsLogic, routinesLogic, scoreboard,
         presetToLoad, activeRoutine, routineStepIndex, routineProgress, lastRoutineResultId,
         loadPreset, startRoutine, nextRoutineStep, endRoutine, updateRoutineProgress, finishRoutine,
         setRoutineProgress, setLastRoutineResultId, clearPresetToLoad,
-        isRhythmNoteReady
+        isRhythmNoteReady,
+        recorder,
     ]
     );
 

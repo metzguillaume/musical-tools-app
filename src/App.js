@@ -26,6 +26,7 @@ import RhythmTool from './components/rhythmTool/RhythmTool';
 import PentatonicQuiz from './components/pentatonic/PentatonicQuiz';
 import ChordShapesQuiz from './components/chordShapes/ChordShapesQuiz';
 import ScaleDegreeQuiz from './components/scaleDegreeQuiz/ScaleDegreeQuiz';
+import RecordingStudio from './components/recordingStudio/RecordingStudio';
 
 // The main UI component is now stateless and driven entirely by the context.
 const AppContent = () => {
@@ -109,6 +110,7 @@ const showMusicCircles = process.env.REACT_APP_SHOW_MUSIC_CIRCLES === 'true';
       </div>
 
       <GlobalTools />
+      <RecordingStudio />
 
       <header className="w-full max-w-5xl mx-auto bg-slate-800 shadow-lg rounded-xl p-6 mb-8 text-center">
         <h1 className="text-3xl md:text-5xl font-extrabold text-teal-400 leading-tight">Musical Practice Tools</h1>
